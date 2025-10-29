@@ -1,0 +1,26 @@
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Python server artifacts
+*.pyc
+__pycache__/
+.server.pid
+
+# System files
+Thumbs.db
+ehthumbs.db
+Icon?
+._*
+
+# Node/npm (voor het geval je later npm gebruikt)
+node_modules/
+
+# Log files
+*.log
+
+# Backup files
+*~

@@ -1,0 +1,58 @@
+{
+  "id": "sora-demo-magisch-bos-2025",
+  "projectName": "Magical Forest Adventure (Sora Demo)",
+  "videoGenerator": "Sora",
+  "notes": "Demo project for Sora - An enchanting story about a child who discovers a magical forest and befriends its inhabitants.",
+  "createdAt": "2025-10-29T20:00:00.000Z",
+  "updatedAt": "2025-10-29T20:00:00.000Z",
+  "prompts": [
+    {
+      "id": "scene-01-forest-entrance",
+      "text": "A curious 8-year-old child walks toward the edge of a mysterious, misty forest. Sunbeams filter through tall trees creating magical light rays. The child looks in wonder at the forest entrance.",
+      "translation": "Een nieuwsgierig kind van 8 jaar oud wandelt naar de rand van een mysterieus, mistig bos. Zonnestralen filteren door de hoge bomen en creëren magische lichtstralen. Het kind kijkt verwonderd naar de ingang van het bos.",
+      "imagePath": null,
+      "imageOriginalName": null,
+      "imageType": null
+    },
+    {
+      "id": "scene-02-first-steps",
+      "text": "The child carefully takes the first steps into the magical forest. All around them, flowers begin to glow softly and butterflies with shimmering wings flutter between the trees.",
+      "translation": "Het kind zet voorzichtig de eerste stappen het magische bos in. Overal om hen heen beginnen bloemen zachtjes te gloeien en vlinders met glinsterende vleugels fladderen tussen de bomen.",
+      "imagePath": null,
+      "imageOriginalName": null,
+      "imageType": null
+    },
+    {
+      "id": "scene-03-talking-rabbit",
+      "text": "A friendly white rabbit with a golden collar appears from a bush. The rabbit starts talking and invites the child to come along on an adventure deeper into the forest.",
+      "translation": "Een vriendelijk wit konijn met een gouden halsband verschijnt uit een struik. Het konijn begint te praten en nodigt het kind uit om mee te komen op een avontuur dieper het bos in.",
+      "imagePath": null,
+      "imageOriginalName": null,
+      "imageType": null
+    },
+    {
+      "id": "scene-04-fairy-clearing",
+      "text": "The child and rabbit arrive at an enchanting clearing where tiny fairies dance around a crystal fountain. The fairies wave friendly at the child and invite them to dance along.",
+      "translation": "Het kind en het konijn arriveren bij een betoverende open plek waar kleine elfjes dansen rond een kristallen fontein. De elfjes zwaaien vriendelijk naar het kind en nodigen hen uit om mee te dansen.",
+      "imagePath": null,
+      "imageOriginalName": null,
+      "imageType": null
+    },
+    {
+      "id": "scene-05-tree-house-discovery",
+      "text": "High in a gigantic oak tree, the child discovers a beautiful tree house with glowing windows. A ladder of living branches grows downward to invite the child to climb up.",
+      "translation": "Hoog in een gigantische eikenboom ontdekt het kind een prachtig boomhuis met gloeiende ramen. Een ladder van levende takken groeit naar beneden om het kind uit te nodigen naar boven te klimmen.",
+      "imagePath": null,
+      "imageOriginalName": null,
+      "imageType": null
+    },
+    {
+      "id": "scene-06-friendship-celebration",
+      "text": "In the tree house, the child celebrates together with all magical friends - the rabbit, fairies and other forest creatures - in a joyful party. Everyone laughs and dances while magical stars float through the air.",
+      "translation": "In het boomhuis viert het kind samen met alle magische vrienden - het konijn, de elfjes en andere boswezens - een vrolijk feest. Iedereen lacht en danst terwijl magische sterren door de lucht zweven.",
+      "imagePath": null,
+      "imageOriginalName": null,
+      "imageType": null
+    }
+  ]
+}

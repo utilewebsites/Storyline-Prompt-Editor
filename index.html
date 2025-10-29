@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Storyline Prompt Editor</title>
+    <link rel="stylesheet" href="./assets/css/style.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="title-group">
+        <h1 id="header-title" data-i18n="header.title">Storyline Prompt Editor</h1>
+        <p id="header-subtitle" class="subtitle" data-i18n="header.subtitle">
+          Beheer storylineprojecten, prompts en scene-afbeeldingen in één overzicht.
+        </p>
+        <label class="language-switch" for="language-switch">
+          <span data-i18n="header.languageLabel">Taal</span>
+          <select id="language-switch">
+            <option value="nl">Nederlands</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+      </div>
+      <div class="header-actions">
+        <button id="choose-root" class="primary" data-i18n="actions.chooseRoot">
+          📁 Kies projectmap
+        </button>
+        <span id="root-path" class="muted"></span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <header>
+            <h2 data-i18n="projects.title">Projecten</h2>
+          </header>
+          <div class="panel-actions projects-actions">
+            <button
+              id="refresh-projects"
+              data-i18n="projects.refresh"
+              data-i18n-attr-title="projects.refreshTitle"
+              data-i18n-attr-aria-label="projects.refreshTitle"
+            >
+              🔄
+            </button>
+            <label class="sort-label" data-i18n-wrapper="projects.sortLabel">
+              <span data-i18n="projects.sortLabel">Sorteer op</span>
+              <select id="sort-projects">
+                <option value="updated" data-i18n="projects.sort.updated">Laatst aangepast</option>
+                <option value="created" data-i18n="projects.sort.created">Aanmaakdatum</option>
+                <option value="name" data-i18n="projects.sort.name">Projectnaam</option>
+              </select>
+            </label>
+          </div>
+          <ul id="project-list" class="project-list"></ul>
+          <p id="no-projects" class="muted hidden" data-i18n="projects.empty">
+            Geen projecten gevonden. Maak een nieuw project aan.
+          </p>
+        </section>
+
+        <section class="panel">
+          <header>
+            <h2 data-i18n="newProject.title">Nieuw project</h2>
+          </header>
+          <form id="project-form" class="form-grid">
+            <label data-i18n-wrapper="newProject.name">
+              <span data-i18n="newProject.name">Projectnaam</span>
+              <input type="text" id="project-name" required />
+            </label>
+            <label data-i18n-wrapper="newProject.generator">
+              <span data-i18n="newProject.generator">Video generator</span>
+              <input
+                type="text"
+                id="project-generator"
+                placeholder="Bijv. Runway, Sora..."
+              />
+            </label>
+            <label data-i18n-wrapper="newProject.notes">
+              <span data-i18n="newProject.notes">Notities</span>
+              <textarea id="project-notes" rows="3"></textarea>
+            </label>
+            <button type="submit" class="primary" id="create-project" disabled data-i18n="newProject.create">
+              ➕ Maak project
+            </button>
+          </form>
+        </section>
+      </aside>
+
+      <section class="workspace">
+        <div id="project-empty-state" class="empty-state">
+          <h2 id="empty-title" data-i18n="workspace.emptyTitle">Kies of maak een project</h2>
+          <p id="empty-description" data-i18n="workspace.emptyDescription">
+            Selecteer een project links of maak een nieuw project aan om prompts
+            te beheren.
+          </p>
+        </div>
+
+        <div id="project-editor" class="hidden">
+          <header class="project-header">
+            <div>
+          <h2 id="project-title"></h2>
+              <p id="project-meta" class="muted"></p>
+            </div>
+            <div class="project-actions">
+            <button id="save-project" class="primary" data-i18n="project.save">💾 Opslaan</button>
+              <button id="export-prompts" data-i18n="project.exportPrompts">🗒️ Exporteer prompts</button>
+              <button id="export-images" data-i18n="project.exportImages">🖼️ Exporteer afbeeldingen</button>
+            </div>
+          </header>
+
+          <section class="metadata">
+            <div>
+              <label data-i18n-wrapper="metadata.generator">
+                <span data-i18n="metadata.generator">Video generator</span>
+                <input type="text" id="edit-generator" />
+              </label>
+            </div>
+            <div>
+              <label data-i18n-wrapper="metadata.notes">
+                <span data-i18n="metadata.notes">Notities</span>
+                <textarea id="edit-notes" rows="2"></textarea>
+              </label>
+            </div>
+          </section>
+
+          <section class="prompts-panel">
+            <header class="prompts-header">
+              <h3 data-i18n="prompts.title">Prompts</h3>
+              <button id="add-prompt" class="primary" data-i18n="prompts.add">➕ Nieuwe prompt</button>
+            </header>
+            <p class="muted" id="prompts-help" data-i18n="prompts.help">
+              Sleep afbeeldingen op een kaart of gebruik de uploadknop. Bekijk per scene de afbeelding, de Engelse prompt en de vertaling naar het Nederlands.
+            </p>
+            <div id="prompts-container" class="prompts-container"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <template id="prompt-template">
+      <article class="prompt-card" data-id="">
+        <header class="prompt-card-header">
+          <div class="prompt-card-title">
+            <span class="prompt-index"></span>
+            <button
+              class="open-prompt"
+              type="button"
+              data-i18n="prompt.open"
+              data-i18n-attr-title="prompt.openTitle"
+              data-i18n-attr-aria-label="prompt.openTitle"
+            >
+              🔍
+            </button>
+          </div>
+          <div class="prompt-card-actions">
+            <button
+              class="drag-handle"
+              type="button"
+              draggable="true"
+              data-i18n="prompt.drag"
+              data-i18n-attr-title="prompt.dragTitle"
+              data-i18n-attr-aria-label="prompt.dragTitle"
+            >
+              ⠿
+            </button>
+            <button class="move-up" data-i18n="prompt.moveUp" data-i18n-attr-title="prompt.moveUpTitle">⬆️</button>
+            <button class="move-down" data-i18n="prompt.moveDown" data-i18n-attr-title="prompt.moveDownTitle">⬇️</button>
+            <button class="delete" data-i18n="prompt.delete" data-i18n-attr-title="prompt.deleteTitle">🗑️</button>
+          </div>
+        </header>
+        <div class="image-uploader" data-has-image="false">
+          <div class="image-preview">
+            <span class="placeholder" data-i18n="prompt.placeholderImage">Sleep hier een afbeelding</span>
+            <img alt="Scene afbeelding voorbeeld" />
+          </div>
+          <div class="image-actions">
+            <label class="upload-button" data-i18n="prompt.uploadButton">
+              📁 Kies afbeelding
+              <input type="file" accept="image/*" class="image-input" />
+            </label>
+            <button class="remove-image" type="button" data-i18n="prompt.removeImage" data-i18n-attr-title="prompt.removeImageTitle">
+              Verwijder
+            </button>
+          </div>
+        </div>
+        <label class="field" data-i18n-wrapper="prompt.labelPrompt">
+          <span data-i18n="prompt.labelPrompt">Engelse prompt</span>
+          <textarea
+            class="prompt-text"
+            rows="3"
+            placeholder="Schrijf de Engelse prompt..."
+            data-i18n-attr-placeholder="prompt.promptPlaceholder"
+          ></textarea>
+        </label>
+        <label class="field" data-i18n-wrapper="prompt.labelTranslation">
+          <span data-i18n="prompt.labelTranslation">Vertaling</span>
+          <textarea
+            class="prompt-nl"
+            rows="2"
+            placeholder="Vertaling naar het Nederlands..."
+            data-i18n-attr-placeholder="prompt.translationPlaceholder"
+          ></textarea>
+        </label>
+      </article>
+    </template>
+
+    <dialog id="export-dialog">
+      <form method="dialog" class="export-dialog">
+        <h3 data-i18n="dialog.export.title">Prompts exporteren</h3>
+        <p data-i18n="dialog.export.message">
+          De prompts zijn gekopieerd naar het klembord en opgeslagen als tekstbestand in de projectmap.
+        </p>
+        <menu>
+          <button value="close" class="primary" data-i18n="dialog.export.close">Sluiten</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="export-preview-dialog">
+      <form method="dialog" class="export-preview-dialog">
+        <h3 data-i18n="exportPreview.title">Controleer prompts</h3>
+        <p id="export-preview-info" class="muted">
+          Bekijk de prompts hieronder. Je kunt ze kopiëren of opslaan vanuit deze dialoog.
+        </p>
+        <textarea id="export-preview-text" rows="12" readonly></textarea>
+        <menu>
+          <button value="cancel" data-i18n="actions.cancel">Annuleer</button>
+          <button type="button" id="export-preview-copy" data-i18n="exportPreview.copy">Kopieer naar klembord</button>
+          <button value="save" class="primary" data-i18n="exportPreview.save">Opslaan en kopiëren</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="prompt-dialog">
+      <form method="dialog" class="prompt-dialog">
+        <header class="prompt-dialog-header">
+          <h3 id="prompt-dialog-title">
+            <span data-i18n="dialog.prompt.title">Scene</span>
+            <span id="dialog-scene-index"></span>
+          </h3>
+          <menu>
+          <button id="dialog-open-image" type="button" data-i18n="dialog.prompt.openImage">Open afbeelding</button>
+          <button value="cancel" data-i18n="dialog.prompt.cancel">Annuleer</button>
+            <button id="dialog-save" class="primary" value="save" data-i18n="dialog.prompt.save">Opslaan</button>
+          </menu>
+        </header>
+        <div class="prompt-dialog-body">
+          <div class="dialog-image-preview" data-has-image="false">
+            <img id="dialog-image" alt="Scene afbeelding groot" />
+            <p class="muted" id="dialog-image-placeholder" data-i18n="dialog.prompt.noImage">
+              Nog geen afbeelding gekoppeld.
+            </p>
+          </div>
+          <div class="prompt-dialog-content">
+            <label data-i18n-wrapper="dialog.prompt.promptLabel">
+              <span data-i18n="dialog.prompt.promptLabel">Engelse prompt</span>
+              <textarea id="dialog-text" rows="6"></textarea>
+            </label>
+
+            <label data-i18n-wrapper="dialog.prompt.translationLabel">
+              <span data-i18n="dialog.prompt.translationLabel">Vertaling</span>
+              <textarea id="dialog-translation" rows="4"></textarea>
+            </label>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="error-dialog">
+      <form method="dialog" class="export-dialog">
+        <h3 data-i18n="dialog.error.title">Foutmelding</h3>
+        <p id="error-message"></p>
+        <menu>
+          <button value="close" class="primary" data-i18n="dialog.error.close">Sluiten</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <script type="module" src="./assets/js/app.js"></script>
+  </body>
+</html>
