@@ -2,24 +2,24 @@
   "version": 1,
   "projects": [
     {
-      "id": "veo3-demo-ruimte-avontuur-2025",
-      "slug": "veo3-ruimte-avontuur",
-      "projectName": "Galactic Discovery Journey (Veo 3 Demo)",
-      "createdAt": "2025-10-29T20:15:00.000Z",
-      "updatedAt": "2025-10-29T20:15:30.372Z",
-      "promptCount": 8,
-      "videoGenerator": "Veo 3",
-      "notes": "Demo project for Veo 3 - An epic space adventure about a young astronaut who explores strange planets and discovers alien friendships."
-    },
-    {
       "id": "sora-demo-magisch-bos-2025",
       "slug": "sora-magisch-bos",
       "projectName": "Magical Forest Adventure (Sora Demo)",
       "createdAt": "2025-10-29T20:00:00.000Z",
-      "updatedAt": "2025-10-29T20:00:00.000Z",
-      "promptCount": 6,
+      "updatedAt": "2025-10-30T06:30:20.609Z",
+      "promptCount": 4,
       "videoGenerator": "Sora",
       "notes": "Demo project for Sora - An enchanting story about a child who discovers a magical forest and befriends its inhabitants."
+    },
+    {
+      "id": "veo3-demo-ruimte-avontuur-2025",
+      "slug": "veo3-ruimte-avontuur",
+      "projectName": "Galactic Discovery Journey (Veo 3 Demo)",
+      "createdAt": "2025-10-29T20:15:00.000Z",
+      "updatedAt": "2025-10-29T20:57:20.086Z",
+      "promptCount": 8,
+      "videoGenerator": "Veo 3",
+      "notes": "Demo project for Veo 3 - An epic space adventure about a young astronaut who explores strange planets and discovers alien friendships."
     }
   ]
 }

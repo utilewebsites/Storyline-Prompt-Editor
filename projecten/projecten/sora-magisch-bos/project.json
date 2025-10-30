@@ -4,24 +4,8 @@
   "videoGenerator": "Sora",
   "notes": "Demo project for Sora - An enchanting story about a child who discovers a magical forest and befriends its inhabitants.",
   "createdAt": "2025-10-29T20:00:00.000Z",
-  "updatedAt": "2025-10-29T20:00:00.000Z",
+  "updatedAt": "2025-10-30T06:30:20.609Z",
   "prompts": [
-    {
-      "id": "scene-01-forest-entrance",
-      "text": "A curious 8-year-old child walks toward the edge of a mysterious, misty forest. Sunbeams filter through tall trees creating magical light rays. The child looks in wonder at the forest entrance.",
-      "translation": "Een nieuwsgierig kind van 8 jaar oud wandelt naar de rand van een mysterieus, mistig bos. Zonnestralen filteren door de hoge bomen en creëren magische lichtstralen. Het kind kijkt verwonderd naar de ingang van het bos.",
-      "imagePath": null,
-      "imageOriginalName": null,
-      "imageType": null
-    },
-    {
-      "id": "scene-02-first-steps",
-      "text": "The child carefully takes the first steps into the magical forest. All around them, flowers begin to glow softly and butterflies with shimmering wings flutter between the trees.",
-      "translation": "Het kind zet voorzichtig de eerste stappen het magische bos in. Overal om hen heen beginnen bloemen zachtjes te gloeien en vlinders met glinsterende vleugels fladderen tussen de bomen.",
-      "imagePath": null,
-      "imageOriginalName": null,
-      "imageType": null
-    },
     {
       "id": "scene-03-talking-rabbit",
       "text": "A friendly white rabbit with a golden collar appears from a bush. The rabbit starts talking and invites the child to come along on an adventure deeper into the forest.",

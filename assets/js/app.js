@@ -610,7 +610,7 @@ function createPromptCard(prompt, index) {
 
   // Verwijderen en verplaatsen
   card.querySelector(".delete").addEventListener("click", () => {
-    deletePrompt(prompt.id);
+    deletePrompt(prompt.id).catch((error) => showError(t("errors.deletePrompt"), error));
   });
   card.querySelector(".move-up").addEventListener("click", () => {
     movePrompt(prompt.id, -1);
@@ -657,7 +657,7 @@ function createPromptCard(prompt, index) {
   });
 
   card.querySelector(".remove-image").addEventListener("click", () => {
-    removeImageFromPrompt(prompt.id, uploader);
+    removeImageFromPrompt(prompt.id, uploader).catch((error) => showError(t("errors.removeImage"), error));
   });
 
   applyTranslations(card);
@@ -690,9 +690,25 @@ function updatePromptField(promptId, field, value) {
   flagProjectDirty({ refreshEditor: false, refreshList: false });
 }
 
-function deletePrompt(promptId) {
+async function deletePrompt(promptId) {
   const index = state.projectData.prompts.findIndex((item) => item.id === promptId);
   if (index === -1) return;
+  
+  const prompt = state.projectData.prompts[index];
+  
+  // Verwijder het fysieke afbeeldingsbestand als het bestaat
+  if (prompt.imagePath && state.projectImagesHandle) {
+    try {
+      console.log(`Probeer bestand te verwijderen bij prompt delete: ${prompt.imagePath}`);
+      await state.projectImagesHandle.removeEntry(prompt.imagePath);
+      console.log(`Bestand ${prompt.imagePath} succesvol verwijderd bij prompt delete`);
+    } catch (error) {
+      console.error(`Kon afbeeldingsbestand ${prompt.imagePath} niet verwijderen bij prompt delete:`, error);
+      // Gooi de fout door naar de gebruiker
+      throw error;
+    }
+  }
+  
   state.projectData.prompts.splice(index, 1);
   imageMap.delete(promptId);
   flagProjectDirty();
@@ -762,6 +778,22 @@ async function assignImageToPrompt(promptId, file, uploader) {
   if (!file) return;
   if (!state.projectImagesHandle) throw new Error("Geen afbeeldingenmap gevonden");
 
+  const prompt = state.projectData.prompts.find((item) => item.id === promptId);
+  if (!prompt) return;
+
+  // Verwijder de oude afbeelding als die bestaat
+  if (prompt.imagePath) {
+    try {
+      console.log(`Probeer oude afbeelding te verwijderen bij vervangen: ${prompt.imagePath}`);
+      await state.projectImagesHandle.removeEntry(prompt.imagePath);
+      console.log(`Oude afbeelding ${prompt.imagePath} succesvol verwijderd bij vervangen`);
+    } catch (error) {
+      console.error(`Kon oude afbeelding ${prompt.imagePath} niet verwijderen bij vervangen:`, error);
+      // Gooi de fout door naar de gebruiker
+      throw error;
+    }
+  }
+
   const extension = file.name.split(".").pop();
   const filename = `${promptId}.${extension}`;
   const fileHandle = await state.projectImagesHandle.getFileHandle(filename, { create: true });
@@ -769,8 +801,6 @@ async function assignImageToPrompt(promptId, file, uploader) {
   await writable.write(await file.arrayBuffer());
   await writable.close();
 
-  const prompt = state.projectData.prompts.find((item) => item.id === promptId);
-  if (!prompt) return;
   prompt.imagePath = filename;
   prompt.imageOriginalName = file.name;
   prompt.imageType = file.type;
@@ -785,9 +815,23 @@ async function assignImageToPrompt(promptId, file, uploader) {
   previewImg.src = blobUrl;
 }
 
-function removeImageFromPrompt(promptId, uploader) {
+async function removeImageFromPrompt(promptId, uploader) {
   const prompt = state.projectData.prompts.find((item) => item.id === promptId);
   if (!prompt) return;
+  
+  // Verwijder het fysieke bestand als het bestaat
+  if (prompt.imagePath && state.projectImagesHandle) {
+    try {
+      console.log(`Probeer bestand te verwijderen: ${prompt.imagePath}`);
+      await state.projectImagesHandle.removeEntry(prompt.imagePath);
+      console.log(`Bestand ${prompt.imagePath} succesvol verwijderd`);
+    } catch (error) {
+      console.error(`Kon afbeeldingsbestand ${prompt.imagePath} niet verwijderen:`, error);
+      // Gooi de fout door naar de gebruiker
+      throw error;
+    }
+  }
+  
   prompt.imagePath = null;
   prompt.imageOriginalName = null;
   prompt.imageType = null;
