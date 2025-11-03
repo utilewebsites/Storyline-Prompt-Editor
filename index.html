@@ -102,10 +102,13 @@
           <h2 id="project-title"></h2>
               <p id="project-meta" class="muted"></p>
             </div>
-            <div class="project-actions">
+          <div class="project-actions">
             <button id="save-project" class="primary" data-i18n="project.save">💾 Opslaan</button>
+              <button id="start-presentation" data-i18n="project.presentation">🎬 Presentatie</button>
+              <button id="duplicate-project" data-i18n="project.duplicate">📄 Kopieer project</button>
               <button id="export-prompts" data-i18n="project.exportPrompts">🗒️ Exporteer prompts</button>
               <button id="export-images" data-i18n="project.exportImages">🖼️ Exporteer afbeeldingen</button>
+              <button id="delete-project" class="danger" data-i18n="project.delete">🗑️ Verwijder project</button>
             </div>
           </header>
 
@@ -164,6 +167,7 @@
             >
               ⠿
             </button>
+            <button class="copy-scene" data-i18n-attr-title="prompt.copyToProjectTitle">📋</button>
             <button class="move-up" data-i18n="prompt.moveUp" data-i18n-attr-title="prompt.moveUpTitle">⬆️</button>
             <button class="move-down" data-i18n="prompt.moveDown" data-i18n-attr-title="prompt.moveDownTitle">⬇️</button>
             <button class="delete" data-i18n="prompt.delete" data-i18n-attr-title="prompt.deleteTitle">🗑️</button>
@@ -202,6 +206,12 @@
             data-i18n-attr-placeholder="prompt.translationPlaceholder"
           ></textarea>
         </label>
+        <div class="field rating-field">
+          <label>
+            <span data-i18n="rating.title">Kwaliteit</span>
+            <div class="rating" aria-label="Rating" role="group"></div>
+          </label>
+        </div>
       </article>
     </template>
 
@@ -228,6 +238,33 @@
           <button value="cancel" data-i18n="actions.cancel">Annuleer</button>
           <button type="button" id="export-preview-copy" data-i18n="exportPreview.copy">Kopieer naar klembord</button>
           <button value="save" class="primary" data-i18n="exportPreview.save">Opslaan en kopiëren</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="copy-dialog">
+      <form method="dialog" class="copy-dialog">
+        <h3 data-i18n="copyDialog.title">Kopieer scene</h3>
+        <p data-i18n="copyDialog.message">Kies een doelproject om deze scene naartoe te kopiëren.</p>
+        <label>
+          <span data-i18n="copyDialog.selectLabel">Doelproject</span>
+          <select id="copy-target-select"></select>
+        </label>
+        <menu>
+          <button id="copy-cancel" value="cancel" data-i18n="actions.cancel">Annuleer</button>
+          <button id="copy-duplicate" value="duplicate" class="primary" data-i18n="copyDialog.duplicateInProject">📋 Dupliceer in dit project</button>
+          <button id="copy-confirm" value="confirm" data-i18n="copyDialog.confirm">📋 Kopieer naar project</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="delete-project-dialog">
+      <form method="dialog" class="export-dialog">
+        <h3 data-i18n="deleteDialog.title">Project verwijderen</h3>
+        <p id="delete-project-warning" data-i18n="deleteDialog.message">Weet u zeker dat u dit project wilt verwijderen? Deze actie kan niet ongedaan gemaakt worden.</p>
+        <menu>
+          <button id="delete-cancel" value="cancel" data-i18n="actions.cancel">Annuleer</button>
+          <button id="delete-confirm" value="confirm" class="danger" data-i18n="deleteDialog.delete">🗑️ Verwijder</button>
         </menu>
       </form>
     </dialog>
@@ -274,6 +311,54 @@
         <menu>
           <button value="close" class="primary" data-i18n="dialog.error.close">Sluiten</button>
         </menu>
+      </form>
+    </dialog>
+
+    <dialog id="presentation-dialog">
+      <form method="dialog" class="presentation-form">
+        <div class="presentation-header">
+          <div class="presentation-title">
+            <h3 id="presentation-project-name"></h3>
+            <span id="presentation-slide-counter" class="muted"></span>
+          </div>
+          <div class="presentation-controls">
+            <label class="presentation-lang-label">
+              <span data-i18n="presentation.language">Taal:</span>
+              <select id="presentation-language">
+                <option value="en" data-i18n="presentation.english">English</option>
+                <option value="nl" data-i18n="presentation.dutch">Nederlands</option>
+                <option value="both" data-i18n="presentation.both">Beide</option>
+              </select>
+            </label>
+            <button type="button" id="presentation-close" value="cancel" data-i18n="actions.cancel">Sluiten</button>
+          </div>
+        </div>
+
+        <div class="presentation-slide">
+          <div class="slide-image-container">
+            <img id="presentation-image" alt="Scene afbeelding" />
+            <p id="presentation-no-image" class="muted" data-i18n="presentation.noImage">Geen afbeelding</p>
+          </div>
+
+          <div class="slide-content">
+            <div id="presentation-text-en" class="slide-text slide-text-en">
+              <h4 data-i18n="presentation.englishPrompt">Engelse prompt</h4>
+              <p id="presentation-prompt-en"></p>
+            </div>
+            <div id="presentation-text-nl" class="slide-text slide-text-nl">
+              <h4 data-i18n="presentation.dutchTranslation">Nederlandse vertaling</h4>
+              <p id="presentation-prompt-nl"></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="presentation-footer">
+          <button type="button" id="presentation-prev" data-i18n="presentation.previous">⬅️ Vorige</button>
+          <div class="presentation-progress">
+            <div id="presentation-progress-bar"></div>
+          </div>
+          <button type="button" id="presentation-next" data-i18n="presentation.next">Volgende ➡️</button>
+        </div>
       </form>
     </dialog>
 

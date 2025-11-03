@@ -59,6 +59,32 @@ const elements = {
   dialogImageWrapper: document.querySelector(".dialog-image-preview"),
   dialogOpenImage: document.querySelector("#dialog-open-image"),
   dialogSave: document.querySelector("#dialog-save"),
+  duplicateProject: document.querySelector("#duplicate-project"),
+  copyDialog: document.querySelector("#copy-dialog"),
+  copyTargetSelect: document.querySelector("#copy-target-select"),
+  copyConfirm: document.querySelector("#copy-confirm"),
+  copyCancel: document.querySelector("#copy-cancel"),
+  copyDuplicate: document.querySelector("#copy-duplicate"),
+  dialogRating: document.querySelector("#dialog-rating"),
+  startPresentation: document.querySelector("#start-presentation"),
+  presentationDialog: document.querySelector("#presentation-dialog"),
+  presentationLanguage: document.querySelector("#presentation-language"),
+  presentationProjectName: document.querySelector("#presentation-project-name"),
+  presentationSlideCounter: document.querySelector("#presentation-slide-counter"),
+  presentationImage: document.querySelector("#presentation-image"),
+  presentationNoImage: document.querySelector("#presentation-no-image"),
+  presentationTextEn: document.querySelector("#presentation-text-en"),
+  presentationTextNl: document.querySelector("#presentation-text-nl"),
+  presentationPromptEn: document.querySelector("#presentation-prompt-en"),
+  presentationPromptNl: document.querySelector("#presentation-prompt-nl"),
+  presentationPrev: document.querySelector("#presentation-prev"),
+  presentationNext: document.querySelector("#presentation-next"),
+  presentationProgressBar: document.querySelector("#presentation-progress-bar"),
+  presentationClose: document.querySelector("#presentation-close"),
+  deleteProject: document.querySelector("#delete-project"),
+  deleteProjectDialog: document.querySelector("#delete-project-dialog"),
+  deleteConfirm: document.querySelector("#delete-confirm"),
+  deleteCancel: document.querySelector("#delete-cancel"),
 };
 
 const state = {
@@ -77,6 +103,11 @@ const state = {
   dialogImageUrl: null,
   pendingExportText: null,
   pendingExportCount: 0,
+  copyingPromptId: null,
+  presentationMode: {
+    currentSlide: 0,
+    languageMode: "both", // "en", "nl", "both"
+  },
 };
 
 let currentLanguage = "nl";
@@ -659,6 +690,19 @@ function createPromptCard(prompt, index) {
   card.querySelector(".remove-image").addEventListener("click", () => {
     removeImageFromPrompt(prompt.id, uploader).catch((error) => showError(t("errors.removeImage"), error));
   });
+  // Rating widget
+  const ratingContainer = card.querySelector(".rating");
+  renderStarWidget(ratingContainer, prompt.rating ?? 0, (val) => {
+    updatePromptField(prompt.id, "rating", val);
+  });
+
+  // Copy scene to other project
+  const copyBtn = card.querySelector(".copy-scene");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", () => {
+      openCopyDialog(prompt.id).catch((error) => showError(t("errors.openPrompt"), error));
+    });
+  }
 
   applyTranslations(card);
   return card;
@@ -676,6 +720,30 @@ async function loadImagePreview(imagePath, imgElement) {
     imgElement.src = blobUrl;
   } catch (error) {
     console.warn("Voorvertoning laden mislukt", error);
+  }
+}
+
+/**
+ * Render a 5-star widget into a container. Calls onChange(newValue) when user sets rating.
+ */
+function renderStarWidget(container, currentValue = 0, onChange = () => {}) {
+  if (!container) return;
+  container.innerHTML = "";
+  for (let i = 1; i <= 5; i += 1) {
+    const star = document.createElement("button");
+    star.type = "button";
+    star.className = `star ${i <= (currentValue || 0) ? "filled" : ""}`;
+    star.dataset.value = String(i);
+    star.setAttribute("aria-label", `${i} star`);
+    star.textContent = i <= (currentValue || 0) ? "★" : "☆";
+    star.addEventListener("click", (e) => {
+      e.preventDefault();
+      const val = Number(star.dataset.value);
+      onChange(val);
+      // rerender
+      renderStarWidget(container, val, onChange);
+    });
+    container.appendChild(star);
   }
 }
 
@@ -769,6 +837,319 @@ function handlePromptContainerDrop(event) {
   elements.promptsContainer.querySelectorAll(".prompt-card.dragging").forEach((card) => card.classList.remove("dragging"));
   movePromptToIndex(promptId, targetIndex);
   state.draggedPromptId = null;
+}
+
+/**
+ * Open a dialog to choose a target project for copying a prompt.
+ */
+async function openCopyDialog(promptId) {
+  if (!elements.copyDialog) return;
+  if (!state.indexData.projects || state.indexData.projects.length <= 1) {
+    showError(t("errors.refreshProjects"));
+    return;
+  }
+  // Populate select with projects except the current one
+  elements.copyTargetSelect.innerHTML = "";
+  const options = state.indexData.projects.filter((p) => p.id !== state.selectedProjectId);
+  for (const p of options) {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.projectName;
+    elements.copyTargetSelect.appendChild(opt);
+  }
+  state.copyingPromptId = promptId;
+  elements.copyDialog.showModal();
+}
+
+/**
+ * Copy a single prompt (and its image if present) into another project.
+ */
+async function copySceneToProject(promptId, targetProjectId) {
+  if (!state.projectenHandle) throw new Error("Geen project root");
+  const sourcePrompt = state.projectData.prompts.find((p) => p.id === promptId);
+  if (!sourcePrompt) throw new Error(t("errors.noSceneSelected"));
+
+  const targetMeta = state.indexData.projects.find((p) => p.id === targetProjectId);
+  if (!targetMeta) throw new Error("Target project not found");
+
+  const targetDir = await state.projectenHandle.getDirectoryHandle(targetMeta.slug, { create: false });
+  const targetProjectFile = await targetDir.getFileHandle("project.json", { create: true });
+  const targetImagesDir = await targetDir.getDirectoryHandle("images", { create: true });
+
+  const targetData = await readJsonFile(targetProjectFile);
+  targetData.prompts = Array.isArray(targetData.prompts) ? targetData.prompts : [];
+
+  // Create a copy of the prompt with a new id
+  const newPrompt = {
+    id: uuid(),
+    text: sourcePrompt.text ?? "",
+    translation: sourcePrompt.translation ?? "",
+    imagePath: null,
+    imageOriginalName: sourcePrompt.imageOriginalName ?? null,
+    imageType: sourcePrompt.imageType ?? null,
+    rating: sourcePrompt.rating ?? null,
+  };
+
+  // If image exists, copy file bytes
+  if (sourcePrompt.imagePath && state.projectImagesHandle) {
+    try {
+      const sourceHandle = await state.projectImagesHandle.getFileHandle(sourcePrompt.imagePath);
+      const sourceFile = await sourceHandle.getFile();
+      const extension = sourcePrompt.imagePath.split('.').pop();
+      const targetFilename = `${newPrompt.id}.${extension}`;
+      const targetHandle = await targetImagesDir.getFileHandle(targetFilename, { create: true });
+      const writable = await targetHandle.createWritable();
+      await writable.write(await sourceFile.arrayBuffer());
+      await writable.close();
+      newPrompt.imagePath = targetFilename;
+    } catch (error) {
+      console.warn("Kopiëren afbeelding mislukt", error);
+      // We continue without image to not block the operation
+      newPrompt.imagePath = null;
+    }
+  }
+
+  targetData.prompts.push(newPrompt);
+  // update timestamps
+  targetData.updatedAt = new Date().toISOString();
+  await writeJsonFile(targetProjectFile, targetData);
+
+  // If target project is currently open, refresh it
+  if (state.selectedProjectId === targetProjectId) {
+    state.projectData = targetData;
+    // rebuild imageMap for the open project
+    imageMap.clear();
+    state.projectData.prompts.forEach((p) => {
+      if (p.imagePath) imageMap.set(p.id, { filename: p.imagePath });
+    });
+    renderProjectEditor();
+  } else {
+    // update index entry for target project
+    const entry = state.indexData.projects.find((p) => p.id === targetProjectId);
+    if (entry) {
+      entry.updatedAt = targetData.updatedAt;
+      entry.promptCount = targetData.prompts.length;
+      await writeJsonFile(state.indexHandle, state.indexData);
+    }
+  }
+}
+
+/**
+ * Duplicate a prompt within the same project, inserting it right after the original.
+ */
+async function duplicateSceneInProject(promptId) {
+  const sourcePrompt = state.projectData.prompts.find((p) => p.id === promptId);
+  if (!sourcePrompt) throw new Error(t("errors.noSceneSelected"));
+
+  const index = state.projectData.prompts.indexOf(sourcePrompt);
+  const newPrompt = {
+    id: uuid(),
+    text: sourcePrompt.text ?? "",
+    translation: sourcePrompt.translation ?? "",
+    imagePath: null,
+    imageOriginalName: sourcePrompt.imageOriginalName ?? null,
+    imageType: sourcePrompt.imageType ?? null,
+    rating: sourcePrompt.rating ?? null,
+  };
+
+  // If image exists, copy file bytes within the same images dir
+  if (sourcePrompt.imagePath && state.projectImagesHandle) {
+    try {
+      const sourceHandle = await state.projectImagesHandle.getFileHandle(sourcePrompt.imagePath);
+      const sourceFile = await sourceHandle.getFile();
+      const extension = sourcePrompt.imagePath.split('.').pop();
+      const targetFilename = `${newPrompt.id}.${extension}`;
+      const targetHandle = await state.projectImagesHandle.getFileHandle(targetFilename, { create: true });
+      const writable = await targetHandle.createWritable();
+      await writable.write(await sourceFile.arrayBuffer());
+      await writable.close();
+      newPrompt.imagePath = targetFilename;
+      imageMap.set(newPrompt.id, { filename: targetFilename });
+    } catch (error) {
+      console.warn("Dupliceren afbeelding mislukt", error);
+    }
+  }
+
+  // Insert after the original
+  state.projectData.prompts.splice(index + 1, 0, newPrompt);
+  flagProjectDirty();
+}
+
+/**
+ * Presentatiemodus: open fullscreen slideshow
+ */
+async function openPresentation() {
+  if (!state.projectData || !state.projectData.prompts.length) {
+    showError(t("errors.noPrompts"));
+    return;
+  }
+
+  state.presentationMode.currentSlide = 0;
+  state.presentationMode.languageMode = "both";
+
+  if (elements.presentationLanguage) {
+    elements.presentationLanguage.value = "both";
+  }
+
+  // Laad eerste slide
+  updatePresentationSlide();
+
+  if (elements.presentationDialog) {
+    applyTranslations(elements.presentationDialog);
+    elements.presentationDialog.showModal();
+  }
+}
+
+/**
+ * Update presentatie-slide met huidige inhoud
+ */
+function updatePresentationSlide() {
+  const prompts = state.projectData.prompts;
+  const current = prompts[state.presentationMode.currentSlide];
+  if (!current) return;
+
+  const total = prompts.length;
+  const slideNum = state.presentationMode.currentSlide + 1;
+
+  // Header
+  if (elements.presentationProjectName) {
+    elements.presentationProjectName.textContent = state.projectData.projectName;
+  }
+  if (elements.presentationSlideCounter) {
+    elements.presentationSlideCounter.textContent = `${slideNum} / ${total}`;
+  }
+
+  // Afbeelding
+  if (current.imagePath && state.projectImagesHandle) {
+    elements.presentationNoImage.classList.add("hidden");
+    loadImagePreview(current.imagePath, elements.presentationImage).catch((error) => {
+      console.warn("Afbeelding laden mislukt", error);
+      elements.presentationNoImage.classList.remove("hidden");
+      elements.presentationImage.src = "";
+    });
+  } else {
+    elements.presentationNoImage.classList.remove("hidden");
+    elements.presentationImage.src = "";
+  }
+
+  // Teksten tonen op basis van taalmode
+  const lang = state.presentationMode.languageMode;
+  elements.presentationTextEn.classList.toggle("visible", lang === "en" || lang === "both");
+  elements.presentationTextNl.classList.toggle("visible", lang === "nl" || lang === "both");
+
+  if (elements.presentationPromptEn) {
+    elements.presentationPromptEn.textContent = current.text ?? "";
+  }
+  if (elements.presentationPromptNl) {
+    elements.presentationPromptNl.textContent = current.translation ?? "";
+  }
+
+  // Buttons inschakelen/uitschakelen
+  if (elements.presentationPrev) {
+    elements.presentationPrev.disabled = state.presentationMode.currentSlide === 0;
+  }
+  if (elements.presentationNext) {
+    elements.presentationNext.disabled = state.presentationMode.currentSlide === total - 1;
+  }
+
+  // Progress bar
+  if (elements.presentationProgressBar) {
+    const percentage = (slideNum / total) * 100;
+    elements.presentationProgressBar.style.width = `${percentage}%`;
+  }
+}
+
+/**
+ * Volgende slide in presentatie
+ */
+function nextSlide() {
+  const total = state.projectData.prompts.length;
+  if (state.presentationMode.currentSlide < total - 1) {
+    state.presentationMode.currentSlide += 1;
+    updatePresentationSlide();
+  }
+}
+
+/**
+ * Vorige slide in presentatie
+ */
+function prevSlide() {
+  if (state.presentationMode.currentSlide > 0) {
+    state.presentationMode.currentSlide -= 1;
+    updatePresentationSlide();
+  }
+}
+
+/**
+ * Taal wisselen in presentatie
+ */
+function setPresentationLanguage(lang) {
+  state.presentationMode.languageMode = lang;
+  updatePresentationSlide();
+}
+
+/**
+ * Sluit presentatiemodus
+ */
+function closePresentationMode() {
+  if (elements.presentationDialog) {
+    elements.presentationDialog.close();
+  }
+  state.presentationMode.currentSlide = 0;
+}
+
+/**
+ * Open delete confirmation dialog
+ */
+function openDeleteProjectDialog() {
+  if (!state.projectData) return;
+  if (elements.deleteProjectDialog) {
+    applyTranslations(elements.deleteProjectDialog);
+    elements.deleteProjectDialog.showModal();
+  }
+}
+
+/**
+ * Delete current project: remove from filesystem and UI
+ */
+async function deleteCurrentProject() {
+  if (!state.projectData || !state.projectenHandle) return;
+
+  try {
+    // Find the project entry in index
+    const entry = state.indexData.projects.find((p) => p.id === state.projectData.id);
+    if (!entry) throw new Error("Project niet gevonden in index");
+
+    // Delete the project directory
+    try {
+      await state.projectenHandle.removeEntry(entry.slug, { recursive: true });
+    } catch (error) {
+      console.error("Fout bij verwijderen projectmap", error);
+      throw error;
+    }
+
+    // Remove from index
+    state.indexData.projects = state.indexData.projects.filter((p) => p.id !== state.projectData.id);
+    await writeJsonFile(state.indexHandle, state.indexData);
+
+    // Reset UI
+    state.selectedProjectId = null;
+    state.projectHandle = null;
+    state.projectImagesHandle = null;
+    state.projectData = null;
+    state.isDirty = false;
+
+    // Refresh list
+    renderProjectList();
+    elements.projectEditor.classList.add("hidden");
+    elements.projectEmptyState.classList.remove("hidden");
+    updateRootUi();
+
+    // Show success message
+    window.alert(t("alerts.projectDeleted"));
+  } catch (error) {
+    showError(t("errors.deleteProject"), error);
+  }
 }
 
 /**
@@ -922,6 +1303,87 @@ async function createProject(event) {
 }
 
 /**
+ * Duplicate current project into a new project directory.
+ * Asks the user for a new project name via prompt().
+ */
+async function copyProject() {
+  if (!state.projectData || !state.projectenHandle) return;
+  const suggested = `${state.projectData.projectName} (copy)`;
+  const newName = window.prompt(t("project.duplicate"), suggested);
+  if (!newName) return;
+
+  const rawSlug = slugify(newName);
+  let slug = rawSlug;
+  let counter = 1;
+  const existingSlugs = new Set(state.indexData.projects.map((project) => project.slug));
+  while (existingSlugs.has(slug)) {
+    slug = `${rawSlug}-${counter++}`;
+  }
+
+  const createdAt = new Date().toISOString();
+  const projectDir = await state.projectenHandle.getDirectoryHandle(slug, { create: true });
+  const imagesDir = await projectDir.getDirectoryHandle("images", { create: true });
+
+  const projectJsonHandle = await projectDir.getFileHandle("project.json", { create: true });
+  const newProjectId = uuid();
+  const newProjectData = {
+    id: newProjectId,
+    projectName: newName,
+    videoGenerator: state.projectData.videoGenerator ?? "",
+    notes: state.projectData.notes ?? "",
+    createdAt,
+    updatedAt: createdAt,
+    prompts: [],
+  };
+
+  // Copy prompts and images
+  for (const p of state.projectData.prompts) {
+    const newPrompt = {
+      id: uuid(),
+      text: p.text ?? "",
+      translation: p.translation ?? "",
+      imagePath: null,
+      imageOriginalName: p.imageOriginalName ?? null,
+      imageType: p.imageType ?? null,
+      rating: p.rating ?? null,
+    };
+    if (p.imagePath && state.projectImagesHandle) {
+      try {
+        const sourceHandle = await state.projectImagesHandle.getFileHandle(p.imagePath);
+        const sourceFile = await sourceHandle.getFile();
+        const extension = p.imagePath.split('.').pop();
+        const targetFilename = `${newPrompt.id}.${extension}`;
+        const targetHandle = await imagesDir.getFileHandle(targetFilename, { create: true });
+        const writable = await targetHandle.createWritable();
+        await writable.write(await sourceFile.arrayBuffer());
+        await writable.close();
+        newPrompt.imagePath = targetFilename;
+      } catch (error) {
+        console.warn("Kopiëren van afbeelding voor project duplicatie mislukt", error);
+      }
+    }
+    newProjectData.prompts.push(newPrompt);
+  }
+
+  await writeJsonFile(projectJsonHandle, newProjectData);
+
+  state.indexData.projects.push({
+    id: newProjectId,
+    projectName: newName,
+    slug,
+    createdAt,
+    updatedAt: createdAt,
+    promptCount: newProjectData.prompts.length,
+    videoGenerator: newProjectData.videoGenerator,
+    notes: newProjectData.notes,
+  });
+  await writeJsonFile(state.indexHandle, state.indexData);
+  renderProjectList();
+  // open the new project
+  await openProject(newProjectId);
+}
+
+/**
  * Opent een project en laadt alle data.
  */
 async function openProject(projectId) {
@@ -936,6 +1398,10 @@ async function openProject(projectId) {
   const projectData = await readJsonFile(projectFile);
   // Zorg dat verplichte velden bestaan voor oudere versies
   projectData.prompts ??= [];
+  // Backwards compatibility: oudere projecten kunnen geen rating hebben
+  projectData.prompts.forEach((p) => {
+    if (p.rating === undefined) p.rating = null;
+  });
   projectData.createdAt ??= projectMeta.createdAt;
   projectData.updatedAt ??= projectMeta.updatedAt;
   projectData.videoGenerator ??= projectMeta.videoGenerator ?? "";
@@ -971,6 +1437,7 @@ function addPrompt() {
     imagePath: null,
     imageOriginalName: null,
     imageType: null,
+    rating: null,
   };
   state.projectData.prompts.push(prompt);
   flagProjectDirty();
@@ -1349,6 +1816,11 @@ function init() {
   elements.refreshProjects.addEventListener("click", () =>
     refreshProjectsList().catch((error) => showError(t("errors.refreshProjects"), error))
   );
+  if (elements.duplicateProject) {
+    elements.duplicateProject.addEventListener("click", () =>
+      copyProject().catch((error) => showError(t("errors.createProject"), error))
+    );
+  }
   elements.addPrompt.addEventListener("click", addPrompt);
   elements.saveProject.addEventListener("click", () => saveProject().catch((error) => showError(t("errors.saveProject"), error)));
   elements.exportPrompts.addEventListener("click", () =>
@@ -1377,6 +1849,104 @@ function init() {
   }
   if (elements.exportPreviewDialog) {
     elements.exportPreviewDialog.addEventListener("close", handleExportPreviewClose);
+  }
+  if (elements.copyConfirm) {
+    elements.copyConfirm.addEventListener("click", async (event) => {
+      event.preventDefault();
+      try {
+        const targetId = elements.copyTargetSelect.value;
+        if (!targetId || !state.copyingPromptId) return;
+        await copySceneToProject(state.copyingPromptId, targetId);
+      } catch (error) {
+        showError(t("errors.exportPrompts"), error);
+      } finally {
+        if (elements.copyDialog) elements.copyDialog.close();
+        state.copyingPromptId = null;
+      }
+    });
+  }
+  if (elements.copyDuplicate) {
+    elements.copyDuplicate.addEventListener("click", async (event) => {
+      event.preventDefault();
+      try {
+        if (!state.copyingPromptId) return;
+        await duplicateSceneInProject(state.copyingPromptId);
+      } catch (error) {
+        showError(t("errors.exportPrompts"), error);
+      } finally {
+        if (elements.copyDialog) elements.copyDialog.close();
+        state.copyingPromptId = null;
+      }
+    });
+  }
+  if (elements.copyCancel && elements.copyDialog) {
+    elements.copyCancel.addEventListener("click", () => {
+      state.copyingPromptId = null;
+      elements.copyDialog.close();
+    });
+  }
+  if (elements.startPresentation) {
+    elements.startPresentation.addEventListener("click", () =>
+      openPresentation().catch((error) => showError(t("errors.openPrompt"), error))
+    );
+  }
+  if (elements.presentationLanguage) {
+    elements.presentationLanguage.addEventListener("change", (event) => {
+      setPresentationLanguage(event.target.value);
+    });
+  }
+  if (elements.presentationNext) {
+    elements.presentationNext.addEventListener("click", nextSlide);
+  }
+  if (elements.presentationPrev) {
+    elements.presentationPrev.addEventListener("click", prevSlide);
+  }
+  if (elements.presentationClose) {
+    elements.presentationClose.addEventListener("click", closePresentationMode);
+  }
+  if (elements.presentationDialog) {
+    elements.presentationDialog.addEventListener("close", closePresentationMode);
+  }
+  // Keyboard shortcuts voor presentatie
+  document.addEventListener("keydown", (event) => {
+    if (!elements.presentationDialog || !elements.presentationDialog.open) return;
+    if (event.key === "ArrowRight" || event.key === " ") {
+      event.preventDefault();
+      nextSlide();
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      prevSlide();
+    } else if (event.key === "Escape") {
+      event.preventDefault();
+      closePresentationMode();
+    }
+  });
+  if (elements.deleteProject) {
+    elements.deleteProject.addEventListener("click", () => {
+      openDeleteProjectDialog();
+    });
+  }
+  if (elements.deleteConfirm) {
+    elements.deleteConfirm.addEventListener("click", async (event) => {
+      event.preventDefault();
+      try {
+        await deleteCurrentProject();
+      } catch (error) {
+        showError(t("errors.deleteProject"), error);
+      } finally {
+        if (elements.deleteProjectDialog) elements.deleteProjectDialog.close();
+      }
+    });
+  }
+  if (elements.deleteCancel && elements.deleteProjectDialog) {
+    elements.deleteCancel.addEventListener("click", () => {
+      elements.deleteProjectDialog.close();
+    });
+  }
+  if (elements.deleteProjectDialog) {
+    elements.deleteProjectDialog.addEventListener("close", () => {
+      // Dialog gesloten
+    });
   }
   updateRootUi();
   tryRestoreLastRoot().catch((error) => {

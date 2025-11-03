@@ -1,3 +1,4 @@
+
 # Storyline Prompt Editor
 
 [![Bekijk de demo op YouTube](https://img.youtube.com/vi/gxHS0iwoO0U/0.jpg)](https://youtu.be/gxHS0iwoO0U?si=gFUd9JmBjGY3Wzks)
@@ -5,6 +6,30 @@
 Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-prompts, inclusief start- en eindbeelden én overzicht over de volledige verhaallijn. Je kunt projecten bewaren, scènes herschikken en exports maken, zodat je altijd grip houdt op je videoverhaal.
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
+
+## Recente update — 3 november 2025
+
+In deze release zijn drie zichtbare functies toegevoegd, plus diverse verbeteringen:
+
+- Scènes kopiëren: kopieer een scène binnen dezelfde tijdslijn of kopieer een scène naar een ander project. Behoudt afbeelding, prompts en vertalingen.
+- Projectbewerkingen: dupliceer een volledig project of verwijder een project uit de verkenner.
+- Presentatiemodus: open het project in een fullscreen/preview weergave om de verhaallijn als een reeks grote beelden en prompts te beoordelen.
+
+Vorige gepubliceerde versie: 29 november 2025
+
+
+- Dialoog voor scènes kopiëren: 
+   ![Voorbeeld scènes kopiëren](docs/images/copy_scenes.png)
+- Presentatiemodus voorbeeld: 
+   ![Presentatiemodus voorbeeld](docs/images/presentation.png)
+
+Kort gebruik (snel):
+
+- Scène kopiëren: open het scenemenu (clipboard icon) en kies "Scène kopiëren". Selecteer het doelproject (of dezelfde) en klik "Dupliceren in dit project" of "Kopiëren naar project".
+- Project dupliceren/verwijderen: gebruik in de projectheader de knoppen "Duplicate project" of "Delete project". Verwijderen vraagt om bevestiging.
+- Presentatiemodus: klik op de knop "Presentation" in de projectheader om de fullscreen reviewmodus te openen. Gebruik de pijltjestoetsen om tussen scènes te navigeren.
+
+Deze aantekeningen zijn ook in de Engelse README (`README.md`) bijgewerkt.
 
 ## Waarom deze tool?
 

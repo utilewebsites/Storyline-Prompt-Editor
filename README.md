@@ -1,3 +1,4 @@
+
 # Storyline Prompt Editor
 
 [![Bekijk de demo op YouTube](https://img.youtube.com/vi/gxHS0iwoO0U/0.jpg)](https://youtu.be/gxHS0iwoO0U?si=gFUd9JmBjGY3Wzks)
@@ -5,6 +6,31 @@
 This project is a browser-based workspace for crafting video LLM prompts while steadily tracking the entire storyline of your production. It was built to make it easy to manage prompts, starter/ending images, translations, and project notes in one place and to carry that context across machines.
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
+
+## Recent update — 3 November 2025
+
+This release adds three user-facing features and several quality-of-life improvements:
+
+- Copy scenes: copy a scene within the same timeline or copy it to another project. This preserves the scene image, prompts and translations.
+- Project operations: duplicate a full project or permanently delete a project from the explorer.
+- Presentation mode: open the current project in a fullscreen/preview presentation for reviewing the story as a sequence of large images and prompts.
+
+Previous published version: 29 November 2025
+
+
+
+- Copy scenes dialog:  
+   ![Copy scenes example](docs/images/copy_scenes.png)
+- Presentation mode preview:
+   ![Presentation mode example](docs/images/presentation.png)
+
+How to use the new features (short):
+
+- Copy a scene: open the scene menu (clipboard icon) and choose "Copy scene". Select target project (or choose the same project) and click "Duplicate in this project" or "Copy to project".
+- Duplicate/delete project: in the project header use the "Duplicate project" or "Delete project" buttons. Deleting asks for confirmation.
+- Presentation mode: click the "Presentation" button in the project header to enter fullscreen review mode. Use keyboard arrows to move between scenes.
+
+These notes are also reflected in the Dutch README (`README.nl.md`).
 
 ## Why this tool?
 

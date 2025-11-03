@@ -34,6 +34,9 @@ const translations = {
     },
     project: {
       save: "💾 Opslaan",
+      presentation: "🎬 Presentatie",
+      duplicate: "📄 Kopieer project",
+      delete: "🗑️ Verwijder project",
       exportPrompts: "🗒️ Exporteer prompts",
       exportImages: "🖼️ Exporteer afbeeldingen",
       lastUpdated: "Laatst aangepast: {{date}}",
@@ -71,6 +74,8 @@ const translations = {
       labelTranslation: "Vertaling",
       translationPlaceholder: "Schrijf hier de vertaling...",
       imageAddedFallback: "Afbeelding toegevoegd",
+      copyToProject: "Kopieer naar project",
+      copyToProjectTitle: "Kopieer scene naar ander project",
     },
     dialog: {
       export: {
@@ -101,8 +106,35 @@ const translations = {
       save: "Opslaan en kopiëren",
       copied: "Prompts gekopieerd naar het klembord.",
     },
+    copyDialog: {
+      title: "Kopieer scene",
+      message: "Kies een doelproject om deze scene naartoe te kopiëren.",
+      selectLabel: "Doelproject",
+      confirm: "Kopieer naar project",
+      duplicateInProject: "Dupliceer in dit project",
+    },
+    deleteDialog: {
+      title: "Project verwijderen",
+      message: "Weet u zeker dat u dit project wilt verwijderen? Deze actie kan niet ongedaan gemaakt worden.",
+      delete: "Verwijder",
+    },
+    rating: {
+      title: "Kwaliteit",
+    },
+    presentation: {
+      language: "Taal:",
+      english: "English",
+      dutch: "Nederlands",
+      both: "Beide",
+      noImage: "Geen afbeelding",
+      englishPrompt: "Engelse prompt",
+      dutchTranslation: "Nederlandse vertaling",
+      previous: "⬅️ Vorige",
+      next: "Volgende ➡️",
+    },
     alerts: {
       imagesExported: "Afbeeldingen geëxporteerd naar map {{dir}}",
+      projectDeleted: "Project succesvol verwijderd",
     },
     errors: {
       projectNameRequired: "Projectnaam is verplicht",
@@ -126,6 +158,7 @@ const translations = {
       copyFailed: "Kopiëren naar klembord mislukt",
       popupBlocked: "Sta pop-ups toe om de afbeelding te bekijken.",
       linkImageFirst: "Koppel eerst een afbeelding aan deze scene.",
+      deleteProject: "Project verwijderen mislukt",
     },
     info: {
       clipboardNotSupported: "Klembord niet beschikbaar in deze browser.",
@@ -167,6 +200,9 @@ const translations = {
     },
     project: {
       save: "💾 Save",
+      presentation: "🎬 Presentation",
+      duplicate: "📄 Duplicate project",
+      delete: "🗑️ Delete project",
       exportPrompts: "🗒️ Export prompts",
       exportImages: "🖼️ Export images",
       lastUpdated: "Last modified: {{date}}",
@@ -204,6 +240,8 @@ const translations = {
       labelTranslation: "Translation",
       translationPlaceholder: "Write the translated prompt...",
       imageAddedFallback: "Image added",
+      copyToProject: "Copy to project",
+      copyToProjectTitle: "Copy scene to another project",
     },
     dialog: {
       export: {
@@ -234,8 +272,35 @@ const translations = {
       save: "Save and copy",
       copied: "Prompts copied to the clipboard.",
     },
+    copyDialog: {
+      title: "Copy scene",
+      message: "Choose a target project to copy this scene into.",
+      selectLabel: "Target project",
+      confirm: "Copy to project",
+      duplicateInProject: "Duplicate in this project",
+    },
+    deleteDialog: {
+      title: "Delete project",
+      message: "Are you sure you want to delete this project? This action cannot be undone.",
+      delete: "Delete",
+    },
+    rating: {
+      title: "Quality",
+    },
+    presentation: {
+      language: "Language:",
+      english: "English",
+      dutch: "Dutch",
+      both: "Both",
+      noImage: "No image",
+      englishPrompt: "English prompt",
+      dutchTranslation: "Dutch translation",
+      previous: "⬅️ Previous",
+      next: "Next ➡️",
+    },
     alerts: {
       imagesExported: "Images exported to folder {{dir}}",
+      projectDeleted: "Project successfully deleted",
     },
     errors: {
       projectNameRequired: "Project name is required",
@@ -259,6 +324,7 @@ const translations = {
       copyFailed: "Copying to clipboard failed",
       popupBlocked: "Allow pop-ups to view the image.",
       linkImageFirst: "Link an image to this scene first.",
+      deleteProject: "Failed to delete project",
     },
     info: {
       clipboardNotSupported: "Clipboard is not available in this browser.",
