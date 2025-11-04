@@ -152,6 +152,71 @@ select {
   line-height: 1;
 }
 
+/* Split-button (export prompts + dropdown) */
+.split-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+.split-button > button {
+  border-radius: 8px;
+  margin: 0;
+  padding: 0.55rem 0.9rem; /* match regular button sizing */
+  font: inherit;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.split-button > button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: 0.6rem;
+}
+.split-button > button:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 0 0.6rem;
+  border-left: 1px solid var(--border);
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+
+/* Ensure the small dropdown button matches the full height of the main button */
+#export-prompts-dropdown {
+  height: 100%;
+}
+
+/* Compact export-choice dialog styling */
+.export-choice-dialog {
+  padding: 1rem 1.2rem;
+  max-width: 420px;
+}
+.export-choice-dialog h3 {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+}
+.export-choice-dialog p {
+  margin: 0 0 0.6rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.export-choice-dialog menu {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+.export-choice-dialog menu button {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.95rem;
+}
+
+/* Make the split-button visually tighter */
+.split-button > button {
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+}
+
 .projects-actions .sort-label {
   display: flex;
   flex-direction: column;
@@ -669,6 +734,20 @@ dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content > label:last-chil
   font-family: "Fira Code", Consolas, "Courier New", monospace;
   font-size: 0.95rem;
   line-height: 1.45;
+}
+.export-preview-dialog {
+  padding: 1.25rem 1.5rem;
+  max-width: 720px;
+}
+
+.export-preview-dialog h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.05rem;
+}
+
+.export-preview-dialog #export-preview-info {
+  margin: 0 0 0.75rem 0;
+  color: var(--muted);
 }
 
 .export-preview-dialog menu {

@@ -7,15 +7,15 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## Recente update — 3 november 2025
+## Recente update — 4 november 2025
 
-In deze release zijn drie zichtbare functies toegevoegd, plus diverse verbeteringen:
+Deze release verbetert exportworkflows en dialoogfeedback:
 
-- Scènes kopiëren: kopieer een scène binnen dezelfde tijdslijn of kopieer een scène naar een ander project. Behoudt afbeelding, prompts en vertalingen.
-- Projectbewerkingen: dupliceer een volledig project of verwijder een project uit de verkenner.
-- Presentatiemodus: open het project in een fullscreen/preview weergave om de verhaallijn als een reeks grote beelden en prompts te beoordelen.
+- **Exporteer notities/vertalingen**: naast het exporteren van prompts kun je nu kiezen om alleen notities of vertalingen te exporteren. Het exportdialoog biedt een menu om te selecteren wat u wilt exporteren. Presentatiemodus ondersteunt ook het weergeven van prompts, notities of beide naast elkaar.
+- **Verbeterde dialogen & feedback**: exportstatusberichten, bevestigingen voor afbeeldingen exporteren en projectduplicatie gebruiken nu professionele modale dialogen in plaats van browseralerts. Feedback bij kopiëren naar klembord toont bevestiging.
+- **Bugfixes & robuustheid**: verbeterde afhandeling voor ontbrekende afbeeldingen bij export, betere bestandsrechtenafhandeling en bewerkingen voltooien nu gracieus zelfs wanneer bronauthenticaties tijdelijk niet beschikbaar zijn. Afbeeldingen meerdere keren exporteren werkt nu betrouwbaar zonder de uitvoermap opnieuw leeg te maken.
 
-Vorige gepubliceerde versie: 29 november 2025
+Vorige gepubliceerde versie: 3 november 2025
 
 
 - Dialoog voor scènes kopiëren: 

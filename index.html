@@ -106,7 +106,10 @@
             <button id="save-project" class="primary" data-i18n="project.save">💾 Opslaan</button>
               <button id="start-presentation" data-i18n="project.presentation">🎬 Presentatie</button>
               <button id="duplicate-project" data-i18n="project.duplicate">📄 Kopieer project</button>
-              <button id="export-prompts" data-i18n="project.exportPrompts">🗒️ Exporteer prompts</button>
+              <div class="split-button">
+                <button id="export-prompts" data-i18n="project.exportPrompts">🗒️ Exporteer prompts</button>
+                <button id="export-prompts-dropdown" title="Meer opties" aria-label="Export opties">▾</button>
+              </div>
               <button id="export-images" data-i18n="project.exportImages">🖼️ Exporteer afbeeldingen</button>
               <button id="delete-project" class="danger" data-i18n="project.delete">🗑️ Verwijder project</button>
             </div>
@@ -227,6 +230,18 @@
       </form>
     </dialog>
 
+    <dialog id="export-choice-dialog">
+      <form method="dialog" class="export-choice-dialog">
+        <h3 data-i18n="exportChoice.title">Exporteren</h3>
+        <p data-i18n="exportChoice.message">Kies wat u wilt exporteren:</p>
+        <menu>
+          <button id="export-choice-prompts" value="prompts" type="button" class="primary" data-i18n="exportChoice.prompts">Exporteer prompts</button>
+          <button id="export-choice-notes" value="notes" type="button" data-i18n="exportChoice.notes">Exporteer notities / vertalingen</button>
+          <button value="cancel" data-i18n="actions.cancel">Annuleer</button>
+        </menu>
+      </form>
+    </dialog>
+
     <dialog id="export-preview-dialog">
       <form method="dialog" class="export-preview-dialog">
         <h3 data-i18n="exportPreview.title">Controleer prompts</h3>
@@ -265,6 +280,20 @@
         <menu>
           <button id="delete-cancel" value="cancel" data-i18n="actions.cancel">Annuleer</button>
           <button id="delete-confirm" value="confirm" class="danger" data-i18n="deleteDialog.delete">🗑️ Verwijder</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="copy-project-dialog">
+      <form method="dialog" class="export-dialog">
+        <h3 data-i18n="copyProject.title">Duplicate project</h3>
+        <p id="copy-project-info" class="muted">Voer een naam in voor het nieuwe project of wijzig de voorgestelde naam.</p>
+        <label style="display:block;margin-top:0.5rem;">
+          <input type="text" id="copy-project-name" style="width:100%;padding:0.5rem;border-radius:8px;border:1px solid var(--border);" />
+        </label>
+        <menu>
+          <button id="copy-project-cancel" value="cancel" data-i18n="actions.cancel">Annuleer</button>
+          <button id="copy-project-confirm" value="confirm" class="primary">Maak kopie</button>
         </menu>
       </form>
     </dialog>
@@ -323,10 +352,10 @@
           </div>
           <div class="presentation-controls">
             <label class="presentation-lang-label">
-              <span data-i18n="presentation.language">Taal:</span>
+              <span data-i18n="presentation.language">Weergave:</span>
               <select id="presentation-language">
-                <option value="en" data-i18n="presentation.english">English</option>
-                <option value="nl" data-i18n="presentation.dutch">Nederlands</option>
+                <option value="prompts" data-i18n="presentation.english">Prompts</option>
+                <option value="notes" data-i18n="presentation.dutch">Notities / vertalingen</option>
                 <option value="both" data-i18n="presentation.both">Beide</option>
               </select>
             </label>
@@ -359,6 +388,18 @@
           </div>
           <button type="button" id="presentation-next" data-i18n="presentation.next">Volgende ➡️</button>
         </div>
+      </form>
+    </dialog>
+
+    <dialog id="images-exported-dialog">
+      <form method="dialog" class="export-dialog">
+  <h3 data-i18n="alerts.imagesExportedTitle">Afbeeldingen geëxporteerd</h3>
+        <p id="images-exported-message" class="muted">De afbeeldingen zijn geëxporteerd.</p>
+        <p id="images-exported-path" class="muted" style="word-break:break-all;font-family:monospace;"></p>
+        <menu>
+          <button type="button" id="images-exported-copy" data-i18n="actions.copyPath">Kopieer pad</button>
+          <button id="images-exported-close" value="close" class="primary" data-i18n="actions.cancel">Sluiten</button>
+        </menu>
       </form>
     </dialog>
 

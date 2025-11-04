@@ -41,6 +41,10 @@ const elements = {
   promptsHelp: document.querySelector("#prompts-help"),
   saveProject: document.querySelector("#save-project"),
   exportPrompts: document.querySelector("#export-prompts"),
+  exportPromptsDropdown: document.querySelector("#export-prompts-dropdown"),
+  exportChoiceDialog: document.querySelector("#export-choice-dialog"),
+  exportChoicePrompts: document.querySelector("#export-choice-prompts"),
+  exportChoiceNotes: document.querySelector("#export-choice-notes"),
   exportImages: document.querySelector("#export-images"),
   exportDialog: document.querySelector("#export-dialog"),
   exportPreviewDialog: document.querySelector("#export-preview-dialog"),
@@ -85,6 +89,15 @@ const elements = {
   deleteProjectDialog: document.querySelector("#delete-project-dialog"),
   deleteConfirm: document.querySelector("#delete-confirm"),
   deleteCancel: document.querySelector("#delete-cancel"),
+  copyProjectDialog: document.querySelector("#copy-project-dialog"),
+  copyProjectName: document.querySelector("#copy-project-name"),
+  copyProjectConfirm: document.querySelector("#copy-project-confirm"),
+  copyProjectCancel: document.querySelector("#copy-project-cancel"),
+  imagesExportedDialog: document.querySelector("#images-exported-dialog"),
+  imagesExportedMessage: document.querySelector("#images-exported-message"),
+  imagesExportedPath: document.querySelector("#images-exported-path"),
+  imagesExportedCopy: document.querySelector("#images-exported-copy"),
+  imagesExportedClose: document.querySelector("#images-exported-close"),
 };
 
 const state = {
@@ -106,12 +119,15 @@ const state = {
   copyingPromptId: null,
   presentationMode: {
     currentSlide: 0,
-    languageMode: "both", // "en", "nl", "both"
+    languageMode: "both", // "prompts", "notes", "both"
   },
 };
 
 let currentLanguage = "nl";
 
+/**
+ * Taalondersteuning: oplossen, interpoleren en toepassen van vertalingen.
+ */
 function resolveTranslation(lang, key) {
   const parts = key.split(".");
   let value = translations[lang];
@@ -1032,10 +1048,10 @@ function updatePresentationSlide() {
     elements.presentationImage.src = "";
   }
 
-  // Teksten tonen op basis van taalmode
+  // Teksten tonen op basis van weergavemode (prompts / notes / both)
   const lang = state.presentationMode.languageMode;
-  elements.presentationTextEn.classList.toggle("visible", lang === "en" || lang === "both");
-  elements.presentationTextNl.classList.toggle("visible", lang === "nl" || lang === "both");
+  elements.presentationTextEn.classList.toggle("visible", lang === "prompts" || lang === "both");
+  elements.presentationTextNl.classList.toggle("visible", lang === "notes" || lang === "both");
 
   if (elements.presentationPromptEn) {
     elements.presentationPromptEn.textContent = current.text ?? "";
@@ -1304,28 +1320,36 @@ async function createProject(event) {
 
 /**
  * Duplicate current project into a new project directory.
- * Asks the user for a new project name via prompt().
+ * Opens a dialog where the user can enter a name; the dialog confirm
+ * handler calls doCopyProject(name) to perform the duplication.
  */
 async function copyProject() {
+  // Open the copy-project dialog and prefill the suggested name.
   if (!state.projectData || !state.projectenHandle) return;
-  const suggested = `${state.projectData.projectName} (copy)`;
-  const newName = window.prompt(t("project.duplicate"), suggested);
-  if (!newName) return;
+  const defaultName = `${state.projectData.projectName} (copy)`;
+  if (elements.copyProjectName) elements.copyProjectName.value = defaultName;
+  if (elements.copyProjectDialog) elements.copyProjectDialog.showModal();
+}
 
-  const rawSlug = slugify(newName);
-  let slug = rawSlug;
-  let counter = 1;
-  const existingSlugs = new Set(state.indexData.projects.map((project) => project.slug));
-  while (existingSlugs.has(slug)) {
-    slug = `${rawSlug}-${counter++}`;
+/**
+ * Perform the actual project duplication into a new project directory.
+ * This is extracted so the dialog confirm handler can call it.
+ */
+async function doCopyProject(newName) {
+  if (!state.projectData || !state.projectenHandle) throw new Error("Geen actief project of projectenmap");
+  const slugBase = slugify(newName);
+  const existing = new Set(state.indexData.projects.map((p) => p.slug));
+  let slug = slugBase;
+  let i = 1;
+  while (existing.has(slug)) {
+    slug = `${slugBase}-${i++}`;
   }
 
-  const createdAt = new Date().toISOString();
   const projectDir = await state.projectenHandle.getDirectoryHandle(slug, { create: true });
   const imagesDir = await projectDir.getDirectoryHandle("images", { create: true });
-
   const projectJsonHandle = await projectDir.getFileHandle("project.json", { create: true });
   const newProjectId = uuid();
+  const createdAt = new Date().toISOString();
   const newProjectData = {
     id: newProjectId,
     projectName: newName,
@@ -1479,19 +1503,28 @@ function updateProjectIndexEntry() {
  * Exporteert prompts naar klembord en naar een tekstbestand zonder lege regels binnen een prompt.
  */
 async function exportPrompts() {
+  // Backwards-compatible wrapper: default to exporting prompts
+  return exportPromptsMode("prompts");
+}
+
+// Mode-aware export: 'prompts' or 'notes'
+async function exportPromptsMode(mode = "prompts") {
   if (!state.projectData || !state.projectHandle) return;
   try {
-    const prompts = state.projectData.prompts
-      .map((prompt) => (prompt.text ?? "").replace(/\s+/g, " ").trim())
-      .filter((line) => line.length > 0);
+    const items = Array.isArray(state.projectData.prompts) ? state.projectData.prompts : [];
+    const lines = items
+      .map((p) => (mode === "notes" ? (p.translation ?? "") : (p.text ?? "")))
+      .map((s) => (typeof s === "string" ? s.replace(/\s+/g, " ").trim() : ""))
+      .filter((s) => s.length > 0);
 
-    if (!prompts.length) {
+    if (!lines.length) {
       showError(t("errors.noPrompts"));
       return;
     }
 
-    state.pendingExportText = prompts.join("\n\n");
-    state.pendingExportCount = prompts.length;
+    state.pendingExportText = lines.join("\n\n");
+    state.pendingExportCount = lines.length;
+    state.pendingExportMode = mode;
     if (elements.exportPreviewText) {
       elements.exportPreviewText.value = state.pendingExportText;
     }
@@ -1586,28 +1619,73 @@ async function exportImages() {
     const exportDirName = `scene_images_${slug}`;
     const exportDir = await parentDir.getDirectoryHandle(exportDirName, { create: true });
 
-    // Eerst oude bestanden verwijderen zodat de volgorde schoon is.
-    for await (const entry of exportDir.values()) {
-      if (entry.kind === "file") {
-        await exportDir.removeEntry(entry.name);
-      }
-    }
-
+    // Verzamel eerst welke nummers we gaan schrijven, dan verwijder we alleen ongebruikte oude bestanden
+    const newFileNumbers = new Set();
     let counter = 1;
+    
+    // Eerste pass: bepaal welke afbeeldingen we gaan exporteren
     for (const prompt of state.projectData.prompts) {
-      if (!prompt.imagePath) continue;
-      const sourceHandle = await state.projectImagesHandle.getFileHandle(prompt.imagePath);
-      const sourceFile = await sourceHandle.getFile();
-      const extension = prompt.imagePath.split(".").pop();
-      const targetName = `${counter}.${extension}`;
-      const targetHandle = await exportDir.getFileHandle(targetName, { create: true });
-      const writable = await targetHandle.createWritable();
-      await writable.write(await sourceFile.arrayBuffer());
-      await writable.close();
+      if (prompt.imagePath && state.projectImagesHandle) {
+        try {
+          await state.projectImagesHandle.getFileHandle(prompt.imagePath);
+          newFileNumbers.add(counter);
+        } catch (err) {
+          console.warn(`Afbeelding ${prompt.imagePath} niet beschikbaar`, err);
+        }
+      }
       counter += 1;
     }
 
-    window.alert(t("alerts.imagesExported", { dir: exportDirName }));
+    // Verwijder alleen bestanden die NIET meer nodig zijn
+    for await (const entry of exportDir.values()) {
+      if (entry.kind === "file") {
+        const fileNum = parseInt(entry.name.split(".")[0], 10);
+        if (!newFileNumbers.has(fileNum)) {
+          try {
+            await exportDir.removeEntry(entry.name);
+          } catch (err) {
+            console.warn(`Kon bestand ${entry.name} niet verwijderen`, err);
+          }
+        }
+      }
+    }
+
+    // Tweede pass: schrijf de afbeeldingen
+    counter = 1;
+    for (const prompt of state.projectData.prompts) {
+      if (!prompt.imagePath) continue;
+      if (!state.projectImagesHandle) {
+        console.warn("Geen images-handle aanwezig, overslaan");
+        counter += 1;
+        continue;
+      }
+      try {
+        const sourceHandle = await state.projectImagesHandle.getFileHandle(prompt.imagePath);
+        const sourceFile = await sourceHandle.getFile();
+        const extension = prompt.imagePath.split(".").pop();
+        const targetName = `${counter}.${extension}`;
+        const targetHandle = await exportDir.getFileHandle(targetName, { create: true });
+        const writable = await targetHandle.createWritable();
+        await writable.write(await sourceFile.arrayBuffer());
+        await writable.close();
+      } catch (err) {
+        console.warn(`Afbeelding ${prompt.imagePath} niet gevonden of leesfout, overslaan`, err);
+        // skip this image and continue with next
+      }
+      counter += 1;
+    }
+
+    // Show a professional dialog with the export path and copy option
+    const message = t("alerts.imagesExported", { dir: exportDirName });
+    const detail = t("alerts.imagesExportedDetail", { dir: exportDirName });
+    if (elements.imagesExportedDialog) {
+      if (elements.imagesExportedMessage) elements.imagesExportedMessage.textContent = detail;
+      if (elements.imagesExportedPath) elements.imagesExportedPath.textContent = exportDirName;
+      applyTranslations(elements.imagesExportedDialog);
+      elements.imagesExportedDialog.showModal();
+    } else {
+      window.alert(message);
+    }
   } catch (error) {
     showError(t("errors.exportImages"), error);
   }
@@ -1885,6 +1963,29 @@ function init() {
       elements.copyDialog.close();
     });
   }
+
+  // Copy project dialog handlers (duplicate project)
+  if (elements.copyProjectConfirm) {
+    elements.copyProjectConfirm.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      try {
+        const name = elements.copyProjectName?.value?.trim();
+        if (!name) {
+          showError(t("errors.projectNameRequired"));
+          return;
+        }
+        if (elements.copyProjectDialog) elements.copyProjectDialog.close();
+        await doCopyProject(name);
+      } catch (error) {
+        showError(t("errors.createProject"), error);
+      }
+    });
+  }
+  if (elements.copyProjectCancel && elements.copyProjectDialog) {
+    elements.copyProjectCancel.addEventListener("click", () => {
+      elements.copyProjectDialog.close();
+    });
+  }
   if (elements.startPresentation) {
     elements.startPresentation.addEventListener("click", () =>
       openPresentation().catch((error) => showError(t("errors.openPrompt"), error))
@@ -1951,6 +2052,74 @@ function init() {
   updateRootUi();
   tryRestoreLastRoot().catch((error) => {
     console.warn("Projectmap herstellen mislukt", error);
+  });
+}
+
+// Wire export-choice dialog and dropdown actions (fallback if init wiring absent)
+if (elements.exportPromptsDropdown && elements.exportChoiceDialog) {
+  elements.exportPromptsDropdown.addEventListener("click", () => {
+    applyTranslations(elements.exportChoiceDialog);
+    elements.exportChoiceDialog.showModal();
+  });
+}
+if (elements.exportPrompts) {
+  // Primary click -> default export (prompts). Small arrow opens the choice dialog.
+  elements.exportPrompts.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    try {
+      // default behaviour: export prompts
+      exportPromptsMode("prompts");
+    } catch (err) {
+      showError(t("errors.exportPrompts"), err);
+    }
+  });
+}
+if (elements.exportChoicePrompts) {
+  elements.exportChoicePrompts.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    try {
+      exportPromptsMode("prompts");
+    } catch (err) {
+      showError(t("errors.exportPrompts"), err);
+    } finally {
+      if (elements.exportChoiceDialog) elements.exportChoiceDialog.close();
+    }
+  });
+}
+if (elements.exportChoiceNotes) {
+  elements.exportChoiceNotes.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    try {
+      exportPromptsMode("notes");
+    } catch (err) {
+      showError(t("errors.exportPrompts"), err);
+    } finally {
+      if (elements.exportChoiceDialog) elements.exportChoiceDialog.close();
+    }
+  });
+}
+
+// images exported dialog actions
+if (elements.imagesExportedCopy) {
+  elements.imagesExportedCopy.addEventListener("click", async () => {
+    try {
+      const text = elements.imagesExportedPath ? elements.imagesExportedPath.textContent : "";
+      if (text) await copyToClipboard(text);
+      // provide quick feedback using translations
+      const copiedLabel = t("actions.copied") || "Gekopieerd";
+      const copyLabel = t("actions.copyPath") || "Kopieer pad";
+      elements.imagesExportedCopy.textContent = copiedLabel;
+      setTimeout(() => {
+        if (elements.imagesExportedCopy) elements.imagesExportedCopy.textContent = copyLabel;
+      }, 1200);
+    } catch (err) {
+      showError(t("errors.copyFailed"), err);
+    }
+  });
+}
+if (elements.imagesExportedClose && elements.imagesExportedDialog) {
+  elements.imagesExportedClose.addEventListener("click", () => {
+    elements.imagesExportedDialog.close();
   });
 }
 

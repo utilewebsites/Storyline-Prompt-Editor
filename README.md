@@ -7,15 +7,15 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## Recent update — 3 November 2025
+## Recent update — 4 November 2025
 
-This release adds three user-facing features and several quality-of-life improvements:
+This release improves export workflows and dialog feedback:
 
-- Copy scenes: copy a scene within the same timeline or copy it to another project. This preserves the scene image, prompts and translations.
-- Project operations: duplicate a full project or permanently delete a project from the explorer.
-- Presentation mode: open the current project in a fullscreen/preview presentation for reviewing the story as a sequence of large images and prompts.
+- **Export notes/translations**: in addition to exporting prompts, you can now choose to export only notes or translations. The export dialog offers a menu to select what to export. Presentation mode also supports viewing prompts, notes, or both side by side.
+- **Improved dialogs & feedback**: export status messages, image export confirmations, and project duplication now use professional modal dialogs instead of browser alerts. Copy-to-clipboard feedback shows confirmation.
+- **Bug fixes & robustness**: fixed export handling for missing images, improved file permission handling, and ensured operations complete gracefully even when source files are temporarily unavailable. Exporting images multiple times now works reliably without re-clearing the output folder.
 
-Previous published version: 29 November 2025
+Previous published version: 3 November 2025
 
 
 
