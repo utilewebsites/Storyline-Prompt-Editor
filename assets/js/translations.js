@@ -8,6 +8,7 @@ const translations = {
     actions: {
       chooseRoot: "📁 Kies projectmap",
       cancel: "Annuleer",
+      close: "Sluiten",
       copyPath: "Kopieer pad",
       copied: "Gekopieerd",
     },
@@ -105,6 +106,9 @@ const translations = {
         title: "Foutmelding",
         close: "Sluiten",
       },
+      success: {
+        title: "Geslaagd",
+      },
     },
     exportPreview: {
       title: "Controleer prompts",
@@ -190,6 +194,7 @@ const translations = {
     actions: {
       chooseRoot: "📁 Choose project folder",
       cancel: "Cancel",
+      close: "Close",
       copyPath: "Copy path",
       copied: "Copied",
     },
@@ -286,6 +291,9 @@ const translations = {
       error: {
         title: "Error",
         close: "Close",
+      },
+      success: {
+        title: "Success",
       },
     },
     exportPreview: {

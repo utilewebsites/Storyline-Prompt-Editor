@@ -53,6 +53,9 @@ const elements = {
   exportPreviewInfo: document.querySelector("#export-preview-info"),
   errorDialog: document.querySelector("#error-dialog"),
   errorMessage: document.querySelector("#error-message"),
+  successDialog: document.querySelector("#success-dialog"),
+  successTitle: document.querySelector("#success-title"),
+  successMessage: document.querySelector("#success-message"),
   promptTemplate: document.querySelector("#prompt-template"),
   promptDialog: document.querySelector("#prompt-dialog"),
   dialogSceneIndex: document.querySelector("#dialog-scene-index"),
@@ -329,6 +332,20 @@ function showError(message, error) {
   elements.errorMessage.textContent = `${message}${error ? ` (${error.message ?? error})` : ""}`;
   if (!elements.errorDialog.open) {
     elements.errorDialog.showModal();
+  }
+}
+
+/**
+ * Toon een succesmelding via dialoog.
+ */
+function showSuccess(title, message) {
+  if (elements.successDialog) {
+    if (elements.successTitle) elements.successTitle.textContent = title;
+    if (elements.successMessage) elements.successMessage.textContent = message;
+    applyTranslations(elements.successDialog);
+    elements.successDialog.showModal();
+  } else {
+    window.alert(`${title}\n${message}`);
   }
 }
 
@@ -1131,38 +1148,42 @@ function openDeleteProjectDialog() {
 async function deleteCurrentProject() {
   if (!state.projectData || !state.projectenHandle) return;
 
+  const projectId = state.projectData.id;
+  const projectSlug = state.indexData.projects.find((p) => p.id === projectId)?.slug;
+  
+  if (!projectSlug) throw new Error("Project niet gevonden in index");
+
   try {
-    // Find the project entry in index
-    const entry = state.indexData.projects.find((p) => p.id === state.projectData.id);
-    if (!entry) throw new Error("Project niet gevonden in index");
-
-    // Delete the project directory
-    try {
-      await state.projectenHandle.removeEntry(entry.slug, { recursive: true });
-    } catch (error) {
-      console.error("Fout bij verwijderen projectmap", error);
-      throw error;
-    }
-
-    // Remove from index
-    state.indexData.projects = state.indexData.projects.filter((p) => p.id !== state.projectData.id);
+    // Step 1: Remove from index FIRST (this prevents sync from trying to read it)
+    state.indexData.projects = state.indexData.projects.filter((p) => p.id !== projectId);
     await writeJsonFile(state.indexHandle, state.indexData);
 
-    // Reset UI
+    // Step 2: Try to delete the filesystem directory
+    try {
+      await state.projectenHandle.removeEntry(projectSlug, { recursive: true });
+    } catch (error) {
+      // Even if filesystem delete fails, we already removed it from the index
+      // so it won't cause sync errors
+      console.warn(`Kon projectmap '${projectSlug}' niet verwijderen, maar is uit index verwijderd`, error);
+    }
+
+    // Step 3: Reset UI
     state.selectedProjectId = null;
     state.projectHandle = null;
     state.projectImagesHandle = null;
     state.projectData = null;
     state.isDirty = false;
 
-    // Refresh list
-    renderProjectList();
+    // Step 4: Hide editor
     elements.projectEditor.classList.add("hidden");
     elements.projectEmptyState.classList.remove("hidden");
     updateRootUi();
 
-    // Show success message
-    window.alert(t("alerts.projectDeleted"));
+    // Step 5: Refresh list (safe now - project is not in index)
+    renderProjectList();
+
+    // Step 6: Show success dialog
+    showSuccess(t("alerts.projectDeleted"), "Het project is uit de verkenner verwijderd.");
   } catch (error) {
     showError(t("errors.deleteProject"), error);
   }
@@ -2032,10 +2053,11 @@ function init() {
       event.preventDefault();
       try {
         await deleteCurrentProject();
+        // Only close dialog if deletion was successful
+        if (elements.deleteProjectDialog) elements.deleteProjectDialog.close();
       } catch (error) {
         showError(t("errors.deleteProject"), error);
-      } finally {
-        if (elements.deleteProjectDialog) elements.deleteProjectDialog.close();
+        // Keep dialog open so user can try again
       }
     });
   }
