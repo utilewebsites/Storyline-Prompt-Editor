@@ -176,7 +176,11 @@
             <button class="delete" data-i18n="prompt.delete" data-i18n-attr-title="prompt.deleteTitle">🗑️</button>
           </div>
         </header>
-        <div class="image-uploader" data-has-image="false">
+        <div class="media-toggle">
+          <button type="button" class="toggle-image active" data-media-type="image">🖼️ Afbeelding</button>
+          <button type="button" class="toggle-video" data-media-type="video">🎬 Video</button>
+        </div>
+        <div class="image-uploader media-section" data-has-image="false" data-active="true">
           <div class="image-preview">
             <span class="placeholder" data-i18n="prompt.placeholderImage">Sleep hier een afbeelding</span>
             <img alt="Scene afbeelding voorbeeld" />
@@ -187,6 +191,21 @@
               <input type="file" accept="image/*" class="image-input" />
             </label>
             <button class="remove-image" type="button" data-i18n="prompt.removeImage" data-i18n-attr-title="prompt.removeImageTitle">
+              Verwijder
+            </button>
+          </div>
+        </div>
+        <div class="video-uploader media-section" data-has-video="false" data-active="false">
+          <div class="video-preview">
+            <span class="placeholder">Sleep hier een video (MP4 / WebM)</span>
+            <video controls></video>
+          </div>
+          <div class="video-actions">
+            <label class="upload-button">
+              📁 Kies video
+              <input type="file" accept="video/mp4,video/webm" class="video-input" />
+            </label>
+            <button class="remove-video" type="button">
               Verwijder
             </button>
           </div>
@@ -312,11 +331,19 @@
           </menu>
         </header>
         <div class="prompt-dialog-body">
-          <div class="dialog-image-preview" data-has-image="false">
-            <img id="dialog-image" alt="Scene afbeelding groot" />
-            <p class="muted" id="dialog-image-placeholder" data-i18n="dialog.prompt.noImage">
-              Nog geen afbeelding gekoppeld.
-            </p>
+          <div class="dialog-media-container">
+            <div class="dialog-image-preview" data-has-image="false">
+              <img id="dialog-image" alt="Scene afbeelding groot" />
+              <p class="muted" id="dialog-image-placeholder" data-i18n="dialog.prompt.noImage">
+                Nog geen afbeelding gekoppeld.
+              </p>
+            </div>
+            <div class="dialog-video-preview" data-has-video="false">
+              <video id="dialog-video" controls></video>
+              <p class="muted" id="dialog-video-placeholder">
+                Nog geen video gekoppeld.
+              </p>
+            </div>
           </div>
           <div class="prompt-dialog-content">
             <label data-i18n-wrapper="dialog.prompt.promptLabel">
@@ -369,14 +396,27 @@
                 <option value="both" data-i18n="presentation.both">Beide</option>
               </select>
             </label>
+            <label class="presentation-mode-label">
+              <span>Modus:</span>
+              <select id="presentation-mode">
+                <option value="image">🖼️ Afbeelding</option>
+                <option value="video">🎬 Video (auto-play)</option>
+              </select>
+            </label>
             <button type="button" id="presentation-close" value="cancel" data-i18n="actions.cancel">Sluiten</button>
           </div>
         </div>
 
         <div class="presentation-slide">
-          <div class="slide-image-container">
-            <img id="presentation-image" alt="Scene afbeelding" />
-            <p id="presentation-no-image" class="muted" data-i18n="presentation.noImage">Geen afbeelding</p>
+          <div class="slide-media-container">
+            <div class="slide-image-container" data-active="true">
+              <img id="presentation-image" alt="Scene afbeelding" />
+              <p id="presentation-no-image" class="muted" data-i18n="presentation.noImage">Geen afbeelding</p>
+            </div>
+            <div class="slide-video-container" data-active="false">
+              <video id="presentation-video" controls></video>
+              <p id="presentation-no-video" class="muted">Geen video</p>
+            </div>
           </div>
 
           <div class="slide-content">
@@ -395,6 +435,10 @@
           <button type="button" id="presentation-prev" data-i18n="presentation.previous">⬅️ Vorige</button>
           <div class="presentation-progress">
             <div id="presentation-progress-bar"></div>
+          </div>
+          <div class="video-timeline-container">
+            <input type="range" id="video-timeline-slider" min="0" max="100" value="0" step="0.1" />
+            <div class="video-timeline-markers" id="video-timeline-markers"></div>
           </div>
           <button type="button" id="presentation-next" data-i18n="presentation.next">Volgende ➡️</button>
         </div>

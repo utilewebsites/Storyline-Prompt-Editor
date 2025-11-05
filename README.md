@@ -7,6 +7,36 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
+## Recent update — 5 November 2025
+
+- Add video
+   ![Copy scenes example](docs/images/uitbreiding-met-video.png)
+- Presentation mode preview + video:
+   ![Presentation mode example](docs/images/presentatie-met-video.png)
+
+This release adds comprehensive video workflow support based on real-world user feedback:
+
+- **Video upload per scene**: in addition to images, you can now upload the final rendered video (MP4/WebM) for each scene. This lets you keep prompts, reference images, and final results together in one place.
+- **Toggle between image and video**: each scene card has a toggle to switch between viewing the reference image or the rendered video, keeping your workspace clean and focused.
+- **Combined video presentation mode**: presentation mode now includes a "🎬 Video (auto-play)" option that plays all scene videos back-to-back as one continuous film. This gives you an instant preview of your entire production and helps identify what needs improvement.
+- **Video timeline with scrubbing**: the presentation footer shows a timeline slider with markers for each video segment. Click or drag to jump to any point in your "film", with automatic prompt text sync.
+- **Full video workflow**: videos are stored in a separate `videos/` folder per project, copied when duplicating projects or scenes, and support drag & drop upload just like images.
+- **Popup dialog improvements**: when opening a scene, both the reference image and rendered video are displayed vertically for easy comparison.
+
+Previous update: 4 November 2025
+
+  ![Scene with video](docs/images/screenshot.png)
+  ![Video presentation mode](docs/images/presentation.png)
+
+How to use video features:
+
+- **Upload video**: click the "🎬 Video" toggle on a scene card, then drag a video file or click to upload. Supported formats: MP4, WebM.
+- **View in presentation**: click "Presentation" in the project header, then select "🎬 Video (auto-play)" from the mode dropdown. All videos play automatically with synced prompt text.
+- **Navigate timeline**: use the slider in the footer to scrub through all videos, or use Previous/Next in image mode. Markers show where each video segment begins.
+- **Compare results**: open any scene to see both the reference image (top) and rendered video (bottom) side by side.
+
+These updates reflect ongoing development based on feedback from video AI creators who need to track both inputs (prompts/images) and outputs (rendered videos) in a single workspace.
+
 ## Recent update — 4 November 2025
 
 This release improves export workflows and dialog feedback:

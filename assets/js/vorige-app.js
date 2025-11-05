@@ -1,25 +1,13 @@
 /* eslint-disable no-await-in-loop */
 
 import translations from "./translations.js";
-import { uuid, slugify, formatDateTime, readJsonFile, writeJsonFile, writeTextFile } from "./modules/utils.js";
-import { addPrompt, deletePrompt, movePrompt, assignImageToPrompt, assignVideoToPrompt, removeImageFromPrompt, removeVideoFromPrompt } from "./modules/scenes.js";
-import { updatePresentationSlide, updateVideoPresentationSlide, nextSlide, prevSlide, setPresentationLanguage, closePresentationMode, initializeCombinedVideoPresentation, updateCombinedVideoPresentation, seekCombinedVideoTimeline } from "./modules/presentation.js";
 
 /**
  * Storyline Prompt Editor
  * In dit script regelen we het complete beheer van storylineprojecten:
  * - Structuur opzetten in de gekozen map
  * - Projecten laden, aanmaken, updaten en exporteren
- * - Promptvelden beheren inclusief afbeeldingen en video's
- * - Presentatiemodus met video-afspeeling
- * 
- * ARCHITECTUUR:
- * - app.js: initialisatie, state management, event wiring
- * - modules/utils.js: hulpfuncties
- * - modules/scenes.js: scene/prompt management
- * - modules/presentation.js: presentatiemodus
- * - index.html: UI markup
- * - assets/css/style.css: styling
+ * - Promptvelden beheren inclusief afbeeldingen en exportacties
  *
  * Alle comments zijn bewust in het Nederlands zodat het team snel begrijpt
  * waarom bepaalde keuzes zijn gemaakt.
@@ -76,9 +64,6 @@ const elements = {
   dialogImage: document.querySelector("#dialog-image"),
   dialogImagePlaceholder: document.querySelector("#dialog-image-placeholder"),
   dialogImageWrapper: document.querySelector(".dialog-image-preview"),
-  dialogVideo: document.querySelector("#dialog-video"),
-  dialogVideoPlaceholder: document.querySelector("#dialog-video-placeholder"),
-  dialogVideoWrapper: document.querySelector(".dialog-video-preview"),
   dialogOpenImage: document.querySelector("#dialog-open-image"),
   dialogSave: document.querySelector("#dialog-save"),
   duplicateProject: document.querySelector("#duplicate-project"),
@@ -91,15 +76,10 @@ const elements = {
   startPresentation: document.querySelector("#start-presentation"),
   presentationDialog: document.querySelector("#presentation-dialog"),
   presentationLanguage: document.querySelector("#presentation-language"),
-  presentationMode: document.querySelector("#presentation-mode"),
   presentationProjectName: document.querySelector("#presentation-project-name"),
   presentationSlideCounter: document.querySelector("#presentation-slide-counter"),
   presentationImage: document.querySelector("#presentation-image"),
-  presentationVideo: document.querySelector("#presentation-video"),
   presentationNoImage: document.querySelector("#presentation-no-image"),
-  presentationNoVideo: document.querySelector("#presentation-no-video"),
-  videoTimelineSlider: document.querySelector("#video-timeline-slider"),
-  videoTimelineMarkers: document.querySelector("#video-timeline-markers"),
   presentationTextEn: document.querySelector("#presentation-text-en"),
   presentationTextNl: document.querySelector("#presentation-text-nl"),
   presentationPromptEn: document.querySelector("#presentation-prompt-en"),
@@ -131,7 +111,6 @@ const state = {
   selectedProjectId: null,
   projectHandle: null,
   projectImagesHandle: null,
-  projectVideosHandle: null, // ⭐ NIEUW: handle naar videos/ folder in project
   projectData: null,
   isDirty: false,
   sortOrder: "updated",
@@ -144,8 +123,6 @@ const state = {
   presentationMode: {
     currentSlide: 0,
     languageMode: "both", // "prompts", "notes", "both"
-    videoMode: false, // ⭐ true = video presentation, false = image/text
-    videoTimeline: null, // ⭐ NIEUW: Timeline data voor gecombineerde video's
   },
 };
 
@@ -311,22 +288,41 @@ async function getCurrentProjectDir() {
   return state.projectenHandle.getDirectoryHandle(entry.slug, { create: false });
 }
 
-// formatDateTime is nu geïmporteerd uit modules/utils.js (regel 4)
+const localeByLanguage = {
+  nl: "nl-NL",
+  en: "en-US",
+};
 
-// uuid en slugify zijn nu geïmporteerd uit modules/utils.js
-// formatDateTime wordt nog hier gebruikt voor lokale referentie (backward compat)
+const formatDateTime = (value) => {
+  if (!value) return "";
+  try {
+    const locale = localeByLanguage[currentLanguage] ?? localeByLanguage.nl;
+    return new Intl.DateTimeFormat(locale, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+};
+
+const uuid = () => crypto.randomUUID();
+
+const slugify = (text) =>
+  text
+    .toString()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-")
+    .substring(0, 60) || "project";
 
 /**
- * Cache van prompt-ID naar afbeeldingmetadata
- * Gebruikt voor snelle lookup bij rendering
+ * Map van promptId naar afbeeldingmetadata zodat we weten welk pad geschreven is.
  */
 const imageMap = new Map();
-
-/**
- * Cache van prompt-ID naar videometadata
- * Gebruikt voor snelle lookup bij rendering
- */
-const videoMap = new Map();
 
 /**
  * Algemene foutafhandeling via dialoog zodat de gebruiker weet wat er mis is.
@@ -353,7 +349,35 @@ function showSuccess(title, message) {
   }
 }
 
-// readJsonFile, writeJsonFile, writeTextFile zijn nu geïmporteerd uit modules/utils.js
+/**
+ * Leest een bestand en geeft JSON terug.
+ */
+async function readJsonFile(fileHandle) {
+  const file = await fileHandle.getFile();
+  const text = await file.text();
+  if (!text.trim()) {
+    return {};
+  }
+  return JSON.parse(text);
+}
+
+/**
+ * Schrijft JSON-gegevens naar een bestand.
+ */
+async function writeJsonFile(fileHandle, data) {
+  const writable = await fileHandle.createWritable();
+  await writable.write(JSON.stringify(data, null, 2));
+  await writable.close();
+}
+
+/**
+ * Schrijft een string naar een bestand.
+ */
+async function writeTextFile(fileHandle, content) {
+  const writable = await fileHandle.createWritable();
+  await writable.write(content);
+  await writable.close();
+}
 
 /**
  * Leest de projectmappen op schijf en synchroniseert de index zodat bestaande projecten zichtbaar blijven.
@@ -650,13 +674,13 @@ function createPromptCard(prompt, index) {
 
   // Verwijderen en verplaatsen
   card.querySelector(".delete").addEventListener("click", () => {
-    deletePromptWrapper(prompt.id).catch((error) => showError(t("errors.deletePrompt"), error));
+    deletePrompt(prompt.id).catch((error) => showError(t("errors.deletePrompt"), error));
   });
   card.querySelector(".move-up").addEventListener("click", () => {
-    movePromptWrapper(prompt.id, -1);
+    movePrompt(prompt.id, -1);
   });
   card.querySelector(".move-down").addEventListener("click", () => {
-    movePromptWrapper(prompt.id, 1);
+    movePrompt(prompt.id, 1);
   });
 
   const dragHandle = card.querySelector(".drag-handle");
@@ -676,7 +700,7 @@ function createPromptCard(prompt, index) {
   input.addEventListener("change", (event) => {
     const [file] = event.target.files ?? [];
     if (file) {
-      assignImageToPromptWrapper(prompt.id, file, uploader).catch((error) => showError(t("errors.assignImage"), error));
+      assignImageToPrompt(prompt.id, file, uploader).catch((error) => showError(t("errors.assignImage"), error));
     }
   });
 
@@ -693,79 +717,12 @@ function createPromptCard(prompt, index) {
     if (!file) return;
     event.preventDefault();
     card.classList.remove("drag-over");
-    assignImageToPromptWrapper(prompt.id, file, uploader).catch((error) => showError(t("errors.assignImage"), error));
+    assignImageToPrompt(prompt.id, file, uploader).catch((error) => showError(t("errors.assignImage"), error));
   });
 
   card.querySelector(".remove-image").addEventListener("click", () => {
-    removeImageFromPromptWrapper(prompt.id, uploader).catch((error) => showError(t("errors.removeImage"), error));
+    removeImageFromPrompt(prompt.id, uploader).catch((error) => showError(t("errors.removeImage"), error));
   });
-
-  // Video upload handlers
-  const videoUploader = card.querySelector(".video-uploader");
-  const videoPreview = videoUploader.querySelector("video");
-  const videoPlaceholder = videoUploader.querySelector(".placeholder");
-  const videoInput = card.querySelector(".video-input");
-  
-  // Initialiseer video preview
-  if (prompt.videoPath) {
-    videoUploader.dataset.hasVideo = "true";
-    videoPlaceholder.textContent = prompt.videoOriginalName ?? "Video toegevoegd";
-    loadVideoPreview(prompt.videoPath, videoPreview).catch((error) => {
-      console.warn("Video voorvertoning mislukt", error);
-      videoUploader.dataset.hasVideo = "false";
-      videoPlaceholder.textContent = "Sleep hier een video (MP4 / WebM)";
-    });
-  } else {
-    videoPlaceholder.textContent = "Sleep hier een video (MP4 / WebM)";
-  }
-
-  videoInput.addEventListener("change", (event) => {
-    const [file] = event.target.files ?? [];
-    if (file) {
-      assignVideoToPromptWrapper(prompt.id, file, videoUploader).catch((error) => showError("Video uploaden mislukt", error));
-    }
-  });
-
-  // Drag & drop ondersteuning voor video
-  videoUploader.addEventListener("dragover", (event) => {
-    const hasFiles = Array.from(event.dataTransfer?.types ?? []).includes("Files");
-    if (!hasFiles) return;
-    event.preventDefault();
-    videoUploader.classList.add("drag-over");
-  });
-  videoUploader.addEventListener("dragleave", () => videoUploader.classList.remove("drag-over"));
-  videoUploader.addEventListener("drop", (event) => {
-    const file = [...(event.dataTransfer?.files ?? [])].find((f) => f.type.startsWith("video/"));
-    if (!file) return;
-    event.preventDefault();
-    videoUploader.classList.remove("drag-over");
-    assignVideoToPromptWrapper(prompt.id, file, videoUploader).catch((error) => showError("Video uploaden mislukt", error));
-  });
-
-  card.querySelector(".remove-video").addEventListener("click", () => {
-    removeVideoFromPromptWrapper(prompt.id, videoUploader).catch((error) => showError("Video verwijderen mislukt", error));
-  });
-
-  // Media toggle (image/video)
-  const toggleImage = card.querySelector(".toggle-image");
-  const toggleVideo = card.querySelector(".toggle-video");
-  const imageSection = card.querySelector(".image-uploader");
-  const videoSection = card.querySelector(".video-uploader");
-
-  toggleImage.addEventListener("click", () => {
-    toggleImage.classList.add("active");
-    toggleVideo.classList.remove("active");
-    imageSection.dataset.active = "true";
-    videoSection.dataset.active = "false";
-  });
-
-  toggleVideo.addEventListener("click", () => {
-    toggleVideo.classList.add("active");
-    toggleImage.classList.remove("active");
-    videoSection.dataset.active = "true";
-    imageSection.dataset.active = "false";
-  });
-
   // Rating widget
   const ratingContainer = card.querySelector(".rating");
   renderStarWidget(ratingContainer, prompt.rating ?? 0, (val) => {
@@ -796,22 +753,6 @@ async function loadImagePreview(imagePath, imgElement) {
     imgElement.src = blobUrl;
   } catch (error) {
     console.warn("Voorvertoning laden mislukt", error);
-  }
-}
-
-/**
- * Leest de video voorvertoning uit het project en toont deze.
- */
-async function loadVideoPreview(videoPath, videoElement) {
-  if (!state.projectVideosHandle) return;
-  try {
-    const fileHandle = await state.projectVideosHandle.getFileHandle(videoPath);
-    const file = await fileHandle.getFile();
-    const blobUrl = URL.createObjectURL(file);
-    videoElement.src = blobUrl;
-    videoElement.load(); // Belangrijk: herlaad video element
-  } catch (error) {
-    console.warn("Video voorvertoning laden mislukt", error);
   }
 }
 
@@ -850,21 +791,38 @@ function updatePromptField(promptId, field, value) {
   flagProjectDirty({ refreshEditor: false, refreshList: false });
 }
 
-/**
- * Wrapper: roept modules/scenes.js deletePrompt aan (met video cleanup)
- */
-async function deletePromptWrapper(promptId) {
-  await deletePrompt(promptId, state, elements);
+async function deletePrompt(promptId) {
+  const index = state.projectData.prompts.findIndex((item) => item.id === promptId);
+  if (index === -1) return;
+  
+  const prompt = state.projectData.prompts[index];
+  
+  // Verwijder het fysieke afbeeldingsbestand als het bestaat
+  if (prompt.imagePath && state.projectImagesHandle) {
+    try {
+      console.log(`Probeer bestand te verwijderen bij prompt delete: ${prompt.imagePath}`);
+      await state.projectImagesHandle.removeEntry(prompt.imagePath);
+      console.log(`Bestand ${prompt.imagePath} succesvol verwijderd bij prompt delete`);
+    } catch (error) {
+      console.error(`Kon afbeeldingsbestand ${prompt.imagePath} niet verwijderen bij prompt delete:`, error);
+      // Gooi de fout door naar de gebruiker
+      throw error;
+    }
+  }
+  
+  state.projectData.prompts.splice(index, 1);
   imageMap.delete(promptId);
-  videoMap.delete(promptId);
   flagProjectDirty();
 }
 
-/**
- * Wrapper: roept modules/scenes.js movePrompt aan
- */
-function movePromptWrapper(promptId, direction) {
-  movePrompt(promptId, direction, state);
+function movePrompt(promptId, direction) {
+  const prompts = state.projectData.prompts;
+  const index = prompts.findIndex((item) => item.id === promptId);
+  if (index === -1) return;
+  const targetIndex = index + direction;
+  if (targetIndex < 0 || targetIndex >= prompts.length) return;
+  const [moved] = prompts.splice(index, 1);
+  prompts.splice(targetIndex, 0, moved);
   flagProjectDirty();
 }
 
@@ -950,7 +908,6 @@ async function copySceneToProject(promptId, targetProjectId) {
   const targetDir = await state.projectenHandle.getDirectoryHandle(targetMeta.slug, { create: false });
   const targetProjectFile = await targetDir.getFileHandle("project.json", { create: true });
   const targetImagesDir = await targetDir.getDirectoryHandle("images", { create: true });
-  const targetVideosDir = await targetDir.getDirectoryHandle("videos", { create: true });
 
   const targetData = await readJsonFile(targetProjectFile);
   targetData.prompts = Array.isArray(targetData.prompts) ? targetData.prompts : [];
@@ -963,9 +920,6 @@ async function copySceneToProject(promptId, targetProjectId) {
     imagePath: null,
     imageOriginalName: sourcePrompt.imageOriginalName ?? null,
     imageType: sourcePrompt.imageType ?? null,
-    videoPath: null,
-    videoOriginalName: sourcePrompt.videoOriginalName ?? null,
-    videoType: sourcePrompt.videoType ?? null,
     rating: sourcePrompt.rating ?? null,
   };
 
@@ -988,25 +942,6 @@ async function copySceneToProject(promptId, targetProjectId) {
     }
   }
 
-  // If video exists, copy file bytes
-  if (sourcePrompt.videoPath && state.projectVideosHandle) {
-    try {
-      const sourceHandle = await state.projectVideosHandle.getFileHandle(sourcePrompt.videoPath);
-      const sourceFile = await sourceHandle.getFile();
-      const extension = sourcePrompt.videoPath.split('.').pop();
-      const targetFilename = `${newPrompt.id}.${extension}`;
-      const targetHandle = await targetVideosDir.getFileHandle(targetFilename, { create: true });
-      const writable = await targetHandle.createWritable();
-      await writable.write(await sourceFile.arrayBuffer());
-      await writable.close();
-      newPrompt.videoPath = targetFilename;
-    } catch (error) {
-      console.warn("Kopiëren video mislukt", error);
-      // We continue without video to not block the operation
-      newPrompt.videoPath = null;
-    }
-  }
-
   targetData.prompts.push(newPrompt);
   // update timestamps
   targetData.updatedAt = new Date().toISOString();
@@ -1015,12 +950,10 @@ async function copySceneToProject(promptId, targetProjectId) {
   // If target project is currently open, refresh it
   if (state.selectedProjectId === targetProjectId) {
     state.projectData = targetData;
-    // rebuild imageMap and videoMap for the open project
+    // rebuild imageMap for the open project
     imageMap.clear();
-    videoMap.clear();
     state.projectData.prompts.forEach((p) => {
       if (p.imagePath) imageMap.set(p.id, { filename: p.imagePath });
-      if (p.videoPath) videoMap.set(p.id, { filename: p.videoPath });
     });
     renderProjectEditor();
   } else {
@@ -1049,9 +982,6 @@ async function duplicateSceneInProject(promptId) {
     imagePath: null,
     imageOriginalName: sourcePrompt.imageOriginalName ?? null,
     imageType: sourcePrompt.imageType ?? null,
-    videoPath: null,
-    videoOriginalName: sourcePrompt.videoOriginalName ?? null,
-    videoType: sourcePrompt.videoType ?? null,
     rating: sourcePrompt.rating ?? null,
   };
 
@@ -1070,24 +1000,6 @@ async function duplicateSceneInProject(promptId) {
       imageMap.set(newPrompt.id, { filename: targetFilename });
     } catch (error) {
       console.warn("Dupliceren afbeelding mislukt", error);
-    }
-  }
-
-  // If video exists, copy file bytes within the same videos dir
-  if (sourcePrompt.videoPath && state.projectVideosHandle) {
-    try {
-      const sourceHandle = await state.projectVideosHandle.getFileHandle(sourcePrompt.videoPath);
-      const sourceFile = await sourceHandle.getFile();
-      const extension = sourcePrompt.videoPath.split('.').pop();
-      const targetFilename = `${newPrompt.id}.${extension}`;
-      const targetHandle = await state.projectVideosHandle.getFileHandle(targetFilename, { create: true });
-      const writable = await targetHandle.createWritable();
-      await writable.write(await sourceFile.arrayBuffer());
-      await writable.close();
-      newPrompt.videoPath = targetFilename;
-      videoMap.set(newPrompt.id, { filename: targetFilename });
-    } catch (error) {
-      console.warn("Dupliceren video mislukt", error);
     }
   }
 
@@ -1112,36 +1024,11 @@ async function openPresentation() {
     elements.presentationLanguage.value = "both";
   }
 
-  // Initialiseer video timeline als video mode actief is
-  if (state.presentationMode.videoMode) {
-    const timeline = await initializeCombinedVideoPresentation(state, elements, t);
-    state.presentationMode.videoTimeline = timeline;
-    
-    if (!timeline || timeline.segments.length === 0) {
-      showError("Geen video's gevonden in dit project");
-      state.presentationMode.videoMode = false;
-      if (elements.presentationMode) {
-        elements.presentationMode.value = "image";
-      }
-    }
-  }
-
   // Laad eerste slide
-  await updatePresentationSlideWrapper();
+  updatePresentationSlide();
 
   if (elements.presentationDialog) {
     applyTranslations(elements.presentationDialog);
-    
-    // Set footer video-mode class als video mode actief is
-    const footer = elements.presentationDialog.querySelector(".presentation-footer");
-    if (footer) {
-      if (state.presentationMode.videoMode) {
-        footer.classList.add("video-mode");
-      } else {
-        footer.classList.remove("video-mode");
-      }
-    }
-    
     elements.presentationDialog.showModal();
   }
 }
@@ -1149,73 +1036,99 @@ async function openPresentation() {
 /**
  * Update presentatie-slide met huidige inhoud
  */
-/**
- * Wrapper: roept modules/presentation.js updatePresentationSlide of updateCombinedVideoPresentation aan
- * afhankelijk van de geselecteerde modus
- */
-async function updatePresentationSlideWrapper() {
-  if (state.presentationMode.videoMode && state.presentationMode.videoTimeline) {
-    // Video modus: gebruik combined video presentation
-    await updateCombinedVideoPresentation(state, elements, t);
+function updatePresentationSlide() {
+  const prompts = state.projectData.prompts;
+  const current = prompts[state.presentationMode.currentSlide];
+  if (!current) return;
+
+  const total = prompts.length;
+  const slideNum = state.presentationMode.currentSlide + 1;
+
+  // Header
+  if (elements.presentationProjectName) {
+    elements.presentationProjectName.textContent = state.projectData.projectName;
+  }
+  if (elements.presentationSlideCounter) {
+    elements.presentationSlideCounter.textContent = `${slideNum} / ${total}`;
+  }
+
+  // Afbeelding
+  if (current.imagePath && state.projectImagesHandle) {
+    elements.presentationNoImage.classList.add("hidden");
+    loadImagePreview(current.imagePath, elements.presentationImage).catch((error) => {
+      console.warn("Afbeelding laden mislukt", error);
+      elements.presentationNoImage.classList.remove("hidden");
+      elements.presentationImage.src = "";
+    });
   } else {
-    // Image modus: gebruik standaard updatePresentationSlide
-    updatePresentationSlide(state, elements, t);
+    elements.presentationNoImage.classList.remove("hidden");
+    elements.presentationImage.src = "";
+  }
+
+  // Teksten tonen op basis van weergavemode (prompts / notes / both)
+  const lang = state.presentationMode.languageMode;
+  elements.presentationTextEn.classList.toggle("visible", lang === "prompts" || lang === "both");
+  elements.presentationTextNl.classList.toggle("visible", lang === "notes" || lang === "both");
+
+  if (elements.presentationPromptEn) {
+    elements.presentationPromptEn.textContent = current.text ?? "";
+  }
+  if (elements.presentationPromptNl) {
+    elements.presentationPromptNl.textContent = current.translation ?? "";
+  }
+
+  // Buttons inschakelen/uitschakelen
+  if (elements.presentationPrev) {
+    elements.presentationPrev.disabled = state.presentationMode.currentSlide === 0;
+  }
+  if (elements.presentationNext) {
+    elements.presentationNext.disabled = state.presentationMode.currentSlide === total - 1;
+  }
+
+  // Progress bar
+  if (elements.presentationProgressBar) {
+    const percentage = (slideNum / total) * 100;
+    elements.presentationProgressBar.style.width = `${percentage}%`;
   }
 }
 
 /**
- * Wrapper: roept modules/presentation.js nextSlide aan
+ * Volgende slide in presentatie
  */
-function nextSlideWrapper() {
-  if (state.presentationMode.videoMode && state.presentationMode.videoTimeline) {
-    // In video modus: ga naar volgende segment
-    const timeline = state.presentationMode.videoTimeline;
-    if (timeline.currentSegmentIndex < timeline.segments.length - 1) {
-      timeline.currentSegmentIndex++;
-      updatePresentationSlideWrapper();
-    }
-  } else {
-    // In image modus: gebruik standaard nextSlide
-    const moved = nextSlide(state);
-    if (moved) {
-      updatePresentationSlideWrapper();
-    }
+function nextSlide() {
+  const total = state.projectData.prompts.length;
+  if (state.presentationMode.currentSlide < total - 1) {
+    state.presentationMode.currentSlide += 1;
+    updatePresentationSlide();
   }
 }
 
 /**
- * Wrapper: roept modules/presentation.js prevSlide aan
+ * Vorige slide in presentatie
  */
-function prevSlideWrapper() {
-  if (state.presentationMode.videoMode && state.presentationMode.videoTimeline) {
-    // In video modus: ga naar vorige segment
-    const timeline = state.presentationMode.videoTimeline;
-    if (timeline.currentSegmentIndex > 0) {
-      timeline.currentSegmentIndex--;
-      updatePresentationSlideWrapper();
-    }
-  } else {
-    // In image modus: gebruik standaard prevSlide
-    const moved = prevSlide(state);
-    if (moved) {
-      updatePresentationSlideWrapper();
-    }
+function prevSlide() {
+  if (state.presentationMode.currentSlide > 0) {
+    state.presentationMode.currentSlide -= 1;
+    updatePresentationSlide();
   }
 }
 
 /**
- * Wrapper: roept modules/presentation.js setPresentationLanguage aan
+ * Taal wisselen in presentatie
  */
-function setPresentationLanguageWrapper(lang) {
-  setPresentationLanguage(lang, state);
-  updatePresentationSlideWrapper(); // Update display met nieuwe taal
+function setPresentationLanguage(lang) {
+  state.presentationMode.languageMode = lang;
+  updatePresentationSlide();
 }
 
 /**
- * Wrapper: roept modules/presentation.js closePresentationMode aan
+ * Sluit presentatiemodus
  */
-function closePresentationModeWrapper() {
-  closePresentationMode(state, elements);
+function closePresentationMode() {
+  if (elements.presentationDialog) {
+    elements.presentationDialog.close();
+  }
+  state.presentationMode.currentSlide = 0;
 }
 
 /**
@@ -1279,84 +1192,73 @@ async function deleteCurrentProject() {
 /**
  * Koppelt een afbeelding aan een prompt door het bestand naar de images-map te schrijven.
  */
-/**
- * Wrapper: roept modules/scenes.js assignImageToPrompt aan
- */
-async function assignImageToPromptWrapper(promptId, file, uploader) {
-  await assignImageToPrompt(promptId, file, state, uploader, imageMap);
+async function assignImageToPrompt(promptId, file, uploader) {
+  if (!file) return;
+  if (!state.projectImagesHandle) throw new Error("Geen afbeeldingenmap gevonden");
+
+  const prompt = state.projectData.prompts.find((item) => item.id === promptId);
+  if (!prompt) return;
+
+  // Verwijder de oude afbeelding als die bestaat
+  if (prompt.imagePath) {
+    try {
+      console.log(`Probeer oude afbeelding te verwijderen bij vervangen: ${prompt.imagePath}`);
+      await state.projectImagesHandle.removeEntry(prompt.imagePath);
+      console.log(`Oude afbeelding ${prompt.imagePath} succesvol verwijderd bij vervangen`);
+    } catch (error) {
+      console.error(`Kon oude afbeelding ${prompt.imagePath} niet verwijderen bij vervangen:`, error);
+      // Gooi de fout door naar de gebruiker
+      throw error;
+    }
+  }
+
+  const extension = file.name.split(".").pop();
+  const filename = `${promptId}.${extension}`;
+  const fileHandle = await state.projectImagesHandle.getFileHandle(filename, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(await file.arrayBuffer());
+  await writable.close();
+
+  prompt.imagePath = filename;
+  prompt.imageOriginalName = file.name;
+  prompt.imageType = file.type;
+  imageMap.set(promptId, { fileHandle, filename, extension });
+  flagProjectDirty();
+
+  uploader.dataset.hasImage = "true";
+  const previewImg = uploader.querySelector("img");
+  const placeholder = uploader.querySelector(".placeholder");
+  placeholder.textContent = file.name || t("prompt.imageAddedFallback");
+  const blobUrl = URL.createObjectURL(file);
+  previewImg.src = blobUrl;
+}
+
+async function removeImageFromPrompt(promptId, uploader) {
+  const prompt = state.projectData.prompts.find((item) => item.id === promptId);
+  if (!prompt) return;
   
-  // UI feedback (preview update)
-  if (uploader && file) {
-    const previewImg = uploader.querySelector("img");
-    const placeholder = uploader.querySelector(".placeholder");
-    if (placeholder) placeholder.textContent = file.name || t("prompt.imageAddedFallback");
-    if (previewImg) {
-      const blobUrl = URL.createObjectURL(file);
-      previewImg.src = blobUrl;
+  // Verwijder het fysieke bestand als het bestaat
+  if (prompt.imagePath && state.projectImagesHandle) {
+    try {
+      console.log(`Probeer bestand te verwijderen: ${prompt.imagePath}`);
+      await state.projectImagesHandle.removeEntry(prompt.imagePath);
+      console.log(`Bestand ${prompt.imagePath} succesvol verwijderd`);
+    } catch (error) {
+      console.error(`Kon afbeeldingsbestand ${prompt.imagePath} niet verwijderen:`, error);
+      // Gooi de fout door naar de gebruiker
+      throw error;
     }
   }
   
-  flagProjectDirty();
-}
-
-/**
- * Wrapper: roept modules/scenes.js removeImageFromPrompt aan
- */
-async function removeImageFromPromptWrapper(promptId, uploader) {
-  await removeImageFromPrompt(promptId, state, imageMap);
-  
-  // UI feedback (reset preview)
-  if (uploader) {
-    uploader.dataset.hasImage = "false";
-    const previewImg = uploader.querySelector("img");
-    const placeholder = uploader.querySelector(".placeholder");
-    if (placeholder) placeholder.textContent = t("prompt.placeholderImage");
-    if (previewImg) previewImg.removeAttribute("src");
-  }
-  
-  flagProjectDirty();
-}
-
-/**
- * Wrapper: roept modules/scenes.js assignVideoToPrompt aan
- */
-async function assignVideoToPromptWrapper(promptId, file, uploader) {
-  await assignVideoToPrompt(promptId, file, state, videoMap);
-  
-  // UI feedback (preview update)
-  if (uploader && file) {
-    uploader.dataset.hasVideo = "true";
-    const videoPreview = uploader.querySelector("video");
-    const placeholder = uploader.querySelector(".placeholder");
-    if (placeholder) placeholder.textContent = file.name || "Video toegevoegd";
-    if (videoPreview) {
-      const blobUrl = URL.createObjectURL(file);
-      videoPreview.src = blobUrl;
-      videoPreview.load(); // Herlaad video element
-    }
-  }
-  
-  flagProjectDirty();
-}
-
-/**
- * Wrapper: roept modules/scenes.js removeVideoFromPrompt aan
- */
-async function removeVideoFromPromptWrapper(promptId, uploader) {
-  await removeVideoFromPrompt(promptId, state, videoMap);
-  
-  // UI feedback (reset preview)
-  if (uploader) {
-    uploader.dataset.hasVideo = "false";
-    const videoPreview = uploader.querySelector("video");
-    const placeholder = uploader.querySelector(".placeholder");
-    if (placeholder) placeholder.textContent = "Sleep hier een video (MP4 / WebM)";
-    if (videoPreview) {
-      videoPreview.removeAttribute("src");
-      videoPreview.load(); // Reset video element
-    }
-  }
-  
+  prompt.imagePath = null;
+  prompt.imageOriginalName = null;
+  prompt.imageType = null;
+  imageMap.delete(promptId);
+  uploader.dataset.hasImage = "false";
+  const previewImg = uploader.querySelector("img");
+  const placeholder = uploader.querySelector(".placeholder");
+  placeholder.textContent = t("prompt.placeholderImage");
+  previewImg.removeAttribute("src");
   flagProjectDirty();
 }
 
@@ -1466,7 +1368,6 @@ async function doCopyProject(newName) {
 
   const projectDir = await state.projectenHandle.getDirectoryHandle(slug, { create: true });
   const imagesDir = await projectDir.getDirectoryHandle("images", { create: true });
-  const videosDir = await projectDir.getDirectoryHandle("videos", { create: true });
   const projectJsonHandle = await projectDir.getFileHandle("project.json", { create: true });
   const newProjectId = uuid();
   const createdAt = new Date().toISOString();
@@ -1489,9 +1390,6 @@ async function doCopyProject(newName) {
       imagePath: null,
       imageOriginalName: p.imageOriginalName ?? null,
       imageType: p.imageType ?? null,
-      videoPath: null,
-      videoOriginalName: p.videoOriginalName ?? null,
-      videoType: p.videoType ?? null,
       rating: p.rating ?? null,
     };
     if (p.imagePath && state.projectImagesHandle) {
@@ -1507,22 +1405,6 @@ async function doCopyProject(newName) {
         newPrompt.imagePath = targetFilename;
       } catch (error) {
         console.warn("Kopiëren van afbeelding voor project duplicatie mislukt", error);
-      }
-    }
-    // Copy video if exists
-    if (p.videoPath && state.projectVideosHandle) {
-      try {
-        const sourceHandle = await state.projectVideosHandle.getFileHandle(p.videoPath);
-        const sourceFile = await sourceHandle.getFile();
-        const extension = p.videoPath.split('.').pop();
-        const targetFilename = `${newPrompt.id}.${extension}`;
-        const targetHandle = await videosDir.getFileHandle(targetFilename, { create: true });
-        const writable = await targetHandle.createWritable();
-        await writable.write(await sourceFile.arrayBuffer());
-        await writable.close();
-        newPrompt.videoPath = targetFilename;
-      } catch (error) {
-        console.warn("Kopiëren van video voor project duplicatie mislukt", error);
       }
     }
     newProjectData.prompts.push(newPrompt);
@@ -1556,7 +1438,6 @@ async function openProject(projectId) {
 
   const projectDir = await state.projectenHandle.getDirectoryHandle(projectMeta.slug, { create: false });
   const imagesDir = await projectDir.getDirectoryHandle("images", { create: true });
-  const videosDir = await projectDir.getDirectoryHandle("videos", { create: true }); // ⭐ NIEUW: videos folder
   const projectFile = await projectDir.getFileHandle("project.json", { create: false });
 
   const projectData = await readJsonFile(projectFile);
@@ -1565,9 +1446,6 @@ async function openProject(projectId) {
   // Backwards compatibility: oudere projecten kunnen geen rating hebben
   projectData.prompts.forEach((p) => {
     if (p.rating === undefined) p.rating = null;
-    if (p.videoPath === undefined) p.videoPath = null; // ⭐ NIEUW: video fields
-    if (p.videoOriginalName === undefined) p.videoOriginalName = null;
-    if (p.videoType === undefined) p.videoType = null;
   });
   projectData.createdAt ??= projectMeta.createdAt;
   projectData.updatedAt ??= projectMeta.updatedAt;
@@ -1577,18 +1455,13 @@ async function openProject(projectId) {
   state.selectedProjectId = projectId;
   state.projectHandle = projectFile;
   state.projectImagesHandle = imagesDir;
-  state.projectVideosHandle = videosDir; // ⭐ NIEUW: stel videos handle in
   state.projectData = projectData;
   state.isDirty = false;
 
   imageMap.clear();
-  videoMap.clear(); // ⭐ NIEUW: clear video cache
   projectData.prompts.forEach((prompt) => {
     if (prompt.imagePath) {
       imageMap.set(prompt.id, { filename: prompt.imagePath });
-    }
-    if (prompt.videoPath) { // ⭐ NIEUW: populate video cache
-      videoMap.set(prompt.id, { filename: prompt.videoPath });
     }
   });
 
@@ -1600,11 +1473,19 @@ async function openProject(projectId) {
 /**
  * Prompt toevoegen aan huidige project.
  */
-/**
- * Wrapper: roept modules/scenes.js addPrompt aan
- */
-function addPromptWrapper() {
-  addPrompt(state, elements, flagProjectDirty);
+function addPrompt() {
+  if (!state.projectData) return;
+  const prompt = {
+    id: uuid(),
+    text: "",
+    translation: "",
+    imagePath: null,
+    imageOriginalName: null,
+    imageType: null,
+    rating: null,
+  };
+  state.projectData.prompts.push(prompt);
+  flagProjectDirty();
 }
 
 /**
@@ -1868,38 +1749,6 @@ async function loadPromptDialogImage(prompt) {
   }
 }
 
-async function loadPromptDialogVideo(prompt) {
-  if (!elements.dialogVideoWrapper) return;
-  if (!prompt.videoPath || !state.projectVideosHandle) {
-    // Geen video: toon placeholder
-    elements.dialogVideoWrapper.dataset.hasVideo = "false";
-    if (elements.dialogVideo) {
-      elements.dialogVideo.removeAttribute("src");
-      elements.dialogVideo.load();
-    }
-    if (elements.dialogVideoPlaceholder) {
-      elements.dialogVideoPlaceholder.textContent = "Nog geen video gekoppeld.";
-    }
-    return;
-  }
-  try {
-    const fileHandle = await state.projectVideosHandle.getFileHandle(prompt.videoPath);
-    const file = await fileHandle.getFile();
-    const blobUrl = URL.createObjectURL(file);
-    elements.dialogVideoWrapper.dataset.hasVideo = "true";
-    if (elements.dialogVideo) {
-      elements.dialogVideo.src = blobUrl;
-      elements.dialogVideo.load();
-    }
-  } catch (error) {
-    console.warn("Video voor dialoog laden mislukt", error);
-    elements.dialogVideoWrapper.dataset.hasVideo = "false";
-    if (elements.dialogVideoPlaceholder) {
-      elements.dialogVideoPlaceholder.textContent = "Video laden mislukt";
-    }
-  }
-}
-
 async function openPromptDialog(promptId) {
   if (!elements.promptDialog) return;
   if (!state.projectData) return;
@@ -1923,7 +1772,6 @@ async function openPromptDialog(promptId) {
   elements.promptDialog.showModal();
 
   await loadPromptDialogImage(prompt);
-  await loadPromptDialogVideo(prompt);
   applyTranslations(elements.promptDialog);
 }
 
@@ -2072,7 +1920,7 @@ function init() {
       copyProject().catch((error) => showError(t("errors.createProject"), error))
     );
   }
-  elements.addPrompt.addEventListener("click", addPromptWrapper);
+  elements.addPrompt.addEventListener("click", addPrompt);
   elements.saveProject.addEventListener("click", () => saveProject().catch((error) => showError(t("errors.saveProject"), error)));
   elements.exportPrompts.addEventListener("click", () =>
     exportPrompts().catch((error) => showError(t("errors.exportPrompts"), error))
@@ -2166,89 +2014,33 @@ function init() {
   }
   if (elements.presentationLanguage) {
     elements.presentationLanguage.addEventListener("change", (event) => {
-      setPresentationLanguageWrapper(event.target.value);
-    });
-  }
-  if (elements.presentationMode) {
-    elements.presentationMode.addEventListener("change", async (event) => {
-      const mode = event.target.value; // "image" of "video"
-      const wasVideoMode = state.presentationMode.videoMode;
-      state.presentationMode.videoMode = (mode === "video");
-      
-      // Toggle image/video containers
-      const imageContainer = elements.presentationDialog.querySelector(".slide-image-container");
-      const videoContainer = elements.presentationDialog.querySelector(".slide-video-container");
-      const footer = elements.presentationDialog.querySelector(".presentation-footer");
-      
-      if (imageContainer && videoContainer) {
-        if (mode === "video") {
-          imageContainer.dataset.active = "false";
-          videoContainer.dataset.active = "true";
-          if (footer) footer.classList.add("video-mode");
-          
-          // Initialiseer video timeline als we naar video mode switchen
-          if (!wasVideoMode) {
-            const timeline = await initializeCombinedVideoPresentation(state, elements, t);
-            state.presentationMode.videoTimeline = timeline;
-            
-            if (!timeline || timeline.segments.length === 0) {
-              showError("Geen video's gevonden in dit project");
-              state.presentationMode.videoMode = false;
-              event.target.value = "image";
-              imageContainer.dataset.active = "true";
-              videoContainer.dataset.active = "false";
-              if (footer) footer.classList.remove("video-mode");
-              return;
-            }
-          }
-        } else {
-          imageContainer.dataset.active = "true";
-          videoContainer.dataset.active = "false";
-          if (footer) footer.classList.remove("video-mode");
-          
-          // Stop video als we terug gaan naar image mode
-          if (elements.presentationVideo) {
-            elements.presentationVideo.pause();
-          }
-        }
-      }
-      
-      // Update slide voor nieuwe modus
-      await updatePresentationSlideWrapper();
+      setPresentationLanguage(event.target.value);
     });
   }
   if (elements.presentationNext) {
-    elements.presentationNext.addEventListener("click", nextSlideWrapper);
+    elements.presentationNext.addEventListener("click", nextSlide);
   }
   if (elements.presentationPrev) {
-    elements.presentationPrev.addEventListener("click", prevSlideWrapper);
-  }
-  if (elements.videoTimelineSlider) {
-    elements.videoTimelineSlider.addEventListener("input", (event) => {
-      if (state.presentationMode.videoMode && state.presentationMode.videoTimeline) {
-        const percentage = parseFloat(event.target.value);
-        seekCombinedVideoTimeline(percentage, state, elements, t);
-      }
-    });
+    elements.presentationPrev.addEventListener("click", prevSlide);
   }
   if (elements.presentationClose) {
-    elements.presentationClose.addEventListener("click", closePresentationModeWrapper);
+    elements.presentationClose.addEventListener("click", closePresentationMode);
   }
   if (elements.presentationDialog) {
-    elements.presentationDialog.addEventListener("close", closePresentationModeWrapper);
+    elements.presentationDialog.addEventListener("close", closePresentationMode);
   }
   // Keyboard shortcuts voor presentatie
   document.addEventListener("keydown", (event) => {
     if (!elements.presentationDialog || !elements.presentationDialog.open) return;
     if (event.key === "ArrowRight" || event.key === " ") {
       event.preventDefault();
-      nextSlideWrapper();
+      nextSlide();
     } else if (event.key === "ArrowLeft") {
       event.preventDefault();
-      prevSlideWrapper();
+      prevSlide();
     } else if (event.key === "Escape") {
       event.preventDefault();
-      closePresentationModeWrapper();
+      closePresentationMode();
     }
   });
   if (elements.deleteProject) {

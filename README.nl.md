@@ -7,6 +7,35 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
+## Recente update — 5 november 2025
+- Add video
+   ![Copy scenes example](docs/images/uitbreiding-met-video.png)
+- Presentation mode preview + video:
+   ![Presentation mode example](docs/images/presentatie-met-video.png)
+   
+Deze release voegt uitgebreide video workflow ondersteuning toe op basis van feedback van gebruikers:
+
+- **Video upload per scène**: naast afbeeldingen kun je nu ook de uiteindelijke gerenderde video (MP4/WebM) per scène uploaden. Zo houd je prompts, referentie-afbeeldingen en eindresultaten bij elkaar op één plek.
+- **Wissel tussen afbeelding en video**: elke scènekaart heeft een toggle om te wisselen tussen de referentie-afbeelding of de gerenderde video, zodat je werkruimte overzichtelijk blijft.
+- **Gecombineerde video presentatiemodus**: presentatiemodus heeft nu een "🎬 Video (auto-play)" optie die alle scène-video's achter elkaar afspeelt als één doorlopende film. Dit geeft je direct een preview van je volledige productie en helpt identificeren wat nog verbeterd moet worden.
+- **Video tijdlijn met scrubbing**: de presentatie footer toont een tijdlijn slider met markeringen voor elk video segment. Klik of sleep om naar elk punt in je "film" te springen, met automatische prompt tekst synchronisatie.
+- **Volledige video workflow**: video's worden opgeslagen in een aparte `videos/` map per project, gekopieerd bij het dupliceren van projecten of scènes, en ondersteunen drag & drop upload net als afbeeldingen.
+- **Popup dialoog verbeteringen**: bij het openen van een scène worden zowel de referentie-afbeelding als gerenderde video verticaal weergegeven voor eenvoudige vergelijking.
+
+Vorige update: 4 november 2025
+
+  ![Scène met video](docs/images/screenshot.png)
+  ![Video presentatiemodus](docs/images/presentation.png)
+
+Hoe video functies te gebruiken:
+
+- **Video uploaden**: klik op de "🎬 Video" toggle op een scènekaart, sleep dan een videobestand of klik om te uploaden. Ondersteunde formaten: MP4, WebM.
+- **Bekijken in presentatie**: klik op "Presentation" in de project header, selecteer dan "🎬 Video (auto-play)" uit het modus dropdown menu. Alle video's spelen automatisch af met gesynchroniseerde prompt tekst.
+- **Navigeer tijdlijn**: gebruik de slider in de footer om door alle video's te scrubben, of gebruik Vorige/Volgende in afbeelding modus. Markeringen tonen waar elk video segment begint.
+- **Vergelijk resultaten**: open een scène om zowel de referentie-afbeelding (boven) als gerenderde video (onder) naast elkaar te zien.
+
+Deze updates weerspiegelen doorlopende ontwikkeling gebaseerd op feedback van video AI makers die zowel inputs (prompts/afbeeldingen) als outputs (gerenderde video's) in één werkruimte willen bijhouden.
+
 ## Recente update — 4 november 2025
 
 Deze release verbetert exportworkflows en dialoogfeedback:
