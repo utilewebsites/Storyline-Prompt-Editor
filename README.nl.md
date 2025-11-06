@@ -7,7 +7,20 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## Recente update — 5 november 2025
+## update — 6 november 2025
+
+Deze release verbetert de workflow voor het bewerken van scènes met snelle navigatie:
+
+- **Scène dialoog navigatie**: wanneer je een scène bewerkt in de popup dialoog, kun je nu direct naar de vorige of volgende scène navigeren met behulp van pijlknoppen (⬅️ ➡️) in de dialoog header. Niet meer sluiten en opnieuw openen—klik gewoon door je scènes heen.
+- **Toetsenbord shortcuts**: gebruik de linker en rechter pijltjestoetsen (← →) om snel tussen scènes te springen tijdens het bewerken. Werkt naadloos tenzij je in een tekstveld typt.
+- **Automatisch opslaan bij navigatie**: wijzigingen in prompts en vertalingen worden automatisch opgeslagen wanneer je naar een andere scène navigeert, zodat geen werk verloren gaat.
+- **Slimme knop status**: navigatieknoppen worden automatisch uitgeschakeld bij de eerste en laatste scène, wat duidelijke visuele feedback geeft over je positie in de verhaallijn.
+
+Deze update maakt het moeiteloos om je volledige verhaallijn in één doorlopende flow te reviewen en bewerken, perfect voor het verfijnen van prompts en het controleren van consistentie tussen scènes.
+
+
+
+## update — 5 november 2025
 - Add video
    ![Copy scenes example](docs/images/uitbreiding-met-video.png)
 - Presentation mode preview + video:

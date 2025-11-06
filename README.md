@@ -7,7 +7,19 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## Recent update — 5 November 2025
+## Recent update — 6 November 2025
+
+This release enhances the scene editing workflow with quick navigation:
+
+- **Scene dialog navigation**: when editing a scene in the popup dialog, you can now navigate directly to the previous or next scene using arrow buttons (⬅️ ➡️) in the dialog header. No need to close and reopen—just click through your scenes.
+- **Keyboard shortcuts**: use the left and right arrow keys (← →) to quickly jump between scenes while editing. Works seamlessly unless you're typing in a text field.
+- **Auto-save on navigation**: changes to prompts and translations are automatically saved when you navigate to another scene, ensuring no work is lost.
+- **Smart button states**: navigation buttons are automatically disabled at the first and last scene, providing clear visual feedback about your position in the storyline.
+
+This update makes it effortless to review and edit your entire storyline in one continuous flow, perfect for fine-tuning prompts and checking consistency across scenes.
+
+
+## update — 5 November 2025
 
 - Add video
    ![Copy scenes example](docs/images/uitbreiding-met-video.png)
@@ -37,7 +49,7 @@ How to use video features:
 
 These updates reflect ongoing development based on feedback from video AI creators who need to track both inputs (prompts/images) and outputs (rendered videos) in a single workspace.
 
-## Recent update — 4 November 2025
+## update — 4 November 2025
 
 This release improves export workflows and dialog feedback:
 

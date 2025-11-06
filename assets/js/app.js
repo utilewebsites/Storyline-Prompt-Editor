@@ -71,6 +71,8 @@ const elements = {
   promptTemplate: document.querySelector("#prompt-template"),
   promptDialog: document.querySelector("#prompt-dialog"),
   dialogSceneIndex: document.querySelector("#dialog-scene-index"),
+  dialogPrevScene: document.querySelector("#dialog-prev-scene"),
+  dialogNextScene: document.querySelector("#dialog-next-scene"),
   dialogText: document.querySelector("#dialog-text"),
   dialogTranslation: document.querySelector("#dialog-translation"),
   dialogImage: document.querySelector("#dialog-image"),
@@ -1112,13 +1114,18 @@ async function openPresentation() {
     elements.presentationLanguage.value = "both";
   }
 
+  // Reset video mode en check of de mode selector op video staat
+  const savedVideoMode = elements.presentationMode && elements.presentationMode.value === "video";
+  state.presentationMode.videoMode = savedVideoMode;
+  state.presentationMode.videoTimeline = null;
+
   // Initialiseer video timeline als video mode actief is
   if (state.presentationMode.videoMode) {
     const timeline = await initializeCombinedVideoPresentation(state, elements, t);
     state.presentationMode.videoTimeline = timeline;
     
     if (!timeline || timeline.segments.length === 0) {
-      showError("Geen video's gevonden in dit project");
+      console.warn("Geen video's gevonden in dit project");
       state.presentationMode.videoMode = false;
       if (elements.presentationMode) {
         elements.presentationMode.value = "image";
@@ -1126,24 +1133,31 @@ async function openPresentation() {
     }
   }
 
-  // Laad eerste slide
-  await updatePresentationSlideWrapper();
-
   if (elements.presentationDialog) {
     applyTranslations(elements.presentationDialog);
     
-    // Set footer video-mode class als video mode actief is
+    // Set container visibility en footer class
+    const imageContainer = elements.presentationDialog.querySelector(".slide-image-container");
+    const videoContainer = elements.presentationDialog.querySelector(".slide-video-container");
     const footer = elements.presentationDialog.querySelector(".presentation-footer");
-    if (footer) {
+    
+    if (imageContainer && videoContainer) {
       if (state.presentationMode.videoMode) {
-        footer.classList.add("video-mode");
+        imageContainer.dataset.active = "false";
+        videoContainer.dataset.active = "true";
+        if (footer) footer.classList.add("video-mode");
       } else {
-        footer.classList.remove("video-mode");
+        imageContainer.dataset.active = "true";
+        videoContainer.dataset.active = "false";
+        if (footer) footer.classList.remove("video-mode");
       }
     }
     
     elements.presentationDialog.showModal();
   }
+
+  // Laad eerste slide NA het openen van dialog
+  await updatePresentationSlideWrapper();
 }
 
 /**
@@ -1910,7 +1924,18 @@ async function openPromptDialog(promptId) {
   resetDialogImageState(prompt.imagePath ? t("dialog.prompt.loadingImage") : t("dialog.prompt.noImage"));
 
   const sceneIndex = state.projectData.prompts.indexOf(prompt) + 1;
+  const totalScenes = state.projectData.prompts.length;
+  
   elements.dialogSceneIndex.textContent = sceneIndex;
+  
+  // Update navigation buttons state
+  if (elements.dialogPrevScene) {
+    elements.dialogPrevScene.disabled = (sceneIndex === 1);
+  }
+  if (elements.dialogNextScene) {
+    elements.dialogNextScene.disabled = (sceneIndex === totalScenes);
+  }
+  
   if (elements.dialogText) {
     elements.dialogText.value = prompt.text ?? "";
   }
@@ -1925,6 +1950,33 @@ async function openPromptDialog(promptId) {
   await loadPromptDialogImage(prompt);
   await loadPromptDialogVideo(prompt);
   applyTranslations(elements.promptDialog);
+}
+
+/**
+ * Navigeer naar vorige/volgende scene in de dialog
+ */
+function navigateDialogScene(direction) {
+  if (!state.projectData || !state.dialogPromptId) return;
+  
+  const currentPrompt = state.projectData.prompts.find(p => p.id === state.dialogPromptId);
+  if (!currentPrompt) return;
+  
+  const currentIndex = state.projectData.prompts.indexOf(currentPrompt);
+  let newIndex = currentIndex + direction;
+  
+  // Check bounds
+  if (newIndex < 0 || newIndex >= state.projectData.prompts.length) return;
+  
+  // Save current changes first
+  if (elements.dialogText && elements.dialogTranslation) {
+    currentPrompt.text = elements.dialogText.value;
+    currentPrompt.translation = elements.dialogTranslation.value;
+    flagProjectDirty();
+  }
+  
+  // Open new scene
+  const newPrompt = state.projectData.prompts[newIndex];
+  openPromptDialog(newPrompt.id);
 }
 
 function handlePromptDialogClose() {
@@ -2086,6 +2138,26 @@ function init() {
   elements.promptsContainer.addEventListener("drop", handlePromptContainerDrop);
   if (elements.promptDialog) {
     elements.promptDialog.addEventListener("close", handlePromptDialogClose);
+    
+    // Keyboard shortcuts voor scene navigatie in dialog
+    elements.promptDialog.addEventListener("keydown", (event) => {
+      // Alleen als we NIET in een textarea zijn
+      if (event.target.tagName === "TEXTAREA") return;
+      
+      if (event.key === "ArrowLeft" && elements.dialogPrevScene && !elements.dialogPrevScene.disabled) {
+        event.preventDefault();
+        navigateDialogScene(-1);
+      } else if (event.key === "ArrowRight" && elements.dialogNextScene && !elements.dialogNextScene.disabled) {
+        event.preventDefault();
+        navigateDialogScene(1);
+      }
+    });
+  }
+  if (elements.dialogPrevScene) {
+    elements.dialogPrevScene.addEventListener("click", () => navigateDialogScene(-1));
+  }
+  if (elements.dialogNextScene) {
+    elements.dialogNextScene.addEventListener("click", () => navigateDialogScene(1));
   }
   if (elements.dialogOpenImage) {
     elements.dialogOpenImage.addEventListener("click", () => {

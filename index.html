@@ -320,10 +320,14 @@
     <dialog id="prompt-dialog">
       <form method="dialog" class="prompt-dialog">
         <header class="prompt-dialog-header">
-          <h3 id="prompt-dialog-title">
-            <span data-i18n="dialog.prompt.title">Scene</span>
-            <span id="dialog-scene-index"></span>
-          </h3>
+          <div class="dialog-header-left">
+            <button type="button" id="dialog-prev-scene" class="dialog-nav-btn" title="Vorige scene">⬅️</button>
+            <h3 id="prompt-dialog-title">
+              <span data-i18n="dialog.prompt.title">Scene</span>
+              <span id="dialog-scene-index"></span>
+            </h3>
+            <button type="button" id="dialog-next-scene" class="dialog-nav-btn" title="Volgende scene">➡️</button>
+          </div>
           <menu>
           <button id="dialog-open-image" type="button" data-i18n="dialog.prompt.openImage">Open afbeelding</button>
           <button value="cancel" data-i18n="dialog.prompt.cancel">Annuleer</button>
