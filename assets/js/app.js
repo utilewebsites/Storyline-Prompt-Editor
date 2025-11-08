@@ -1317,7 +1317,7 @@ async function assignImageToPromptWrapper(promptId, file, uploader) {
  * Wrapper: roept modules/scenes.js removeImageFromPrompt aan
  */
 async function removeImageFromPromptWrapper(promptId, uploader) {
-  await removeImageFromPrompt(promptId, state, imageMap);
+  await removeImageFromPrompt(promptId, state, uploader, imageMap);
   
   // UI feedback (reset preview)
   if (uploader) {
