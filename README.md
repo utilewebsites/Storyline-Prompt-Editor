@@ -7,7 +7,29 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## Recent update — 6 November 2025
+
+
+## update — 15 November 2025
+
+This release adds audio timeline functionality and a context-sensitive help system:
+
+**Audio Timeline for time-based production:**
+- **Audio Timeline mode**: upload an audio file (MP3/WAV) and place markers on the waveform to automatically link scenes to specific timestamps. Ideal for music videos, voice-overs, and sound effects.
+- **Automatic scene synchronization**: markers determine the order and timing of scenes. Drag a marker to adjust a scene’s timing—scenes are automatically reordered based on their position in the audio.
+- **Audio presentation mode**: preview your project with synchronized audio playback. Scenes switch automatically at the correct moments while the audio plays.
+- **Visual marker editing**: edit marker times with a styled dialog (MM:SS.ms format), attach existing scenes to markers via a "➕" button, and see immediately which scenes are already linked.
+
+**Contextual help system:**
+- **"?" Help icons**: click the question-mark icons next to input fields and buttons for immediate explanations of functionality.
+- **Info badge**: a red "!" badge on the Audio Timeline button explains how markers determine scene order—click it for more information.
+- **💡 Help mode toggle**: switch between compact and expanded views with inline explanations for all features.
+
+This update makes time-based video workflows straightforward and helps users quickly find their way—from music videos to documentaries with voice-over.
+
+![Audio Timeline Editor](docs/images/audio-timeline-editor.png) ![Audio Presentation Mode](docs/images/audio-presentation.png) ![Scene Dialog](docs/images/scene-dialog.png)
+
+
+## update — 6 November 2025
 
 This release enhances the scene editing workflow with quick navigation:
 

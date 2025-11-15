@@ -7,7 +7,27 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## update — 6 november 2025
+
+## update — 15 november 2025
+
+Deze release voegt audio timeline functionaliteit en een contextgevoelig help-systeem toe:
+
+**Audio Timeline voor tijdgebaseerde productie:**
+- **Audio Timeline modus**: upload een audiobestand (MP3/WAV) en plaats markers op de waveform om scènes automatisch te koppelen aan specifieke tijdstippen. Ideaal voor muziekvideo's, voice-overs en geluidseffecten.
+- **Automatische scène synchronisatie**: markers bepalen de volgorde en timing van scènes. Sleep een marker om de scène timing aan te passen—scènes worden automatisch opnieuw geordend op basis van hun positie in de audio.
+- **Audio presentatiemodus**: bekijk je project met gesynchroniseerde audio playback. Scènes wisselen automatisch op de juiste momenten terwijl de audio afspeelt.
+- **Visuele marker editing**: bewerk marker tijden met een gestylede dialoog (MM:SS.ms formaat), koppel bestaande scènes aan markers via een "➕" knop, en zie direct welke scènes al gekoppeld zijn.
+
+**Contextueel help-systeem:**
+- **"?" Help iconen**: klik op de vraagteken iconen naast invoervelden en knoppen voor directe uitleg over functionaliteit.
+- **Info badge**: een rode "!" badge op de Audio Timeline knop verklaart hoe markers de scène volgorde bepalen—klik erop voor meer informatie.
+- **💡 Help mode toggle**: schakel tussen compacte en uitgebreide weergave met uitleg bij alle functies.
+
+![Audio Timeline Editor](docs/images/audio-timeline-editor.png) ![Audio Presentation Mode](docs/images/audio-presentation.png) ![Scene Dialog](docs/images/scene-dialog.png)
+
+
+
+##  6 november 2025
 
 Deze release verbetert de workflow voor het bewerken van scènes met snelle navigatie:
 

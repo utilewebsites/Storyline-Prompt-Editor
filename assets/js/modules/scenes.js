@@ -24,7 +24,7 @@ import { uuid, writeJsonFile } from "./utils.js";
  * @param {Function} flagProjectDirty - Callback om te markeren dat project gewijzigd is
  */
 export function addPrompt(state, elements, flagProjectDirty) {
-  if (!state.projectData) return;
+  if (!state.projectData) return null;
   const prompt = {
     id: uuid(),
     text: "",
@@ -36,9 +36,15 @@ export function addPrompt(state, elements, flagProjectDirty) {
     videoOriginalName: null,
     videoType: null,
     rating: null,
+    // Traditional video storyline fields
+    whatDoWeSee: "",
+    howDoWeMake: "",
+    timeline: "",
+    duration: "",
   };
   state.projectData.prompts.push(prompt);
   flagProjectDirty();
+  return prompt;
 }
 
 /**

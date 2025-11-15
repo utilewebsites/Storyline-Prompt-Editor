@@ -20,9 +20,17 @@ export function updatePresentationSlide(state, elements, t) {
   if (!state.projectData || state.projectData.prompts.length === 0) return;
 
   const prompt = state.projectData.prompts[state.presentationMode.currentSlide];
-  if (!prompt) return;
+  if (!prompt) {
+    return;
+  }
 
-  const { languageMode } = state.presentationMode;
+  const { languageMode, workflowMode } = state.presentationMode;
+  
+  // Debug: check of workflowMode correct is
+  if (!workflowMode) {
+    console.error("workflowMode is undefined! Forcing to 'both'");
+    state.presentationMode.workflowMode = "both";
+  }
 
   // Update slide counter
   if (elements.presentationSlideCounter) {
@@ -58,19 +66,38 @@ export function updatePresentationSlide(state, elements, t) {
     if (elements.presentationNoImage) elements.presentationNoImage.style.display = "block";
   }
 
-  // Update text display based on language mode
-  if (languageMode === "prompts" || languageMode === "both") {
-    if (elements.presentationTextEn) elements.presentationTextEn.style.display = "block";
-    if (elements.presentationPromptEn) elements.presentationPromptEn.textContent = prompt.text ?? "";
-  } else {
-    if (elements.presentationTextEn) elements.presentationTextEn.style.display = "none";
+  // Update AI Prompt fields based on language mode and workflow mode
+  const showAiFields = workflowMode === "ai-prompt" || workflowMode === "both";
+  if (showAiFields) {
+    if (languageMode === "prompts" || languageMode === "both") {
+      if (elements.presentationTextEn) elements.presentationTextEn.style.display = "block";
+      if (elements.presentationPromptEn) elements.presentationPromptEn.textContent = prompt.text ?? "";
+    } else {
+      if (elements.presentationTextEn) elements.presentationTextEn.style.display = "none";
+    }
+
+    if (languageMode === "notes" || languageMode === "both") {
+      if (elements.presentationTextNl) elements.presentationTextNl.style.display = "block";
+      if (elements.presentationPromptNl) elements.presentationPromptNl.textContent = prompt.translation ?? "";
+    } else {
+      if (elements.presentationTextNl) elements.presentationTextNl.style.display = "none";
+    }
   }
 
-  if (languageMode === "notes" || languageMode === "both") {
-    if (elements.presentationTextNl) elements.presentationTextNl.style.display = "block";
-    if (elements.presentationPromptNl) elements.presentationPromptNl.textContent = prompt.translation ?? "";
-  } else {
-    if (elements.presentationTextNl) elements.presentationTextNl.style.display = "none";
+  // Update Traditional video fields
+  const showTraditionalFields = workflowMode === "traditional" || workflowMode === "both";
+  if (showTraditionalFields) {
+    if (elements.presentationWhatSee) {
+      elements.presentationWhatSee.textContent = prompt.whatDoWeSee ?? "";
+    }
+    if (elements.presentationHowMake) {
+      elements.presentationHowMake.textContent = prompt.howDoWeMake ?? "";
+    }
+    if (elements.presentationTimeline) {
+      const timelineText = prompt.timeline ?? "";
+      const durationText = prompt.duration ? ` (${prompt.duration}s)` : "";
+      elements.presentationTimeline.textContent = timelineText + durationText;
+    }
   }
 }
 
@@ -202,6 +229,28 @@ export function setPresentationLanguage(lang, state) {
 }
 
 /**
+ * Set presentation workflow mode (AI/Traditional/Both)
+ */
+export function setPresentationWorkflowMode(mode, state, elements) {
+  state.presentationMode.workflowMode = mode;
+  
+  // Update visibility van veld groepen
+  const aiFields = elements.presentationAiFields;
+  const traditionalFields = elements.presentationTraditionalFields;
+  
+  if (mode === "ai-prompt") {
+    if (aiFields) aiFields.classList.remove("hidden");
+    if (traditionalFields) traditionalFields.classList.add("hidden");
+  } else if (mode === "traditional") {
+    if (aiFields) aiFields.classList.add("hidden");
+    if (traditionalFields) traditionalFields.classList.remove("hidden");
+  } else if (mode === "both") {
+    if (aiFields) aiFields.classList.remove("hidden");
+    if (traditionalFields) traditionalFields.classList.remove("hidden");
+  }
+}
+
+/**
  * Close presentation mode en stop alle video's
  */
 export function closePresentationMode(state, elements) {
@@ -214,17 +263,31 @@ export function closePresentationMode(state, elements) {
     elements.presentationVideo.load(); // Reset video element
   }
   
+  // Stop audio indien afspelend
+  if (elements.presentationAudio) {
+    elements.presentationAudio.pause();
+    elements.presentationAudio.removeAttribute("src");
+    elements.presentationAudio.currentTime = 0;
+    elements.presentationAudio.load(); // Reset audio element
+  }
+  
   if (elements.presentationDialog) {
     elements.presentationDialog.close();
   }
   
   state.presentationMode.currentSlide = 0;
   state.presentationMode.videoMode = false;
+  state.presentationMode.audioMode = false;
   
   // Clear video timeline state
   if (state.presentationMode.videoTimeline) {
     state.presentationMode.videoTimeline = null;
   }
+  
+  // Clear audio state
+  state.presentationMode.audioMarkers = null;
+  state.presentationMode.audioDuration = null;
+  state.presentationMode.audioBuffer = null;
 }
 
 /**
@@ -427,4 +490,442 @@ export function seekCombinedVideoTimeline(percentage, state, elements, t) {
     }
   }
 }
+
+/**
+ * Render waveform op canvas in presentatie mode
+ */
+export function renderPresentationWaveform(canvas, audioBuffer) {
+  if (!canvas || !audioBuffer) return;
+  
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, width, height);
+  
+  // Get audio data
+  const data = audioBuffer.getChannelData(0);
+  const step = Math.ceil(data.length / width);
+  const amp = height / 2;
+  
+  // Draw waveform
+  ctx.fillStyle = 'rgba(0, 122, 255, 0.3)';
+  ctx.strokeStyle = 'rgba(0, 122, 255, 0.8)';
+  ctx.lineWidth = 1;
+  
+  for (let i = 0; i < width; i++) {
+    let min = 1.0;
+    let max = -1.0;
+    
+    for (let j = 0; j < step; j++) {
+      const datum = data[(i * step) + j];
+      if (datum < min) min = datum;
+      if (datum > max) max = datum;
+    }
+    
+    const x = i;
+    const yMin = (1 + min) * amp;
+    const yMax = (1 + max) * amp;
+    
+    // Fill
+    ctx.fillRect(x, yMin, 1, yMax - yMin);
+  }
+  
+  // Draw center line
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(0, amp);
+  ctx.lineTo(width, amp);
+  ctx.stroke();
+}
+
+/**
+ * Render markers op presentatie waveform
+ */
+export function renderPresentationMarkers(container, markers, duration, linkedScenes) {
+  if (!container || !markers) return;
+  
+  container.innerHTML = '';
+  
+  markers.forEach((time, index) => {
+    const percentage = (time / duration) * 100;
+    
+    // Zoek scene die aan deze marker gekoppeld is
+    const linkedScene = linkedScenes.find(s => s.audioMarkerIndex === index);
+    const sceneNumber = linkedScene ? linkedScene.originalIndex + 1 : index + 1;
+    
+    const markerLine = document.createElement('div');
+    markerLine.className = 'presentation-marker-line';
+    markerLine.style.left = `${percentage}%`;
+    markerLine.dataset.markerIndex = index;
+    
+    const label = document.createElement('div');
+    label.className = 'presentation-marker-label';
+    label.textContent = `${sceneNumber}`;
+    label.style.left = `${percentage}%`;
+    
+    container.appendChild(markerLine);
+    container.appendChild(label);
+  });
+}
+
+/**
+ * Render marker jump buttons
+ */
+export function renderMarkerButtons(container, markers, duration, linkedScenes, onJump) {
+  if (!container || !markers) return;
+  
+  container.innerHTML = '';
+  
+  markers.forEach((time, index) => {
+    // Zoek scene die aan deze marker gekoppeld is
+    const linkedScene = linkedScenes.find(s => s.audioMarkerIndex === index);
+    if (!linkedScene) return; // Skip markers zonder gekoppelde scene
+    
+    const sceneNumber = linkedScene.originalIndex + 1;
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    
+    const btn = document.createElement('button');
+    btn.className = 'presentation-marker-btn';
+    btn.type = 'button';
+    btn.textContent = `Scene ${sceneNumber} (${timeStr})`;
+    btn.dataset.markerIndex = index;
+    btn.dataset.time = time;
+    
+    btn.addEventListener('click', () => {
+      if (onJump) onJump(time, index);
+    });
+    
+    container.appendChild(btn);
+  });
+}
+
+/**
+ * Initialiseer audio voor presentatie mode
+ * @param {Object} state - App state
+ * @param {Object} elements - DOM elements
+ * @param {Object} projectDirHandle - Directory handle voor project
+ * @param {Function} getSceneIndexAtTime - Callback om scene index te bepalen
+ * @param {Function} getAllScenes - Callback om alle scenes op te halen
+ * @param {Function} updateSlideWrapper - Callback om slide te updaten
+ * @returns {Promise<Object|null>} Audio data of null
+ */
+export async function initializeAudioPresentation(state, elements, projectDirHandle, getSceneIndexAtTime, getAllScenes, updateSlideWrapper) {
+  if (!state.projectData || !projectDirHandle) {
+    console.warn("Geen project data of directory handle voor audio");
+    return null;
+  }
+  
+  // Controleer of project audio timeline heeft
+  const audioData = state.projectData.audioTimeline;
+  if (!audioData || !audioData.audioFileName) {
+    console.warn("Dit project heeft geen audio timeline");
+    return null;
+  }
+  
+  try {
+    // Laad audio file
+    const audioDir = await projectDirHandle.getDirectoryHandle("audio");
+    const audioFileHandle = await audioDir.getFileHandle(audioData.audioFileName);
+    const audioFile = await audioFileHandle.getFile();
+    
+    // Set audio source
+    if (elements.presentationAudio) {
+      const url = URL.createObjectURL(audioFile);
+      elements.presentationAudio.src = url;
+      elements.presentationAudio.load();
+      
+      // Store markers voor timeline visualization
+      state.presentationMode.audioMarkers = audioData.markers || [];
+      state.presentationMode.audioDuration = audioData.audioDuration || 0;
+      
+      // Decode audio voor waveform
+      const arrayBuffer = await audioFile.arrayBuffer();
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      state.presentationMode.audioBuffer = audioBuffer;
+      
+      // Setup audio player met waveform
+      await setupPresentationAudioPlayer(
+        elements, 
+        state, 
+        audioBuffer,
+        getSceneIndexAtTime,
+        getAllScenes,
+        updateSlideWrapper
+      );
+      
+      return {
+        markers: audioData.markers,
+        duration: audioData.audioDuration
+      };
+    }
+  } catch (error) {
+    console.error("Fout bij laden audio:", error);
+    return null;
+  }
+  
+  return null;
+}
+
+/**
+ * Setup presentatie audio player met waveform en markers
+ * @param {Object} elements - DOM elements
+ * @param {Object} state - App state
+ * @param {Object} audioBuffer - Decoded audio buffer voor waveform
+ * @param {Function} getSceneIndexAtTime - Callback om scene index te bepalen
+ * @param {Function} getAllScenes - Callback om alle scenes op te halen
+ * @param {Function} updateSlideWrapper - Callback om slide te updaten
+ */
+export async function setupPresentationAudioPlayer(elements, state, audioBuffer, getSceneIndexAtTime, getAllScenes, updateSlideWrapper) {
+  const audio = elements.presentationAudio;
+  const canvas = document.getElementById('presentation-waveform');
+  const playBtn = document.getElementById('presentation-audio-play');
+  const playhead = document.getElementById('presentation-playhead');
+  const currentTimeEl = document.getElementById('presentation-current-time');
+  const totalTimeEl = document.getElementById('presentation-total-time');
+  const markersContainer = document.getElementById('presentation-audio-visual-markers');
+  const markerButtonsContainer = document.getElementById('presentation-marker-buttons');
+  const waveformContainer = document.querySelector('.presentation-waveform-container');
+  
+  if (!canvas || !audio) return;
+  
+  // Setup ResizeObserver voor responsive canvas
+  const resizeObserver = new ResizeObserver(() => {
+    const container = canvas.parentElement;
+    if (container) {
+      const width = container.clientWidth || 800;
+      const height = 60;
+      
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+        renderPresentationWaveform(canvas, audioBuffer);
+      }
+    }
+  });
+  
+  resizeObserver.observe(canvas.parentElement);
+  
+  // Initial render
+  const container = canvas.parentElement;
+  if (container) {
+    canvas.width = container.clientWidth || 800;
+    canvas.height = 60;
+  }
+  
+  // Render waveform
+  renderPresentationWaveform(canvas, audioBuffer);
+  
+  // Get linked scenes voor marker rendering
+  const linkedScenes = getAllScenes().filter(s => s.isAudioLinked && s.audioMarkerIndex !== undefined);
+  
+  // Render markers op waveform
+  renderPresentationMarkers(markersContainer, state.presentationMode.audioMarkers, state.presentationMode.audioDuration, linkedScenes);
+  
+  // Render marker jump buttons
+  renderMarkerButtons(markerButtonsContainer, state.presentationMode.audioMarkers, state.presentationMode.audioDuration, linkedScenes, (time, markerIndex) => {
+    // Valideer dat time een finite number is
+    if (isFinite(time) && time >= 0) {
+      audio.currentTime = time;
+      
+      // Vind de scene die aan deze marker gekoppeld is (in de echte prompts array)
+      for (let i = 0; i < state.projectData.prompts.length; i++) {
+        const prompt = state.projectData.prompts[i];
+        if (prompt.isAudioLinked && prompt.audioMarkerIndex === markerIndex) {
+          state.presentationMode.currentSlide = i; // Gebruik echte array index
+          updateSlideWrapper().catch(err => {
+            console.error("Fout bij updaten scene:", err);
+          });
+          break;
+        }
+      }
+    } else {
+      console.warn("Ongeldige tijd voor marker jump:", time);
+    }
+    
+    // Start playback
+    if (audio.paused) {
+      audio.play();
+    }
+  });
+  
+  // Set total time
+  if (totalTimeEl) {
+    const minutes = Math.floor(state.presentationMode.audioDuration / 60);
+    const seconds = Math.floor(state.presentationMode.audioDuration % 60);
+    totalTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+  
+  // Play/pause button
+  let isPlaying = false;
+  if (playBtn) {
+    playBtn.addEventListener('click', () => {
+      if (isPlaying) {
+        audio.pause();
+        playBtn.textContent = '▶️';
+        isPlaying = false;
+      } else {
+        audio.play();
+        playBtn.textContent = '⏸️';
+        isPlaying = true;
+      }
+    });
+    
+    // Sync with audio element events
+    audio.addEventListener('play', () => {
+      playBtn.textContent = '⏸️';
+      isPlaying = true;
+    });
+    
+    audio.addEventListener('pause', () => {
+      playBtn.textContent = '▶️';
+      isPlaying = false;
+    });
+  }
+  
+  // Initialize met de eerste scene die aan marker 0 gekoppeld is
+  const firstSceneIndex = getSceneIndexAtTime(state, 0);
+  if (firstSceneIndex !== -1) {
+    state.presentationMode.currentSlide = firstSceneIndex;
+  }
+  
+  // Update playhead en current time tijdens afspelen
+  let currentSceneIndex = state.presentationMode.currentSlide;
+  let lastMarkerIndex = -1;
+  
+  audio.addEventListener('timeupdate', () => {
+    // Safety check: als state is gereset, stop
+    if (!state.presentationMode.audioMarkers || !state.presentationMode.audioMarkers.length) {
+      return;
+    }
+    
+    const percentage = (audio.currentTime / audio.duration) * 100;
+    
+    // Update playhead position
+    if (playhead) {
+      playhead.style.left = `${percentage}%`;
+    }
+    
+    // Update current time display
+    if (currentTimeEl) {
+      const minutes = Math.floor(audio.currentTime / 60);
+      const seconds = Math.floor(audio.currentTime % 60);
+      currentTimeEl.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    // Bepaal welke marker nu actief is
+    let activeMarkerIndex = -1;
+    for (let i = state.presentationMode.audioMarkers.length - 1; i >= 0; i--) {
+      if (audio.currentTime >= state.presentationMode.audioMarkers[i]) {
+        activeMarkerIndex = i;
+        break;
+      }
+    }
+    
+    // Update active marker visuals
+    updateActiveMarker(markersContainer, state.presentationMode.audioMarkers, audio.currentTime);
+    updateActiveMarkerButton(markerButtonsContainer, state.presentationMode.audioMarkers, audio.currentTime);
+    
+    // Wissel scene ALLEEN als we een nieuwe marker bereiken
+    if (activeMarkerIndex !== lastMarkerIndex && activeMarkerIndex !== -1) {
+      lastMarkerIndex = activeMarkerIndex;
+      
+      // Zoek de scene die aan deze marker gekoppeld is
+      const newSceneIndex = getSceneIndexAtTime(state, audio.currentTime);
+      
+      if (newSceneIndex !== -1 && newSceneIndex !== currentSceneIndex) {
+        currentSceneIndex = newSceneIndex;
+        state.presentationMode.currentSlide = newSceneIndex;
+        updateSlideWrapper().catch(err => {
+          console.error("Fout bij updaten scene:", err);
+        });
+      }
+    }
+  });
+  
+  // Click op waveform om te seeken
+  if (waveformContainer) {
+    waveformContainer.addEventListener('click', (e) => {
+      const rect = waveformContainer.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const percentage = x / rect.width;
+      const time = percentage * audio.duration;
+      
+      // Valideer dat time een finite number is
+      if (isFinite(time) && time >= 0) {
+        audio.currentTime = time;
+        
+        // Update scene naar de marker positie
+        const sceneIndex = getSceneIndexAtTime(state, time);
+        if (sceneIndex !== -1) {
+          state.presentationMode.currentSlide = sceneIndex;
+          currentSceneIndex = sceneIndex;
+          updateSlideWrapper().catch(err => {
+            console.error("Fout bij updaten scene:", err);
+          });
+        }
+      }
+    });
+  }
+}
+
+/**
+ * Update active marker visual op waveform
+ */
+function updateActiveMarker(container, markers, currentTime) {
+  if (!container) return;
+  
+  const markerLines = container.querySelectorAll('.presentation-marker-line');
+  
+  // Vind huidige marker (laatste marker <= currentTime)
+  let activeIndex = -1;
+  for (let i = markers.length - 1; i >= 0; i--) {
+    if (currentTime >= markers[i]) {
+      activeIndex = i;
+      break;
+    }
+  }
+  
+  markerLines.forEach((line, index) => {
+    if (index === activeIndex) {
+      line.classList.add('active');
+    } else {
+      line.classList.remove('active');
+    }
+  });
+}
+
+/**
+ * Update active marker button
+ */
+function updateActiveMarkerButton(container, markers, currentTime) {
+  if (!container) return;
+  
+  const buttons = container.querySelectorAll('.presentation-marker-btn');
+  
+  // Vind huidige marker
+  let activeIndex = -1;
+  for (let i = markers.length - 1; i >= 0; i--) {
+    if (currentTime >= markers[i]) {
+      activeIndex = i;
+      break;
+    }
+  }
+  
+  buttons.forEach((btn) => {
+    const markerIndex = parseInt(btn.dataset.markerIndex);
+    if (markerIndex === activeIndex) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+
 

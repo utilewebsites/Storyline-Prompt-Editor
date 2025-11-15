@@ -1,9 +1,24 @@
 /* eslint-disable no-await-in-loop */
 
+// ============================================================================
+// DEBUG LOGGING
+// ============================================================================
+// Om debug logging aan te zetten naar bestand (/jouw-projectmap/log/debug.log):
+// 1. Uncomment de regel hieronder (verwijder de //)
+// 2. Refresh de pagina
+// 3. Kies een projectmap (of laad een project)
+// 4. Check het bestand: /jouw-projectmap/log/debug.log
+// ============================================================================
+// import { initLogger, log, logSection } from "./modules/logger.js";
+// ============================================================================
+
 import translations from "./translations.js";
 import { uuid, slugify, formatDateTime, readJsonFile, writeJsonFile, writeTextFile } from "./modules/utils.js";
 import { addPrompt, deletePrompt, movePrompt, assignImageToPrompt, assignVideoToPrompt, removeImageFromPrompt, removeVideoFromPrompt } from "./modules/scenes.js";
-import { updatePresentationSlide, updateVideoPresentationSlide, nextSlide, prevSlide, setPresentationLanguage, closePresentationMode, initializeCombinedVideoPresentation, updateCombinedVideoPresentation, seekCombinedVideoTimeline } from "./modules/presentation.js";
+import { updatePresentationSlide, updateVideoPresentationSlide, nextSlide, prevSlide, setPresentationLanguage, setPresentationWorkflowMode, closePresentationMode, initializeCombinedVideoPresentation, updateCombinedVideoPresentation, seekCombinedVideoTimeline, renderPresentationWaveform, renderPresentationMarkers, renderMarkerButtons, setupPresentationAudioPlayer, initializeAudioPresentation } from "./modules/presentation.js";
+import { initializeHelpSystem, setHelpLanguage, toggleHelpMode, handleWorkflowModeChange, applyWorkflowModeToDialog, getWorkflowMode, updateHelpTexts } from "./modules/help.js";
+import { initializeAudioTimeline, generateScenesFromAudio, resetAudioTimeline, getAudioTimelineData, restoreAudioTimelineData, setAudioProjectHandle, loadAudioFromProject, hasAudioTimeline, setSceneCallbacks, redrawWaveform, refreshMarkersDisplay, waitAndShowMarkers, removeMarkerByIndex } from "./modules/audio-timeline.js";
+// import { initLogger, log, logSection } from "./modules/logger.js"; // DEBUG: Uncomment om logging aan te zetten
 
 /**
  * Storyline Prompt Editor
@@ -12,6 +27,7 @@ import { updatePresentationSlide, updateVideoPresentationSlide, nextSlide, prevS
  * - Projecten laden, aanmaken, updaten en exporteren
  * - Promptvelden beheren inclusief afbeeldingen en video's
  * - Presentatiemodus met video-afspeeling
+ * - Audio timeline mode voor automatische scene generatie
  * 
  * ARCHITECTUUR:
  * - app.js: initialisatie, state management, event wiring
@@ -28,6 +44,8 @@ import { updatePresentationSlide, updateVideoPresentationSlide, nextSlide, prevS
 const elements = {
   chooseRoot: document.querySelector("#choose-root"),
   languageSwitch: document.querySelector("#language-switch"),
+  workflowMode: document.querySelector("#workflow-mode"),
+  toggleHelp: document.querySelector("#toggle-help"),
   headerTitle: document.querySelector("#header-title"),
   headerSubtitle: document.querySelector("#header-subtitle"),
   rootPath: document.querySelector("#root-path"),
@@ -75,6 +93,11 @@ const elements = {
   dialogNextScene: document.querySelector("#dialog-next-scene"),
   dialogText: document.querySelector("#dialog-text"),
   dialogTranslation: document.querySelector("#dialog-translation"),
+  dialogWhatSee: document.querySelector("#dialog-what-see"),
+  dialogHowMake: document.querySelector("#dialog-how-make"),
+  dialogTimeline: document.querySelector("#dialog-timeline"),
+  dialogDuration: document.querySelector("#dialog-duration"),
+  traditionalVideoFields: document.querySelector("#traditional-video-fields"),
   dialogImage: document.querySelector("#dialog-image"),
   dialogImagePlaceholder: document.querySelector("#dialog-image-placeholder"),
   dialogImageWrapper: document.querySelector(".dialog-image-preview"),
@@ -93,6 +116,7 @@ const elements = {
   startPresentation: document.querySelector("#start-presentation"),
   presentationDialog: document.querySelector("#presentation-dialog"),
   presentationLanguage: document.querySelector("#presentation-language"),
+  presentationWorkflow: document.querySelector("#presentation-workflow"),
   presentationMode: document.querySelector("#presentation-mode"),
   presentationProjectName: document.querySelector("#presentation-project-name"),
   presentationSlideCounter: document.querySelector("#presentation-slide-counter"),
@@ -100,12 +124,22 @@ const elements = {
   presentationVideo: document.querySelector("#presentation-video"),
   presentationNoImage: document.querySelector("#presentation-no-image"),
   presentationNoVideo: document.querySelector("#presentation-no-video"),
+  presentationAudio: document.querySelector("#presentation-audio"),
+  presentationAudioTimelineContainer: document.querySelector("#presentation-audio-timeline-container"),
+  audioTimelineSlider: document.querySelector("#audio-timeline-slider"),
+  audioTimelineMarkers: document.querySelector("#audio-timeline-markers"),
+  videoTimelineContainer: document.querySelector("#video-timeline-container"),
   videoTimelineSlider: document.querySelector("#video-timeline-slider"),
   videoTimelineMarkers: document.querySelector("#video-timeline-markers"),
+  presentationAiFields: document.querySelector("#presentation-ai-fields"),
+  presentationTraditionalFields: document.querySelector("#presentation-traditional-fields"),
   presentationTextEn: document.querySelector("#presentation-text-en"),
   presentationTextNl: document.querySelector("#presentation-text-nl"),
   presentationPromptEn: document.querySelector("#presentation-prompt-en"),
   presentationPromptNl: document.querySelector("#presentation-prompt-nl"),
+  presentationWhatSee: document.querySelector("#presentation-what-see"),
+  presentationHowMake: document.querySelector("#presentation-how-make"),
+  presentationTimeline: document.querySelector("#presentation-timeline"),
   presentationPrev: document.querySelector("#presentation-prev"),
   presentationNext: document.querySelector("#presentation-next"),
   presentationProgressBar: document.querySelector("#presentation-progress-bar"),
@@ -132,6 +166,7 @@ const state = {
   indexData: { version: 1, projects: [] },
   selectedProjectId: null,
   projectHandle: null,
+  projectDirHandle: null, // ⭐ NIEUW: handle naar project directory (niet file)
   projectImagesHandle: null,
   projectVideosHandle: null, // ⭐ NIEUW: handle naar videos/ folder in project
   projectData: null,
@@ -146,6 +181,7 @@ const state = {
   presentationMode: {
     currentSlide: 0,
     languageMode: "both", // "prompts", "notes", "both"
+    workflowMode: "both", // ⭐ NIEUW: "ai-prompt", "traditional", "both"
     videoMode: false, // ⭐ true = video presentation, false = image/text
     videoTimeline: null, // ⭐ NIEUW: Timeline data voor gecombineerde video's
   },
@@ -221,6 +257,7 @@ function setLanguage(lang, { reRender = true } = {}) {
     elements.languageSwitch.value = currentLanguage;
   }
   applyTranslations();
+  setHelpLanguage(currentLanguage); // Update help system language
   updateExportPreviewInfo();
   if (reRender) {
     renderProjectList();
@@ -364,9 +401,19 @@ async function syncIndexWithFilesystem() {
   if (!state.projectenHandle) return;
   const existingBySlug = new Map(state.indexData.projects.map((project) => [project.slug, project]));
   const projects = [];
+  
+  // Folders die we moeten overslaan (geen project folders)
+  const skipFolders = ['audio', 'images', 'videos', 'projecten'];
+  
   for await (const entry of state.projectenHandle.values()) {
     if (entry.kind !== "directory") continue;
     const slug = entry.name;
+    
+    // Skip system/media folders
+    if (skipFolders.includes(slug) || slug.startsWith('scene_images_')) {
+      continue;
+    }
+    
     try {
       const projectDir = await state.projectenHandle.getDirectoryHandle(slug, { create: false });
       const projectFile = await projectDir.getFileHandle("project.json", { create: false });
@@ -465,6 +512,11 @@ async function tryRestoreLastRoot() {
       return;
     }
     state.rootHandle = handle;
+    
+    // DEBUG: Uncomment de volgende 2 regels om logging aan te zetten
+    // await initLogger(handle);
+    // await log("Root directory hersteld vanuit vorige sessie");
+    
     await ensureStructure();
     updateRootUi();
     renderProjectList();
@@ -531,9 +583,24 @@ function renderProjectList() {
     if (project.id === state.selectedProjectId) {
       li.classList.add("active");
     }
+    
+    // Audio timeline indicator
+    if (project.hasAudioTimeline) {
+      li.classList.add("has-audio-timeline");
+    }
 
     const title = document.createElement("strong");
     title.textContent = project.projectName;
+    
+    // Voeg audio icon toe aan titel als project audio heeft
+    if (project.hasAudioTimeline) {
+      const audioIcon = document.createElement("span");
+      audioIcon.className = "audio-indicator";
+      audioIcon.textContent = " 🎵";
+      audioIcon.title = "Dit project heeft een audio timeline";
+      title.appendChild(audioIcon);
+    }
+    
     li.appendChild(title);
 
     const meta = document.createElement("span");
@@ -572,6 +639,9 @@ function renderProjectEditor() {
     const card = createPromptCard(prompt, index);
     elements.promptsContainer.appendChild(card);
   });
+  
+  // Update help texts once after all cards are rendered
+  updateHelpTexts();
 
   elements.projectEmptyState.classList.add("hidden");
   elements.projectEditor.classList.remove("hidden");
@@ -618,8 +688,19 @@ function createPromptCard(prompt, index) {
   const card = template.querySelector(".prompt-card");
   card.dataset.id = prompt.id;
   card.querySelector(".prompt-index").textContent = t("prompts.scene", { index: index + 1 });
+  
+  // AI Prompt velden
   card.querySelector(".prompt-text").value = prompt.text ?? "";
   card.querySelector(".prompt-nl").value = prompt.translation ?? "";
+  
+  // Traditionele velden
+  const sceneWhatSee = card.querySelector(".scene-what-see");
+  const sceneHowMake = card.querySelector(".scene-how-make");
+  const sceneTimeline = card.querySelector(".scene-timeline");
+  
+  if (sceneWhatSee) sceneWhatSee.value = prompt.whatDoWeSee ?? "";
+  if (sceneHowMake) sceneHowMake.value = prompt.howDoWeMake ?? "";
+  if (sceneTimeline) sceneTimeline.value = prompt.timeline ?? "";
 
   // Afbeeldingvoorvertoning instellen indien aanwezig
   const uploader = card.querySelector(".image-uploader");
@@ -649,6 +730,31 @@ function createPromptCard(prompt, index) {
   card.querySelector(".prompt-nl").addEventListener("input", (event) => {
     updatePromptField(prompt.id, "translation", event.target.value);
   });
+  
+  // Events voor traditionele velden
+  if (sceneWhatSee) {
+    sceneWhatSee.addEventListener("input", (event) => {
+      updatePromptField(prompt.id, "whatDoWeSee", event.target.value);
+    });
+  }
+  if (sceneHowMake) {
+    sceneHowMake.addEventListener("input", (event) => {
+      updatePromptField(prompt.id, "howDoWeMake", event.target.value);
+    });
+  }
+  if (sceneTimeline) {
+    sceneTimeline.addEventListener("input", (event) => {
+      updatePromptField(prompt.id, "timeline", event.target.value);
+    });
+  }
+  
+  // Edit scene button (voor "both" mode)
+  const editSceneBtn = card.querySelector(".edit-scene-btn");
+  if (editSceneBtn) {
+    editSceneBtn.addEventListener("click", () =>
+      openPromptDialog(prompt.id).catch((error) => showError(t("errors.openPrompt"), error))
+    );
+  }
 
   // Verwijderen en verplaatsen
   card.querySelector(".delete").addEventListener("click", () => {
@@ -783,6 +889,7 @@ function createPromptCard(prompt, index) {
   }
 
   applyTranslations(card);
+  
   return card;
 }
 
@@ -856,9 +963,21 @@ function updatePromptField(promptId, field, value) {
  * Wrapper: roept modules/scenes.js deletePrompt aan (met video cleanup)
  */
 async function deletePromptWrapper(promptId) {
+  // Check of deze scene een audio marker heeft
+  const prompt = state.projectData?.prompts.find(p => p.id === promptId);
+  const hasMarker = prompt?.isAudioLinked && prompt?.audioMarkerIndex !== undefined;
+  const markerIndex = hasMarker ? prompt.audioMarkerIndex : null;
+  
+  // Verwijder de scene (en bijbehorende bestanden)
   await deletePrompt(promptId, state, elements);
   imageMap.delete(promptId);
   videoMap.delete(promptId);
+  
+  // Als de scene een marker had, verwijder die ook
+  if (hasMarker && markerIndex !== null && hasAudioTimeline()) {
+    removeMarkerByIndex(markerIndex);
+  }
+  
   flagProjectDirty();
 }
 
@@ -1107,17 +1226,48 @@ async function openPresentation() {
     return;
   }
 
+  // Reset presentation state volledig
   state.presentationMode.currentSlide = 0;
   state.presentationMode.languageMode = "both";
+  state.presentationMode.workflowMode = "both"; // Zorg dat workflow mode is ingesteld
+  state.presentationMode.videoMode = false;
+  state.presentationMode.audioMode = false;
+  state.presentationMode.videoTimeline = null;
+  state.presentationMode.audioMarkers = null;
+  state.presentationMode.audioDuration = null;
+  state.presentationMode.audioBuffer = null;
+  
+  // Stop en reset audio/video elementen van vorige presentaties
+  if (elements.presentationAudio) {
+    elements.presentationAudio.pause();
+    elements.presentationAudio.removeAttribute("src");
+    elements.presentationAudio.currentTime = 0;
+    elements.presentationAudio.load();
+  }
+  if (elements.presentationVideo) {
+    elements.presentationVideo.pause();
+    elements.presentationVideo.removeAttribute("src");
+    elements.presentationVideo.currentTime = 0;
+    elements.presentationVideo.load();
+  }
 
   if (elements.presentationLanguage) {
     elements.presentationLanguage.value = "both";
   }
+  
+  if (elements.presentationWorkflow) {
+    elements.presentationWorkflow.value = "both";
+  }
 
-  // Reset video mode en check of de mode selector op video staat
-  const savedVideoMode = elements.presentationMode && elements.presentationMode.value === "video";
-  state.presentationMode.videoMode = savedVideoMode;
-  state.presentationMode.videoTimeline = null;
+  // Check of project audio timeline heeft
+  const hasAudio = state.projectData.audioTimeline && state.projectData.audioTimeline.audioFileName;
+  
+  // Bepaal mode op basis van opgeslagen waarde
+  const savedMode = elements.presentationMode ? elements.presentationMode.value : "image";
+  
+  // Gebruik altijd de saved mode - laat gebruiker zelf kiezen
+  state.presentationMode.videoMode = (savedMode === "video");
+  state.presentationMode.audioMode = (savedMode === "audio-image" || savedMode === "audio-video");
 
   // Initialiseer video timeline als video mode actief is
   if (state.presentationMode.videoMode) {
@@ -1132,6 +1282,37 @@ async function openPresentation() {
       }
     }
   }
+  
+  // Initialiseer audio als audio mode actief is EN project heeft audio
+  if (state.presentationMode.audioMode && hasAudio) {
+    const audioInitialized = await initializeAudioPresentation(
+      state, 
+      elements, 
+      state.projectDirHandle,
+      getSceneIndexAtTime,
+      getAllScenes,
+      updatePresentationSlideWrapper
+    );
+    
+    // Als audio niet kon laden, val terug naar image mode
+    if (!audioInitialized) {
+      console.warn("Audio kon niet worden geladen, terugvallen naar image mode");
+      state.presentationMode.audioMode = false;
+      if (elements.presentationMode) {
+        elements.presentationMode.value = "image";
+      }
+    }
+  } else if (state.presentationMode.audioMode && !hasAudio) {
+    // Geen audio beschikbaar, forceer image mode
+    console.warn("Audio mode geselecteerd maar project heeft geen audio");
+    state.presentationMode.audioMode = false;
+    if (elements.presentationMode) {
+      elements.presentationMode.value = "image";
+    }
+  }
+
+  // Geef de UI tijd om de loader te renderen
+  await new Promise(resolve => setTimeout(resolve, 50));
 
   if (elements.presentationDialog) {
     applyTranslations(elements.presentationDialog);
@@ -1140,24 +1321,105 @@ async function openPresentation() {
     const imageContainer = elements.presentationDialog.querySelector(".slide-image-container");
     const videoContainer = elements.presentationDialog.querySelector(".slide-video-container");
     const footer = elements.presentationDialog.querySelector(".presentation-footer");
+    const form = elements.presentationDialog.querySelector(".presentation-form");
     
-    if (imageContainer && videoContainer) {
+    if (imageContainer && videoContainer && footer) {
       if (state.presentationMode.videoMode) {
         imageContainer.dataset.active = "false";
         videoContainer.dataset.active = "true";
-        if (footer) footer.classList.add("video-mode");
+        footer.classList.add("video-mode");
+        footer.classList.remove("audio-mode");
+        if (form) form.classList.remove("has-audio-timeline");
+      } else if (state.presentationMode.audioMode) {
+        const showVideo = (elements.presentationMode.value === "audio-video");
+        imageContainer.dataset.active = showVideo ? "false" : "true";
+        videoContainer.dataset.active = showVideo ? "true" : "false";
+        footer.classList.add("audio-mode");
+        footer.classList.remove("video-mode");
+        if (form) form.classList.add("has-audio-timeline");
       } else {
+        // Image mode - GEEN audio waveform tonen (alleen in audio modes)
         imageContainer.dataset.active = "true";
         videoContainer.dataset.active = "false";
-        if (footer) footer.classList.remove("video-mode");
+        footer.classList.remove("video-mode");
+        footer.classList.remove("audio-mode");
+        if (form) form.classList.remove("has-audio-timeline");
       }
     }
     
     elements.presentationDialog.showModal();
   }
 
+  // Forceer start bij scene 0 (Scene 1)
+  state.presentationMode.currentSlide = 0;
+  
   // Laad eerste slide NA het openen van dialog
   await updatePresentationSlideWrapper();
+  
+  // Verberg loading indicator
+  showPresentationLoader(false);
+}
+
+/**
+ * Toon/verberg presentation loading indicator
+ */
+function showPresentationLoader(show) {
+  let loader = document.getElementById('presentation-loader');
+  
+  if (show) {
+    if (!loader) {
+      loader = document.createElement('div');
+      loader.id = 'presentation-loader';
+      loader.innerHTML = `
+        <div class="loader-spinner"></div>
+        <div class="loader-text">Presentatie wordt geladen...</div>
+      `;
+      document.body.appendChild(loader);
+    }
+    loader.style.display = 'flex';
+  } else {
+    if (loader) {
+      loader.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * DEPRECATED - oude slider functie
+ */
+function setupAudioTimelineSlider(elements, state) {
+  // Deze functie is vervangen door setupPresentationAudioPlayer
+}
+
+/**
+ * Bepaal welke scene index hoort bij een specifieke tijd
+ * Returned de originalIndex van de scene in de prompts array
+ */
+function getSceneIndexAtTime(state, time) {
+  if (!state.presentationMode.audioMarkers || !state.projectData) return -1;
+  
+  // Zoek laatste marker vóór of gelijk aan deze tijd
+  let activeMarkerIndex = -1;
+  for (let i = state.presentationMode.audioMarkers.length - 1; i >= 0; i--) {
+    if (time >= state.presentationMode.audioMarkers[i]) {
+      activeMarkerIndex = i;
+      break;
+    }
+  }
+  
+  if (activeMarkerIndex === -1) return 0; // Voor start terug naar scene 0
+  
+  // Vind scene die aan deze marker gekoppeld is
+  // We moeten de ECHTE index in de prompts array vinden, niet de marker index
+  for (let i = 0; i < state.projectData.prompts.length; i++) {
+    const prompt = state.projectData.prompts[i];
+    if (prompt.isAudioLinked && prompt.audioMarkerIndex === activeMarkerIndex) {
+      return i; // Return de echte positie in de prompts array
+    }
+  }
+  
+  // Als geen scene gekoppeld aan deze marker, blijf bij huidige
+  return state.presentationMode.currentSlide;
 }
 
 /**
@@ -1171,8 +1433,19 @@ async function updatePresentationSlideWrapper() {
   if (state.presentationMode.videoMode && state.presentationMode.videoTimeline) {
     // Video modus: gebruik combined video presentation
     await updateCombinedVideoPresentation(state, elements, t);
+  } else if (state.presentationMode.audioMode) {
+    // Audio modus: gebruik standaard image/video slide update
+    const mode = elements.presentationMode ? elements.presentationMode.value : 'audio-image';
+    
+    if (mode === 'audio-video') {
+      // Audio + video: update video slide
+      updateVideoPresentationSlide(state, elements, t, null);
+    } else {
+      // Audio + image: update image slide
+      updatePresentationSlide(state, elements, t);
+    }
   } else {
-    // Image modus: gebruik standaard updatePresentationSlide
+    // Standaard image modus: gebruik standaard updatePresentationSlide
     updatePresentationSlide(state, elements, t);
   }
 }
@@ -1590,6 +1863,7 @@ async function openProject(projectId) {
 
   state.selectedProjectId = projectId;
   state.projectHandle = projectFile;
+  state.projectDirHandle = projectDir; // ⭐ NIEUW: bewaar project directory handle
   state.projectImagesHandle = imagesDir;
   state.projectVideosHandle = videosDir; // ⭐ NIEUW: stel videos handle in
   state.projectData = projectData;
@@ -1606,19 +1880,554 @@ async function openProject(projectId) {
     }
   });
 
+  console.log("Project geladen, check audio timeline:", projectData.audioTimeline ? "JA" : "NEE");
+
+  // Reset audio timeline eerst
+  resetAudioTimeline();
+  
+  // Laad audio timeline data indien aanwezig
+  if (projectData.audioTimeline) {
+    console.log("Audio timeline gevonden, verwerk data...");
+    setAudioProjectHandle(projectDir);
+    
+    // FIX: Valideer en repareer duplicate marker assignments
+    fixDuplicateMarkerAssignments(projectData);
+    
+    // BELANGRIJK: Registreer callbacks VOOR het restoren van audio data
+    setSceneCallbacks(
+      handleSceneCreateFromMarker,
+      handleSceneDeleteFromMarker,
+      handleSceneReorderFromMarkers,
+      getUnlinkedScenes,
+      handleEditSceneFromMarker,
+      getAllScenes
+    );
+    
+    await restoreAudioTimelineData(projectData.audioTimeline, projectDir);
+    
+    // Sync scenes met markers - creëer ontbrekende scenes
+    syncScenesWithMarkers(projectData.audioTimeline.markers, projectData.audioTimeline.audioDuration);
+    
+    // Sorteer scenes op basis van audio marker volgorde
+    sortScenesByAudioMarkers();
+    
+    // Forceer refresh van markers display nu callbacks beschikbaar zijn
+    refreshMarkersDisplay();
+    
+    // ALTIJD: Zorg dat audio timeline container hidden is na project load
+    const audioContainer = document.querySelector("#audio-timeline-container");
+    if (audioContainer) {
+      audioContainer.classList.add("hidden");
+    }
+  }
+
   renderProjectList();
   renderProjectEditor();
   updateRootUi();
+  
+  // Update audio timeline button NADAT renderProjectEditor() is aangeroepen
+  // (renderProjectEditor roept applyTranslations aan die de button innerHTML overschrijft)
+  if (projectData.audioTimeline) {
+    const audioBtn = document.querySelector("#toggle-audio-timeline");
+    
+    if (audioBtn) {
+      audioBtn.classList.add("has-audio");
+      audioBtn.textContent = "🎵 Audio Timeline ✓";
+      
+      // Voeg badge element toe (kan niet in HTML blijven want wordt overschreven door applyTranslations)
+      let badge = audioBtn.querySelector("#audio-timeline-info-badge");
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.id = "audio-timeline-info-badge";
+        badge.textContent = "!";
+        audioBtn.appendChild(badge);
+        
+        // Maak badge klikbaar - toon info dialog
+        badge.addEventListener("click", (event) => {
+          event.stopPropagation(); // Voorkom dat toggle-audio-timeline wordt getriggerd
+          const infoDialog = document.querySelector("#audio-timeline-info-dialog");
+          if (infoDialog) {
+            applyTranslations(infoDialog);
+            infoDialog.showModal();
+          }
+        });
+      }
+      badge.classList.add("visible");
+      
+      console.log("Badge dynamisch toegevoegd en zichtbaar gemaakt");
+    }
+  } else {
+    const audioBtn = document.querySelector("#toggle-audio-timeline");
+    const audioInfoBadge = audioBtn?.querySelector("#audio-timeline-info-badge");
+    
+    if (audioBtn) {
+      audioBtn.classList.remove("has-audio");
+      audioBtn.textContent = "🎵 Audio Timeline";
+    }
+    if (audioInfoBadge) {
+      audioInfoBadge.classList.remove("visible");
+    }
+  }
 }
 
 /**
  * Prompt toevoegen aan huidige project.
  */
 /**
- * Wrapper: roept modules/scenes.js addPrompt aan
+ * Fix duplicate marker assignments - zorg dat elke marker maximaal 1 scene heeft
  */
-function addPromptWrapper() {
-  addPrompt(state, elements, flagProjectDirty);
+function fixDuplicateMarkerAssignments(projectData) {
+  if (!projectData?.prompts || !projectData?.audioTimeline?.markers) {
+    return;
+  }
+
+  const markerMap = new Map(); // markerIndex -> scene ids
+  const duplicates = [];
+
+  // Scan alle scenes voor duplicate marker assignments
+  projectData.prompts.forEach((prompt, index) => {
+    if (prompt.isAudioLinked && prompt.audioMarkerIndex !== undefined) {
+      const markerIndex = prompt.audioMarkerIndex;
+      
+      if (!markerMap.has(markerIndex)) {
+        markerMap.set(markerIndex, []);
+      }
+      
+      markerMap.get(markerIndex).push({ prompt, index });
+    }
+  });
+
+  // Zoek markers met meerdere scenes
+  markerMap.forEach((scenes, markerIndex) => {
+    if (scenes.length > 1) {
+      console.warn(`⚠️ Marker ${markerIndex} heeft ${scenes.length} scenes gekoppeld:`, scenes.map(s => s.prompt.id));
+      duplicates.push({ markerIndex, scenes });
+    }
+  });
+
+  if (duplicates.length === 0) {
+    return; // Geen duplicates
+  }
+
+  // FIX: Houd alleen de EERSTE scene per marker, ontkoppel de rest
+  duplicates.forEach(({ markerIndex, scenes }) => {
+    // Skip eerste scene (blijft gekoppeld)
+    for (let i = 1; i < scenes.length; i++) {
+      const { prompt, index } = scenes[i];
+      
+      // Ontkoppel deze scene
+      prompt.isAudioLinked = false;
+      prompt.audioMarkerIndex = undefined;
+      // Verwijder timeline/duration want niet meer gekoppeld
+      delete prompt.timeline;
+      delete prompt.duration;
+    }
+  });
+}
+
+/**
+ * Wrapper: roept modules/scenes.js addPrompt aan
+ * @param {Object} sceneData - Optionele scene data (voor audio timeline)
+ */
+function addPromptWrapper(sceneData = null) {
+  // Voorkom handmatig scenes toevoegen als audio timeline actief is
+  if (!sceneData && state.projectData?.audioTimeline && hasAudioTimeline()) {
+    alert("Scenes worden automatisch aangemaakt via markers in de Audio Timeline. Klik op de waveform om een marker (en scene) toe te voegen.");
+    return null;
+  }
+  
+  const prompt = addPrompt(state, elements, flagProjectDirty);
+  
+  // Als scene data meegegeven is (vanuit audio timeline), vul de velden in
+  if (sceneData && prompt) {
+    if (sceneData.timeline) prompt.timeline = sceneData.timeline;
+    if (sceneData.duration) prompt.duration = sceneData.duration;
+    if (sceneData.whatDoWeSee) prompt.whatDoWeSee = sceneData.whatDoWeSee;
+    if (sceneData.howDoWeMake) prompt.howDoWeMake = sceneData.howDoWeMake;
+    if (sceneData.text) prompt.text = sceneData.text;
+    if (sceneData.translation) prompt.translation = sceneData.translation;
+    if (sceneData.audioMarkerIndex !== undefined) prompt.audioMarkerIndex = sceneData.audioMarkerIndex;
+    if (sceneData.isAudioLinked !== undefined) prompt.isAudioLinked = sceneData.isAudioLinked;
+    
+    // Re-render de prompts om de nieuwe data te tonen
+    renderProjectEditor();
+  }
+  
+  return prompt;
+}
+
+/**
+ * Update scenes die gekoppeld zijn aan audio markers
+ * Bewaar de marker TIJD bij elke scene zodat we deze kunnen terugvinden
+ * BELANGRIJK: Gebruik audioMarkerTime om de marker te vinden, niet audioMarkerIndex
+ */
+function updateScenesFromAudioMarkers(markers, audioDuration, draggedMarkerInfo) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  let hasChanges = false;
+  
+  // Helper functie om tijd te formatteren
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+  };
+  
+  // Update elke scene die gekoppeld is aan een marker
+  state.projectData.prompts.forEach((prompt) => {
+    if (prompt.isAudioLinked && prompt.audioMarkerTime !== undefined) {
+      // Vind de marker tijd in de nieuwe gesorteerde markers array
+      let searchTime = prompt.audioMarkerTime;
+      
+      // Als deze scene aan de gesleepte marker was gekoppeld, gebruik de nieuwe tijd
+      if (draggedMarkerInfo && Math.abs(searchTime - draggedMarkerInfo.oldTime) < 0.01) {
+        searchTime = draggedMarkerInfo.newTime;
+      }
+      
+      // Zoek deze tijd in de markers array (met kleine tolerance)
+      const newMarkerIndex = markers.findIndex(time => Math.abs(time - searchTime) < 0.01);
+      
+      if (newMarkerIndex >= 0) {
+        // Update de marker index naar de nieuwe positie
+        prompt.audioMarkerIndex = newMarkerIndex;
+        
+        const time = markers[newMarkerIndex];
+        const nextTime = markers[newMarkerIndex + 1] || audioDuration;
+        const duration = nextTime - time;
+        
+        const newTimeline = `${formatTime(time)} - ${formatTime(nextTime)}`;
+        const newDuration = duration.toFixed(2);
+        
+        // Update audioMarkerTime met de (mogelijk aangepaste) tijd
+        prompt.audioMarkerTime = time;
+        
+        // Update alleen als de waarde is veranderd
+        if (prompt.timeline !== newTimeline || prompt.duration !== newDuration) {
+          prompt.timeline = newTimeline;
+          prompt.duration = newDuration;
+          hasChanges = true;
+        }
+      } else {
+        console.warn('Marker tijd niet gevonden voor scene:', searchTime, 'beschikbare markers:', markers);
+      }
+    }
+  });
+  
+  // Als er changes zijn, re-render en markeer als dirty
+  if (hasChanges) {
+    renderProjectEditor();
+    flagProjectDirty();
+  }
+}
+
+/**
+ * Callback: Creëer een scene wanneer een marker wordt toegevoegd
+ */
+function handleSceneCreateFromMarker(sceneData, markerIndex) {
+  if (!state.projectData) return;
+  
+  // Voeg scene toe via addPrompt
+  const prompt = addPrompt(state, elements, flagProjectDirty);
+  
+  // Vul scene data in
+  if (sceneData && prompt) {
+    prompt.timeline = sceneData.timeline;
+    prompt.duration = sceneData.duration;
+    prompt.whatDoWeSee = sceneData.whatDoWeSee || "";
+    prompt.howDoWeMake = sceneData.howDoWeMake || "";
+    prompt.text = sceneData.text;
+    prompt.translation = sceneData.translation || "";
+    prompt.audioMarkerIndex = markerIndex;
+    prompt.isAudioLinked = true;
+    // Bewaar marker tijd voor sortering (wordt opgehaald uit sceneData)
+    const timeMatch = sceneData.timeline.match(/(\d+):(\d+)\.(\d+)/);
+    if (timeMatch) {
+      const mins = parseInt(timeMatch[1]);
+      const secs = parseInt(timeMatch[2]);
+      const ms = parseInt(timeMatch[3]);
+      prompt.audioMarkerTime = mins * 60 + secs + ms / 100;
+    }
+  }
+  
+  // Sorteer scenes zodat de nieuwe scene op de juiste chronologische plek komt
+  sortScenesByAudioMarkers();
+  
+  // Re-render (wordt ook al gedaan door sortScenesByAudioMarkers, maar voor de zekerheid)
+  renderProjectEditor();
+  flagProjectDirty();
+}
+
+/**
+ * Callback: Ontkoppel een scene wanneer een marker wordt verwijderd
+ * De scene blijft bestaan maar wordt "niet actief" (ontkoppeld van audio)
+ */
+function handleSceneDeleteFromMarker(markerIndex) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  // Vind de scene met deze marker index
+  const scene = state.projectData.prompts.find(
+    p => p.isAudioLinked && p.audioMarkerIndex === markerIndex
+  );
+  
+  if (scene) {
+    // Ontkoppel de scene van de marker (maak het "niet actief")
+    scene.isAudioLinked = false;
+    scene.audioMarkerIndex = undefined;
+    // Verwijder timeline en duration omdat deze niet meer van toepassing zijn
+    delete scene.timeline;
+    delete scene.duration;
+    
+    // Update alle audioMarkerIndex van scenes na deze marker
+    state.projectData.prompts.forEach((prompt) => {
+      if (prompt.isAudioLinked && prompt.audioMarkerIndex > markerIndex) {
+        prompt.audioMarkerIndex--;
+      }
+    });
+    
+    renderProjectEditor();
+    flagProjectDirty();
+  }
+}
+
+/**
+ * Callback: Herorden scenes wanneer markers van volgorde veranderen
+ */
+function handleSceneReorderFromMarkers(markers) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  // Gebruik de sortScenesByAudioMarkers functie
+  sortScenesByAudioMarkers();
+}
+
+/**
+ * Haal ongevoppelde scenes op (scenes zonder audioMarkerIndex)
+ */
+function getUnlinkedScenes() {
+  if (!state.projectData || !state.projectData.prompts) return [];
+  
+  return state.projectData.prompts
+    .map((prompt, index) => ({ ...prompt, originalIndex: index }))
+    .filter(prompt => !prompt.isAudioLinked);
+}
+
+/**
+ * Haal ALLE scenes op met info of ze gekoppeld zijn
+ */
+function getAllScenes() {
+  if (!state.projectData || !state.projectData.prompts) {
+    return [];
+  }
+  
+  const result = state.projectData.prompts.map((prompt, index) => ({ 
+    ...prompt, 
+    originalIndex: index,
+    isLinked: prompt.isAudioLinked || false,
+    markerIndex: prompt.audioMarkerIndex
+  }));
+  
+  return result;
+}
+
+/**
+ * Callback: Bewerk scene vanuit audio timeline marker
+ */
+function handleEditSceneFromMarker(markerIndex) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  // Zoek de scene met deze audioMarkerIndex
+  const scene = state.projectData.prompts.find(p => 
+    p.isAudioLinked && p.audioMarkerIndex === markerIndex
+  );
+  
+  if (!scene) {
+    console.warn(`Geen scene gevonden voor marker ${markerIndex}`);
+    return;
+  }
+  
+  // Open de scene editor dialog
+  openPromptDialog(scene.id).catch((error) => {
+    showError(t("errors.openPrompt"), error);
+  });
+}
+
+/**
+ * Sync scenes met markers - zorg dat er voor elke marker een scene is
+ */
+function syncScenesWithMarkers(markers, audioDuration) {
+  if (!state.projectData || !markers) return;
+  
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+  };
+  
+  // Update bestaande audio-linked scenes met nieuwe timeline/duration
+  state.projectData.prompts.forEach(prompt => {
+    if (prompt.isAudioLinked && prompt.audioMarkerIndex !== undefined) {
+      const markerIndex = prompt.audioMarkerIndex;
+      const time = markers[markerIndex];
+      
+      if (time !== undefined) {
+        // Update timeline en duration
+        const nextTime = markers[markerIndex + 1] || audioDuration;
+        const duration = nextTime - time;
+        
+        prompt.timeline = `${formatTime(time)} - ${formatTime(nextTime)}`;
+        prompt.duration = duration.toFixed(2);
+      }
+    }
+  });
+  
+  // Check welke markers scenes nodig hebben
+  markers.forEach((time, markerIndex) => {
+    const hasScene = state.projectData.prompts.some(p => p.isAudioLinked && p.audioMarkerIndex === markerIndex);
+    
+    if (!hasScene) {
+      // Creëer scene voor deze marker
+      const nextTime = markers[markerIndex + 1] || audioDuration;
+      const duration = nextTime - time;
+      
+      const prompt = addPrompt(state, elements, flagProjectDirty);
+      if (prompt) {
+        prompt.timeline = `${formatTime(time)} - ${formatTime(nextTime)}`;
+        prompt.duration = duration.toFixed(2);
+        prompt.text = `Scene ${markerIndex + 1}`;
+        prompt.audioMarkerIndex = markerIndex;
+        prompt.isAudioLinked = true;
+        prompt.whatDoWeSee = "";
+        prompt.howDoWeMake = "";
+        prompt.translation = "";
+      }
+    }
+  });
+  
+  // Verwijder audio scenes zonder corresponderende marker
+  const markersSet = new Set(markers.map((_, idx) => idx));
+  const scenesToRemove = [];
+  
+  state.projectData.prompts.forEach((prompt, idx) => {
+    if (prompt.isAudioLinked && !markersSet.has(prompt.audioMarkerIndex)) {
+      scenesToRemove.push(idx);
+    }
+  });
+  
+  // Verwijder van achter naar voren om indices niet te verknallen
+  scenesToRemove.reverse().forEach(idx => {
+    state.projectData.prompts.splice(idx, 1);
+  });
+  
+  if (scenesToRemove.length > 0) {
+    renderProjectEditor();
+  }
+}
+
+/**
+ * Sorteer scenes in prompts array op basis van audio marker volgorde
+ * Gebruikt audioMarkerTime (de marker tijd) in plaats van audioMarkerIndex
+ * Scenes gekoppeld aan markers worden gesorteerd op marker tijdstip
+ * Ongekoppelde scenes blijven aan het eind
+ */
+function sortScenesByAudioMarkers() {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  // Alleen sorteren als er audio timeline is
+  if (!hasAudioTimeline()) return;
+  
+  // Get markers from audio timeline
+  const audioData = getAudioTimelineData();
+  if (!audioData || !audioData.markers) return;
+  
+  const markers = audioData.markers; // Deze zijn al gesorteerd op tijd
+  
+  // Splits scenes in gekoppeld en ongekoppeld
+  const linkedScenes = [];
+  const unlinkedScenes = [];
+  
+  state.projectData.prompts.forEach((prompt) => {
+    if (prompt.isAudioLinked && prompt.audioMarkerTime !== undefined) {
+      linkedScenes.push(prompt);
+    } else {
+      unlinkedScenes.push(prompt);
+    }
+  });
+  
+  // Sorteer gekoppelde scenes op basis van hun marker tijd (audioMarkerTime)
+  linkedScenes.sort((a, b) => a.audioMarkerTime - b.audioMarkerTime);
+  
+  // Update audioMarkerIndex naar de nieuwe positie in de gesorteerde markers array
+  linkedScenes.forEach(scene => {
+    const markerTime = scene.audioMarkerTime;
+    // Vind de nieuwe index van deze marker tijd in de gesorteerde array
+    const newIndex = markers.findIndex(time => Math.abs(time - markerTime) < 0.01);
+    if (newIndex >= 0) {
+      scene.audioMarkerIndex = newIndex;
+    }
+  });
+  
+  // Combineer: eerst gekoppelde scenes (gesorteerd op tijd), dan ongekoppelde
+  state.projectData.prompts = [...linkedScenes, ...unlinkedScenes];
+  
+  // Update UI (zowel storyboard als audio timeline markers)
+  renderProjectEditor();
+  
+  // Update ook de markers display in de audio timeline
+  if (hasAudioTimeline()) {
+    refreshMarkersDisplay();
+  }
+  
+  state.isDirty = true;
+}
+
+/**
+ * Koppel een bestaande scene aan een marker
+ * sceneIndex is de originalIndex (positie in de volledige prompts array)
+ */
+function handleLinkSceneToMarker(sceneIndex, markerIndex, time) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  // sceneIndex is de originalIndex in de prompts array
+  if (sceneIndex >= state.projectData.prompts.length) return;
+  
+  const scene = state.projectData.prompts[sceneIndex];
+  
+  // Check of deze scene niet al gekoppeld is
+  if (scene.isAudioLinked) {
+    console.warn('Scene is al gekoppeld aan een marker');
+    return;
+  }
+  
+  // Helper voor tijd formattering
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds % 1) * 100);
+    return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+  };
+  
+  // Haal marker data op via getAudioTimelineData
+  const audioData = getAudioTimelineData();
+  if (!audioData) return;
+  
+  const markers = audioData.markers;
+  const nextTime = markers[markerIndex + 1] || audioData.audioDuration;
+  const duration = nextTime - time;
+  
+  // Update scene met audio link
+  state.projectData.prompts[sceneIndex].isAudioLinked = true;
+  state.projectData.prompts[sceneIndex].audioMarkerIndex = markerIndex;
+  state.projectData.prompts[sceneIndex].timeline = `${formatTime(time)} - ${formatTime(nextTime)}`;
+  state.projectData.prompts[sceneIndex].duration = duration.toFixed(2);
+  state.projectData.prompts[sceneIndex].audioMarkerTime = time; // Bewaar marker tijd
+  
+  // Sorteer scenes zodat de nieuwe actieve scene op de juiste plek komt
+  sortScenesByAudioMarkers();
+  
+  // Re-render (wordt ook al gedaan door sortScenesByAudioMarkers, maar voor de zekerheid)
+  renderProjectEditor();
+  flagProjectDirty();
 }
 
 /**
@@ -1628,6 +2437,16 @@ async function saveProject() {
   if (!state.projectHandle || !state.projectData) return;
   try {
     state.projectData.updatedAt = new Date().toISOString();
+    
+    // Sla audio timeline data op
+    const audioData = getAudioTimelineData();
+    if (audioData) {
+      state.projectData.audioTimeline = audioData;
+    } else if (state.projectData.audioTimeline) {
+      // Verwijder audio timeline als het niet meer actief is
+      delete state.projectData.audioTimeline;
+    }
+    
     await writeJsonFile(state.projectHandle, state.projectData);
     state.isDirty = false;
     updateProjectIndexEntry();
@@ -1651,6 +2470,7 @@ function updateProjectIndexEntry() {
   entry.promptCount = state.projectData.prompts.length;
   entry.videoGenerator = state.projectData.videoGenerator;
   entry.notes = state.projectData.notes;
+  entry.hasAudioTimeline = state.projectData.audioTimeline ? true : false;
 }
 
 /**
@@ -1942,7 +2762,28 @@ async function openPromptDialog(promptId) {
   if (elements.dialogTranslation) {
     elements.dialogTranslation.value = prompt.translation ?? "";
   }
+  
+  // Laad traditionele video velden indien aanwezig
+  if (elements.dialogWhatSee) {
+    elements.dialogWhatSee.value = prompt.whatDoWeSee ?? "";
+  }
+  if (elements.dialogHowMake) {
+    elements.dialogHowMake.value = prompt.howDoWeMake ?? "";
+  }
+  if (elements.dialogTimeline) {
+    elements.dialogTimeline.value = prompt.timeline ?? "";
+  }
+  if (elements.dialogDuration) {
+    elements.dialogDuration.value = prompt.duration ?? "";
+  }
+  
   elements.dialogOpenImage.disabled = !prompt.imagePath;
+
+  // Pas workflow mode toe op dialog
+  applyWorkflowModeToDialog();
+  
+  // Update help texts voor dialog elementen
+  updateHelpTexts();
 
   elements.promptDialog.returnValue = "";
   elements.promptDialog.showModal();
@@ -1971,6 +2812,23 @@ function navigateDialogScene(direction) {
   if (elements.dialogText && elements.dialogTranslation) {
     currentPrompt.text = elements.dialogText.value;
     currentPrompt.translation = elements.dialogTranslation.value;
+    
+    // Save traditional video fields
+    if (elements.dialogWhatSee) {
+      currentPrompt.whatDoWeSee = elements.dialogWhatSee.value;
+    }
+    if (elements.dialogHowMake) {
+      currentPrompt.howDoWeMake = elements.dialogHowMake.value;
+    }
+    if (elements.dialogTimeline) {
+      currentPrompt.timeline = elements.dialogTimeline.value;
+    }
+    if (elements.dialogDuration) {
+      // Rond duration af naar 2 decimalen
+      const durationValue = parseFloat(elements.dialogDuration.value);
+      currentPrompt.duration = isNaN(durationValue) ? "" : durationValue.toFixed(2);
+    }
+    
     flagProjectDirty();
   }
   
@@ -1990,14 +2848,41 @@ function handlePromptDialogClose() {
   if (prompt && wasSaved) {
     const newText = elements.dialogText ? elements.dialogText.value : prompt.text ?? "";
     const newTranslation = elements.dialogTranslation ? elements.dialogTranslation.value : prompt.translation ?? "";
-    const changed = newText !== (prompt.text ?? "") || newTranslation !== (prompt.translation ?? "");
+    
+    // Traditionele video velden
+    const newWhatSee = elements.dialogWhatSee ? elements.dialogWhatSee.value : prompt.whatDoWeSee ?? "";
+    const newHowMake = elements.dialogHowMake ? elements.dialogHowMake.value : prompt.howDoWeMake ?? "";
+    const newTimeline = elements.dialogTimeline ? elements.dialogTimeline.value : prompt.timeline ?? "";
+    const newDuration = elements.dialogDuration ? elements.dialogDuration.value : prompt.duration ?? "";
+    
+    const changed = newText !== (prompt.text ?? "") 
+      || newTranslation !== (prompt.translation ?? "")
+      || newWhatSee !== (prompt.whatDoWeSee ?? "")
+      || newHowMake !== (prompt.howDoWeMake ?? "")
+      || newTimeline !== (prompt.timeline ?? "")
+      || newDuration !== (prompt.duration ?? "");
+      
     if (changed) {
       prompt.text = newText;
       prompt.translation = newTranslation;
+      prompt.whatDoWeSee = newWhatSee;
+      prompt.howDoWeMake = newHowMake;
+      prompt.timeline = newTimeline;
+      prompt.duration = newDuration;
+      
       const card = elements.promptsContainer.querySelector(`.prompt-card[data-id="${prompt.id}"]`);
       if (card) {
         card.querySelector(".prompt-text").value = newText;
         card.querySelector(".prompt-nl").value = newTranslation;
+        
+        // Update traditionele velden in scene card
+        const sceneWhatSee = card.querySelector(".scene-what-see");
+        const sceneHowMake = card.querySelector(".scene-how-make");
+        const sceneTimeline = card.querySelector(".scene-timeline");
+        
+        if (sceneWhatSee) sceneWhatSee.value = newWhatSee;
+        if (sceneHowMake) sceneHowMake.value = newHowMake;
+        if (sceneTimeline) sceneTimeline.value = newTimeline;
       }
       flagProjectDirty({ refreshEditor: false, refreshList: false });
     }
@@ -2010,6 +2895,18 @@ function handlePromptDialogClose() {
   }
   if (elements.dialogTranslation) {
     elements.dialogTranslation.value = "";
+  }
+  if (elements.dialogWhatSee) {
+    elements.dialogWhatSee.value = "";
+  }
+  if (elements.dialogHowMake) {
+    elements.dialogHowMake.value = "";
+  }
+  if (elements.dialogTimeline) {
+    elements.dialogTimeline.value = "";
+  }
+  if (elements.dialogDuration) {
+    elements.dialogDuration.value = "";
   }
   elements.dialogOpenImage.disabled = true;
   resetDialogImageState();
@@ -2059,6 +2956,11 @@ async function handleChooseRoot() {
       return;
     }
     state.rootHandle = rootHandle;
+    
+    // DEBUG: Uncomment these lines to enable file logging:
+    // await initLogger(rootHandle);
+    // await log("Root directory gekozen");
+    
     await ensureStructure();
     await saveLastRootHandle(rootHandle);
     updateRootUi();
@@ -2104,11 +3006,26 @@ function init() {
   }
 
   setLanguage(currentLanguage, { reRender: false });
+  
+  // Initialiseer help systeem (laadt ook opgeslagen workflow mode)
+  initializeHelpSystem(currentLanguage);
 
   if (elements.languageSwitch) {
     elements.languageSwitch.addEventListener("change", (event) => {
       setLanguage(event.target.value);
     });
+  }
+
+  // Workflow mode selector
+  if (elements.workflowMode) {
+    elements.workflowMode.addEventListener("change", (event) => {
+      handleWorkflowModeChange(event.target.value);
+    });
+  }
+
+  // Help mode toggle
+  if (elements.toggleHelp) {
+    elements.toggleHelp.addEventListener("click", toggleHelpMode);
   }
 
   elements.chooseRoot.addEventListener("click", handleChooseRoot);
@@ -2125,6 +3042,76 @@ function init() {
     );
   }
   elements.addPrompt.addEventListener("click", addPromptWrapper);
+  
+  // Audio Timeline event listeners
+  const toggleAudioBtn = document.querySelector("#toggle-audio-timeline");
+  const closeAudioBtn = document.querySelector("#close-audio-timeline");
+  const audioInfoBadge = document.querySelector("#audio-timeline-info-badge");
+  const audioInfoDialog = document.querySelector("#audio-timeline-info-dialog");
+  // Generate Scenes button verwijderd - auto-create bij marker toevoegen
+  
+  // Info badge click handler - toon uitleg dialog
+  if (audioInfoBadge) {
+    audioInfoBadge.addEventListener("click", (e) => {
+      e.stopPropagation(); // Voorkom dat toggle-audio-timeline wordt getriggerd
+      if (audioInfoDialog) {
+        audioInfoDialog.showModal();
+      }
+    });
+  }
+  
+  if (toggleAudioBtn) {
+    toggleAudioBtn.addEventListener("click", () => {
+      const container = document.querySelector("#audio-timeline-container");
+      
+      if (container) {
+        container.classList.toggle("hidden");
+        
+        if (!container.classList.contains("hidden")) {
+          // Container wordt zichtbaar
+          
+          // Set project handle voor audio opslag
+          if (state.projectDirHandle && state.projectData) {
+            setAudioProjectHandle(state.projectDirHandle);
+          }
+          
+          // Registreer callbacks VOOR initialisatie zodat ze beschikbaar zijn
+          setSceneCallbacks(
+            handleSceneCreateFromMarker,
+            handleSceneDeleteFromMarker,
+            handleSceneReorderFromMarkers,
+            getUnlinkedScenes,
+            handleEditSceneFromMarker,
+            getAllScenes  // Nieuwe callback voor alle scenes
+          );
+          
+          // Initialiseer timeline (event listeners worden alleen 1x toegevoegd)
+          initializeAudioTimeline();
+          
+          // ALTIJD waveform hertekenen bij zichtbaar maken (fix voor offsetWidth=0)
+          setTimeout(() => {
+            redrawWaveform();
+            refreshMarkersDisplay();
+            // Wacht op audioBuffer en toon dan markers
+            waitAndShowMarkers();
+          }, 100);
+        }
+      }
+    });
+  }
+  
+  if (closeAudioBtn) {
+    closeAudioBtn.addEventListener("click", () => {
+      const container = document.querySelector("#audio-timeline-container");
+      if (container) {
+        container.classList.add("hidden");
+        resetAudioTimeline();
+      }
+    });
+  }
+  
+  // Generate Scenes button verwijderd - scenes worden nu automatisch aangemaakt bij marker toevoegen
+  
   elements.saveProject.addEventListener("click", () => saveProject().catch((error) => showError(t("errors.saveProject"), error)));
   elements.exportPrompts.addEventListener("click", () =>
     exportPrompts().catch((error) => showError(t("errors.exportPrompts"), error))
@@ -2232,31 +3219,76 @@ function init() {
     });
   }
   if (elements.startPresentation) {
-    elements.startPresentation.addEventListener("click", () =>
-      openPresentation().catch((error) => showError(t("errors.openPrompt"), error))
-    );
+    elements.startPresentation.addEventListener("click", async () => {
+      // Toon loader DIRECT bij klik
+      showPresentationLoader(true);
+      
+      try {
+        await openPresentation();
+      } catch (error) {
+        showPresentationLoader(false);
+        showError(t("errors.openPrompt"), error);
+      }
+    });
   }
   if (elements.presentationLanguage) {
     elements.presentationLanguage.addEventListener("change", (event) => {
       setPresentationLanguageWrapper(event.target.value);
     });
   }
+  if (elements.presentationWorkflow) {
+    elements.presentationWorkflow.addEventListener("change", (event) => {
+      setPresentationWorkflowMode(event.target.value, state, elements);
+      // Update de slide om nieuwe velden te tonen
+      if (state.presentationMode.videoMode) {
+        updateVideoPresentationSlide(state, elements, t, () => nextSlide(state));
+      } else {
+        updatePresentationSlide(state, elements, t);
+      }
+    });
+  }
   if (elements.presentationMode) {
     elements.presentationMode.addEventListener("change", async (event) => {
-      const mode = event.target.value; // "image" of "video"
+      const mode = event.target.value; // "image", "video", "audio-image", "audio-video"
       const wasVideoMode = state.presentationMode.videoMode;
-      state.presentationMode.videoMode = (mode === "video");
+      const wasAudioMode = state.presentationMode.audioMode || false;
       
-      // Toggle image/video containers
+      // Stop oude media voordat we mode wijzigen
+      if (wasVideoMode && mode !== "video") {
+        // Van video mode weg: stop video
+        if (elements.presentationVideo) {
+          elements.presentationVideo.pause();
+          elements.presentationVideo.currentTime = 0;
+        }
+      }
+      if (wasAudioMode && !mode.startsWith("audio-")) {
+        // Van audio mode weg: stop audio
+        if (elements.presentationAudio) {
+          elements.presentationAudio.pause();
+          elements.presentationAudio.currentTime = 0;
+        }
+      }
+      
+      state.presentationMode.videoMode = (mode === "video");
+      state.presentationMode.audioMode = (mode === "audio-image" || mode === "audio-video");
+      state.presentationMode.showVideoInAudio = (mode === "audio-video");
+      
+      // Toggle image/video/audio containers
       const imageContainer = elements.presentationDialog.querySelector(".slide-image-container");
       const videoContainer = elements.presentationDialog.querySelector(".slide-video-container");
       const footer = elements.presentationDialog.querySelector(".presentation-footer");
+      const form = elements.presentationDialog.querySelector(".presentation-form");
       
       if (imageContainer && videoContainer) {
         if (mode === "video") {
+          // Video only mode
           imageContainer.dataset.active = "false";
           videoContainer.dataset.active = "true";
           if (footer) footer.classList.add("video-mode");
+          if (footer) footer.classList.remove("audio-mode");
+          if (form) form.classList.remove("has-audio-timeline");
+          if (elements.videoTimelineContainer) elements.videoTimelineContainer.style.display = "block";
+          if (elements.presentationAudioTimelineContainer) elements.presentationAudioTimelineContainer.style.display = "none";
           
           // Initialiseer video timeline als we naar video mode switchen
           if (!wasVideoMode) {
@@ -2273,14 +3305,56 @@ function init() {
               return;
             }
           }
+        } else if (mode === "audio-image" || mode === "audio-video") {
+          // Audio modes
+          imageContainer.dataset.active = (mode === "audio-image") ? "true" : "false";
+          videoContainer.dataset.active = (mode === "audio-video") ? "true" : "false";
+          if (footer) {
+            footer.classList.remove("video-mode");
+            footer.classList.add("audio-mode");
+          }
+          if (form) form.classList.add("has-audio-timeline");
+          if (elements.videoTimelineContainer) elements.videoTimelineContainer.style.display = "none";
+          if (elements.presentationAudioTimelineContainer) elements.presentationAudioTimelineContainer.style.display = "flex";
+          
+          // Initialiseer audio voor presentatie (alleen als project audio heeft)
+          if (state.projectData.audioTimeline && state.projectData.audioTimeline.audioFileName) {
+            await initializeAudioPresentation(
+              state, 
+              elements,
+              state.projectDirHandle,
+              getSceneIndexAtTime,
+              getAllScenes,
+              updatePresentationSlideWrapper
+            );
+          } else {
+            console.warn("Kan niet naar audio mode: project heeft geen audio timeline");
+            // Fallback naar image mode
+            event.target.value = "image";
+            state.presentationMode.audioMode = false;
+            imageContainer.dataset.active = "true";
+            if (footer) footer.classList.remove("audio-mode");
+            if (form) form.classList.remove("has-audio-timeline");
+            if (elements.presentationAudioTimelineContainer) elements.presentationAudioTimelineContainer.style.display = "none";
+          }
         } else {
+          // Image only mode
           imageContainer.dataset.active = "true";
           videoContainer.dataset.active = "false";
-          if (footer) footer.classList.remove("video-mode");
+          if (footer) {
+            footer.classList.remove("video-mode");
+            footer.classList.remove("audio-mode");
+          }
+          if (form) form.classList.remove("has-audio-timeline");
+          if (elements.videoTimelineContainer) elements.videoTimelineContainer.style.display = "none";
+          if (elements.presentationAudioTimelineContainer) elements.presentationAudioTimelineContainer.style.display = "none";
           
-          // Stop video als we terug gaan naar image mode
+          // Stop video/audio als we terug gaan naar image mode
           if (elements.presentationVideo) {
             elements.presentationVideo.pause();
+          }
+          if (elements.presentationAudio) {
+            elements.presentationAudio.pause();
           }
         }
       }
@@ -2309,6 +3383,23 @@ function init() {
   if (elements.presentationDialog) {
     elements.presentationDialog.addEventListener("close", closePresentationModeWrapper);
   }
+  
+  // Audio markers changed event listener
+  document.addEventListener('audioMarkersChanged', (event) => {
+    updateScenesFromAudioMarkers(
+      event.detail.markers, 
+      event.detail.duration, 
+      event.detail.draggedMarker // Kan undefined zijn als het geen drag was
+    );
+    // Sorteer scenes op basis van de nieuwe marker volgorde
+    sortScenesByAudioMarkers();
+  });
+  
+  // Link scene to marker event listener
+  document.addEventListener('linkSceneToMarker', (event) => {
+    handleLinkSceneToMarker(event.detail.sceneIndex, event.detail.markerIndex, event.detail.time);
+  });
+  
   // Keyboard shortcuts voor presentatie
   document.addEventListener("keydown", (event) => {
     if (!elements.presentationDialog || !elements.presentationDialog.open) return;

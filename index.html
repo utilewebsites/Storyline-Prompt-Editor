@@ -15,14 +15,25 @@
         </p>
         <label class="language-switch" for="language-switch">
           <span data-i18n="header.languageLabel">Taal</span>
-          <select id="language-switch">
+          <select id="language-switch" data-help="help.languageSwitch">
             <option value="nl">Nederlands</option>
             <option value="en">English</option>
           </select>
         </label>
+        <label class="workflow-mode-switch" for="workflow-mode">
+          <span data-i18n="header.workflowMode">Werkwijze</span>
+          <select id="workflow-mode" data-help="help.workflowMode">
+            <option value="ai-prompt" data-i18n="header.aiPromptMode">AI Prompt Mode</option>
+            <option value="traditional-video" data-i18n="header.traditionalMode">Traditionele Video Storyline</option>
+            <option value="both" data-i18n="header.bothMode">Beide modi</option>
+          </select>
+        </label>
       </div>
       <div class="header-actions">
-        <button id="choose-root" class="primary" data-i18n="actions.chooseRoot">
+        <button id="toggle-help" class="secondary" data-i18n="actions.toggleHelp" title="Toon uitleg bij alle functies" data-help="help.toggleHelp">
+          💡 Uitleg tonen
+        </button>
+        <button id="choose-root" class="primary" data-i18n="actions.chooseRoot" data-help="help.chooseRoot">
           📁 Kies projectmap
         </button>
         <span id="root-path" class="muted"></span>
@@ -46,7 +57,7 @@
             </button>
             <label class="sort-label" data-i18n-wrapper="projects.sortLabel">
               <span data-i18n="projects.sortLabel">Sorteer op</span>
-              <select id="sort-projects">
+              <select id="sort-projects" data-help="help.sortProjects">
                 <option value="updated" data-i18n="projects.sort.updated">Laatst aangepast</option>
                 <option value="created" data-i18n="projects.sort.created">Aanmaakdatum</option>
                 <option value="name" data-i18n="projects.sort.name">Projectnaam</option>
@@ -66,21 +77,23 @@
           <form id="project-form" class="form-grid">
             <label data-i18n-wrapper="newProject.name">
               <span data-i18n="newProject.name">Projectnaam</span>
-              <input type="text" id="project-name" required />
+              <div class="input-with-help" data-help="help.projectName">
+                <input type="text" id="project-name" required />
+              </div>
             </label>
             <label data-i18n-wrapper="newProject.generator">
               <span data-i18n="newProject.generator">Video generator</span>
-              <input
-                type="text"
-                id="project-generator"
-                placeholder="Bijv. Runway, Sora..."
-              />
+              <div class="input-with-help" data-help="help.projectGenerator">
+                <input type="text" id="project-generator" placeholder="Bijv. Runway, Sora..." />
+              </div>
             </label>
             <label data-i18n-wrapper="newProject.notes">
               <span data-i18n="newProject.notes">Notities</span>
-              <textarea id="project-notes" rows="3"></textarea>
+              <div class="input-with-help" data-help="help.projectNotes">
+                <textarea id="project-notes" rows="3"></textarea>
+              </div>
             </label>
-            <button type="submit" class="primary" id="create-project" disabled data-i18n="newProject.create">
+            <button type="submit" class="primary" id="create-project" disabled data-i18n="newProject.create" data-help="help.createProject">
               ➕ Maak project
             </button>
           </form>
@@ -103,15 +116,15 @@
               <p id="project-meta" class="muted"></p>
             </div>
           <div class="project-actions">
-            <button id="save-project" class="primary" data-i18n="project.save">💾 Opslaan</button>
-              <button id="start-presentation" data-i18n="project.presentation">🎬 Presentatie</button>
-              <button id="duplicate-project" data-i18n="project.duplicate">📄 Kopieer project</button>
+            <button id="save-project" class="primary" data-i18n="project.save" data-help="help.saveProject">💾 Opslaan</button>
+              <button id="start-presentation" data-i18n="project.presentation" data-help="help.startPresentation">🎬 Presentatie</button>
+              <button id="duplicate-project" data-i18n="project.duplicate" data-help="help.duplicateProject">📄 Kopieer project</button>
               <div class="split-button">
-                <button id="export-prompts" data-i18n="project.exportPrompts">🗒️ Exporteer prompts</button>
+                <button id="export-prompts" data-i18n="project.exportPrompts" data-help="help.exportPrompts">🗒️ Exporteer prompts</button>
                 <button id="export-prompts-dropdown" title="Meer opties" aria-label="Export opties">▾</button>
               </div>
-              <button id="export-images" data-i18n="project.exportImages">🖼️ Exporteer afbeeldingen</button>
-              <button id="delete-project" class="danger" data-i18n="project.delete">🗑️ Verwijder project</button>
+              <button id="export-images" data-i18n="project.exportImages" data-help="help.exportImages">🖼️ Exporteer afbeeldingen</button>
+              <button id="delete-project" class="danger" data-i18n="project.delete" data-help="help.deleteProject">🗑️ Verwijder project</button>
             </div>
           </header>
 
@@ -119,13 +132,17 @@
             <div>
               <label data-i18n-wrapper="metadata.generator">
                 <span data-i18n="metadata.generator">Video generator</span>
-                <input type="text" id="edit-generator" />
+                <div class="input-with-help" data-help="help.editGenerator">
+                  <input type="text" id="edit-generator" />
+                </div>
               </label>
             </div>
             <div>
               <label data-i18n-wrapper="metadata.notes">
                 <span data-i18n="metadata.notes">Notities</span>
-                <textarea id="edit-notes" rows="2"></textarea>
+                <div class="input-with-help" data-help="help.editNotes">
+                  <textarea id="edit-notes" rows="2"></textarea>
+                </div>
               </label>
             </div>
           </section>
@@ -133,8 +150,52 @@
           <section class="prompts-panel">
             <header class="prompts-header">
               <h3 data-i18n="prompts.title">Prompts</h3>
-              <button id="add-prompt" class="primary" data-i18n="prompts.add">➕ Nieuwe prompt</button>
+              <div class="prompts-header-actions">
+                <button id="toggle-audio-timeline" class="secondary" data-i18n="prompts.audioTimeline" data-help="help.audioTimeline" style="position: relative;">
+                  🎵 Audio Timeline
+                  <span id="audio-timeline-info-badge">!</span>
+                </button>
+                <button id="add-prompt" class="primary" data-i18n="prompts.add" data-help="help.addPrompt">➕ Nieuwe prompt</button>
+              </div>
             </header>
+            
+            <!-- Audio Timeline Container (verborgen by default) -->
+            <div id="audio-timeline-container" class="audio-timeline-container hidden">
+              <div class="audio-timeline-header">
+                <h4 data-i18n="audioTimeline.title">🎵 Audio Timeline Mode</h4>
+                <p class="muted" data-i18n="audioTimeline.help">
+                  Upload een audiobestand en klik op punten in de waveform om automatisch scenes toe te voegen.
+                </p>
+              </div>
+              
+              <div class="audio-upload-section">
+                <button id="upload-audio-timeline" class="primary" data-i18n="audioTimeline.upload">
+                  📁 Upload Audio
+                </button>
+                <input type="file" id="audio-timeline-input" accept="audio/*" style="display: none;" />
+              </div>
+              
+              <div id="audio-player-container" class="audio-player-container"></div>
+              
+              <div class="audio-waveform-container">
+                <canvas id="audio-waveform" width="800" height="150"></canvas>
+              </div>
+              
+              <div class="audio-markers-section">
+                <div class="audio-markers-header">
+                  <h5 data-i18n="audioTimeline.markers">Markers / Scenes</h5>
+                  <!-- Generate Scenes button verwijderd - scenes worden automatisch aangemaakt -->
+                </div>
+                <div id="audio-markers-list" class="audio-markers-list"></div>
+              </div>
+              
+              <div class="audio-timeline-actions">
+                <button id="close-audio-timeline" class="secondary" data-i18n="audioTimeline.close">
+                  ✕ Sluit Audio Timeline
+                </button>
+              </div>
+            </div>
+            
             <p class="muted" id="prompts-help" data-i18n="prompts.help">
               Sleep afbeeldingen op een kaart of gebruik de uploadknop. Bekijk per scene de afbeelding, de Engelse prompt en de vertaling naar het Nederlands.
             </p>
@@ -210,24 +271,62 @@
             </button>
           </div>
         </div>
-        <label class="field" data-i18n-wrapper="prompt.labelPrompt">
-          <span data-i18n="prompt.labelPrompt">Engelse prompt</span>
-          <textarea
-            class="prompt-text"
-            rows="3"
-            placeholder="Schrijf de Engelse prompt..."
-            data-i18n-attr-placeholder="prompt.promptPlaceholder"
-          ></textarea>
-        </label>
-        <label class="field" data-i18n-wrapper="prompt.labelTranslation">
-          <span data-i18n="prompt.labelTranslation">Vertaling</span>
-          <textarea
-            class="prompt-nl"
-            rows="2"
-            placeholder="Vertaling naar het Nederlands..."
-            data-i18n-attr-placeholder="prompt.translationPlaceholder"
-          ></textarea>
-        </label>
+        
+        <!-- AI Prompt velden (alleen in ai-prompt mode) -->
+        <div class="scene-ai-fields">
+          <label class="field" data-i18n-wrapper="prompt.labelPrompt">
+            <span data-i18n="prompt.labelPrompt">Engelse prompt</span>
+            <div class="input-with-help" data-help="help.scenePrompt">
+              <textarea
+                class="prompt-text"
+                rows="3"
+                placeholder="Schrijf de Engelse prompt..."
+                data-i18n-attr-placeholder="prompt.promptPlaceholder"
+              ></textarea>
+            </div>
+          </label>
+          <label class="field" data-i18n-wrapper="prompt.labelTranslation">
+            <span data-i18n="prompt.labelTranslation">Vertaling</span>
+            <div class="input-with-help" data-help="help.sceneTranslation">
+              <textarea
+                class="prompt-nl"
+                rows="2"
+                placeholder="Vertaling naar het Nederlands..."
+                data-i18n-attr-placeholder="prompt.translationPlaceholder"
+              ></textarea>
+            </div>
+          </label>
+        </div>
+        
+        <!-- Traditionele Video velden (alleen in traditional-video mode) -->
+        <div class="scene-traditional-fields">
+          <label class="field" data-i18n-wrapper="dialog.traditional.whatDoWeSee">
+            <span data-i18n="dialog.traditional.whatDoWeSee">Wat zien we?</span>
+            <div class="input-with-help" data-help="help.dialogWhatSee">
+              <textarea class="scene-what-see" rows="2" placeholder="Beschrijf wat er te zien is..."></textarea>
+            </div>
+          </label>
+          <label class="field" data-i18n-wrapper="dialog.traditional.howDoWeMake">
+            <span data-i18n="dialog.traditional.howDoWeMake">Hoe maken we het?</span>
+            <div class="input-with-help" data-help="help.dialogHowMake">
+              <textarea class="scene-how-make" rows="2" placeholder="Camera, VFX, etc..."></textarea>
+            </div>
+          </label>
+          <label class="field" data-i18n-wrapper="dialog.traditional.timeline">
+            <span data-i18n="dialog.traditional.timeline">Tijdlijn</span>
+            <div class="input-with-help" data-help="help.dialogTimeline">
+              <textarea class="scene-timeline" rows="2" placeholder="0:00-0:05 ..."></textarea>
+            </div>
+          </label>
+        </div>
+        
+        <!-- Both mode: alleen edit button -->
+        <div class="scene-both-mode">
+          <button type="button" class="edit-scene-btn primary" data-i18n="prompt.editScene">
+            ✏️ Bewerk scene (prompt + traditioneel)
+          </button>
+        </div>
+        
         <div class="field rating-field">
           <label>
             <span data-i18n="rating.title">Kwaliteit</span>
@@ -317,6 +416,69 @@
       </form>
     </dialog>
 
+    <dialog id="confirm-marker-scene-dialog">
+      <form method="dialog" class="export-dialog">
+        <h3>Nieuwe marker</h3>
+        <p>Er is een nieuwe marker aangemaakt. Wil je hiervoor een scene toevoegen?</p>
+        <menu>
+          <button id="marker-scene-no" value="no" data-i18n="actions.cancel">Nee</button>
+          <button id="marker-scene-yes" value="yes" class="primary">Ja, voeg scene toe</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="link-scene-marker-dialog">
+      <div class="export-dialog">
+        <h3>Scene koppelen aan marker</h3>
+        <p id="link-scene-marker-message">Klik op de waveform om de marker te plaatsen.</p>
+        <menu>
+          <button type="button" id="link-scene-marker-ok" class="primary">OK</button>
+        </menu>
+      </div>
+    </dialog>
+
+    <dialog id="audio-timeline-info-dialog">
+      <form method="dialog" class="export-dialog">
+        <h3>ℹ️ Audio Timeline - Volgorde van Scenes</h3>
+        <p style="line-height: 1.6; margin: 15px 0;">
+          <strong>Belangrijke informatie:</strong><br><br>
+          Wanneer je de Audio Timeline gebruikt, wordt de <strong>volgorde van scenes automatisch bepaald door de tijdstempel van de markers</strong> op de audio waveform.
+        </p>
+        <p style="line-height: 1.6; margin: 15px 0;">
+          <strong>Hoe pas je de volgorde aan?</strong><br>
+          Sleep markers op de waveform naar een andere tijdspositie. De scenes zullen automatisch opnieuw worden gesorteerd op basis van de nieuwe marker tijden.
+        </p>
+        <menu>
+          <button value="ok" class="primary">Begrepen</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="edit-marker-time-dialog">
+      <form method="dialog" class="export-dialog">
+        <h3>⏱️ Bewerk marker tijd</h3>
+        <p id="edit-marker-scene-info" style="margin: 10px 0; color: var(--muted);"></p>
+        <div style="margin: 20px 0;">
+          <label style="display: block; margin-bottom: 5px; font-weight: bold;">
+            Nieuwe tijd (MM:SS.ms)
+          </label>
+          <input 
+            type="text" 
+            id="edit-marker-time-input" 
+            placeholder="bijv. 1:23.45"
+            style="width: 100%; padding: 8px; font-size: 16px; border: 1px solid var(--border); border-radius: 4px;"
+          />
+          <small style="display: block; margin-top: 5px; color: var(--muted);">
+            Voorbeelden: 15 (15 sec), 1:23 (1 min 23 sec), 1:23.45 (met milliseconden)
+          </small>
+        </div>
+        <menu>
+          <button type="button" id="edit-marker-time-cancel" value="cancel">Annuleer</button>
+          <button type="button" id="edit-marker-time-save" class="primary">Opslaan</button>
+        </menu>
+      </form>
+    </dialog>
+
     <dialog id="prompt-dialog">
       <form method="dialog" class="prompt-dialog">
         <header class="prompt-dialog-header">
@@ -350,14 +512,66 @@
             </div>
           </div>
           <div class="prompt-dialog-content">
-            <label data-i18n-wrapper="dialog.prompt.promptLabel">
-              <span data-i18n="dialog.prompt.promptLabel">Engelse prompt</span>
-              <textarea id="dialog-text" rows="6"></textarea>
-            </label>
+            <!-- AI Prompt velden -->
+            <div id="ai-prompt-fields" class="ai-prompt-fields">
+              <label data-i18n-wrapper="dialog.prompt.promptLabel">
+                <span data-i18n="dialog.prompt.promptLabel">Engelse prompt</span>
+                <div class="input-with-help" data-help="help.dialogPrompt">
+                  <textarea id="dialog-text" rows="6"></textarea>
+                </div>
+              </label>
 
-            <label data-i18n-wrapper="dialog.prompt.translationLabel">
-              <span data-i18n="dialog.prompt.translationLabel">Vertaling</span>
-              <textarea id="dialog-translation" rows="4"></textarea>
+              <label data-i18n-wrapper="dialog.prompt.translationLabel">
+                <span data-i18n="dialog.prompt.translationLabel">Vertaling</span>
+                <div class="input-with-help" data-help="help.dialogTranslation">
+                  <textarea id="dialog-translation" rows="4"></textarea>
+                </div>
+              </label>
+            </div>
+
+            <!-- Traditionele Video Storyline velden (alleen zichtbaar in traditionele modus) -->
+            <div id="traditional-video-fields" class="traditional-video-fields hidden">
+              <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">
+              <h4 data-i18n="dialog.traditional.title">Traditionele Video Storyline</h4>
+              
+              <label data-i18n-wrapper="dialog.traditional.whatDoWeSee">
+                <span data-i18n="dialog.traditional.whatDoWeSee">Wat zien we?</span>
+                <div class="input-with-help" data-help="help.dialogWhatSee">
+                  <textarea id="dialog-what-see" rows="3" placeholder="Beschrijf wat er in de scene te zien is..."></textarea>
+                </div>
+              </label>
+
+              <label data-i18n-wrapper="dialog.traditional.howDoWeMake">
+                <span data-i18n="dialog.traditional.howDoWeMake">Hoe maken we het?</span>
+                <div class="input-with-help" data-help="help.dialogHowMake">
+                  <textarea id="dialog-how-make" rows="3" placeholder="Camera-instellingen, VFX effecten, AI animatie, etc..."></textarea>
+                </div>
+              </label>
+
+              <label data-i18n-wrapper="dialog.traditional.timeline">
+                <span data-i18n="dialog.traditional.timeline">Tijdlijn / Duur</span>
+                <div class="input-with-help" data-help="help.dialogTimeline">
+                  <textarea id="dialog-timeline" rows="3" placeholder="Bijv. 0:00-0:05 Camera zoom in, 0:05-0:10 VFX explosie..."></textarea>
+                </div>
+              </label>
+
+              <label data-i18n-wrapper="dialog.traditional.duration">
+                <span data-i18n="dialog.traditional.duration">Totale duur (seconden)</span>
+                <div class="input-with-help" data-help="help.dialogDuration">
+                  <input type="number" id="dialog-duration" min="0" step="0.01" placeholder="Bijv. 5.5" />
+                </div>
+              </label>
+            </div>
+
+            <label data-i18n-wrapper="dialog.prompt.rating">
+              <span data-i18n="dialog.prompt.rating">Rating (1-5 sterren)</span>
+              <div class="rating-stars" id="dialog-rating" data-help="help.dialogRating">
+                <button type="button" class="star" data-value="1">⭐</button>
+                <button type="button" class="star" data-value="2">⭐</button>
+                <button type="button" class="star" data-value="3">⭐</button>
+                <button type="button" class="star" data-value="4">⭐</button>
+                <button type="button" class="star" data-value="5">⭐</button>
+              </div>
             </label>
           </div>
         </div>
@@ -400,11 +614,21 @@
                 <option value="both" data-i18n="presentation.both">Beide</option>
               </select>
             </label>
+            <label class="presentation-workflow-label">
+              <span data-i18n="presentation.workflowLabel">Velden:</span>
+              <select id="presentation-workflow">
+                <option value="ai-prompt" data-i18n="presentation.aiPrompt">AI Prompts</option>
+                <option value="traditional" data-i18n="presentation.traditional">Traditionele video</option>
+                <option value="both" data-i18n="presentation.bothFields">Beide velden</option>
+              </select>
+            </label>
             <label class="presentation-mode-label">
               <span>Modus:</span>
               <select id="presentation-mode">
                 <option value="image">🖼️ Afbeelding</option>
                 <option value="video">🎬 Video (auto-play)</option>
+                <option value="audio-image">🔊🖼️ Audio + Afbeelding</option>
+                <option value="audio-video">🔊🎬 Audio + Video</option>
               </select>
             </label>
             <button type="button" id="presentation-close" value="cancel" data-i18n="actions.cancel">Sluiten</button>
@@ -424,13 +648,32 @@
           </div>
 
           <div class="slide-content">
-            <div id="presentation-text-en" class="slide-text slide-text-en">
-              <h4 data-i18n="presentation.englishPrompt">Engelse prompt</h4>
-              <p id="presentation-prompt-en"></p>
+            <!-- AI Prompt velden voor presentatie -->
+            <div id="presentation-ai-fields" class="presentation-field-group">
+              <div id="presentation-text-en" class="slide-text slide-text-en">
+                <h4 data-i18n="presentation.englishPrompt">Engelse prompt</h4>
+                <p id="presentation-prompt-en"></p>
+              </div>
+              <div id="presentation-text-nl" class="slide-text slide-text-nl">
+                <h4 data-i18n="presentation.dutchTranslation">Nederlandse vertaling</h4>
+                <p id="presentation-prompt-nl"></p>
+              </div>
             </div>
-            <div id="presentation-text-nl" class="slide-text slide-text-nl">
-              <h4 data-i18n="presentation.dutchTranslation">Nederlandse vertaling</h4>
-              <p id="presentation-prompt-nl"></p>
+            
+            <!-- Traditionele video velden voor presentatie -->
+            <div id="presentation-traditional-fields" class="presentation-field-group hidden">
+              <div class="slide-text">
+                <h4 data-i18n="dialog.traditional.whatDoWeSee">Wat zien we?</h4>
+                <p id="presentation-what-see"></p>
+              </div>
+              <div class="slide-text">
+                <h4 data-i18n="dialog.traditional.howDoWeMake">Hoe maken we het?</h4>
+                <p id="presentation-how-make"></p>
+              </div>
+              <div class="slide-text">
+                <h4 data-i18n="dialog.traditional.timeline">Tijdlijn / Duur</h4>
+                <p id="presentation-timeline"></p>
+              </div>
             </div>
           </div>
         </div>
@@ -440,10 +683,36 @@
           <div class="presentation-progress">
             <div id="presentation-progress-bar"></div>
           </div>
-          <div class="video-timeline-container">
+          
+          <!-- Video timeline (alleen zichtbaar in video mode) -->
+          <div class="video-timeline-container" id="video-timeline-container">
             <input type="range" id="video-timeline-slider" min="0" max="100" value="0" step="0.1" />
             <div class="video-timeline-markers" id="video-timeline-markers"></div>
           </div>
+          
+          <!-- Audio player en timeline (alleen zichtbaar in audio modes) -->
+          <div class="audio-timeline-container" id="presentation-audio-timeline-container">
+            <audio id="presentation-audio" style="display: none;"></audio>
+            
+            <!-- Compacte audio player met waveform -->
+            <div class="presentation-audio-player">
+              <button type="button" id="presentation-audio-play" class="audio-play-btn">▶️</button>
+              <div class="audio-time-display" id="presentation-current-time">0:00</div>
+              
+              <!-- Waveform canvas met markers -->
+              <div class="presentation-waveform-container">
+                <canvas id="presentation-waveform" width="800" height="60"></canvas>
+                <div class="presentation-playhead" id="presentation-playhead"></div>
+                <div class="presentation-audio-markers" id="presentation-audio-visual-markers"></div>
+              </div>
+              
+              <div class="audio-time-display" id="presentation-total-time">0:00</div>
+            </div>
+            
+            <!-- Marker jump buttons -->
+            <div class="presentation-marker-buttons" id="presentation-marker-buttons"></div>
+          </div>
+          
           <button type="button" id="presentation-next" data-i18n="presentation.next">Volgende ➡️</button>
         </div>
       </form>
