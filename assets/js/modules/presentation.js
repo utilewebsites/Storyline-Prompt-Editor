@@ -545,7 +545,9 @@ export function renderPresentationWaveform(canvas, audioBuffer) {
  * Render markers op presentatie waveform
  */
 export function renderPresentationMarkers(container, markers, duration, linkedScenes) {
-  if (!container || !markers) return;
+  if (!container || !markers || markers.length === 0 || !duration || duration === 0) {
+    return;
+  }
   
   container.innerHTML = '';
   
@@ -622,15 +624,14 @@ export async function initializeAudioPresentation(state, elements, projectDirHan
   
   // Controleer of project audio timeline heeft
   const audioData = state.projectData.audioTimeline;
-  if (!audioData || !audioData.audioFileName) {
+  if (!audioData || !audioData.fileName) {
     console.warn("Dit project heeft geen audio timeline");
     return null;
   }
   
   try {
-    // Laad audio file
-    const audioDir = await projectDirHandle.getDirectoryHandle("audio");
-    const audioFileHandle = await audioDir.getFileHandle(audioData.audioFileName);
+    // Laad audio file uit project directory (NIET uit audio submap)
+    const audioFileHandle = await projectDirHandle.getFileHandle(audioData.fileName);
     const audioFile = await audioFileHandle.getFile();
     
     // Set audio source
@@ -641,7 +642,7 @@ export async function initializeAudioPresentation(state, elements, projectDirHan
       
       // Store markers voor timeline visualization
       state.presentationMode.audioMarkers = audioData.markers || [];
-      state.presentationMode.audioDuration = audioData.audioDuration || 0;
+      state.presentationMode.audioDuration = audioData.duration || 0;
       
       // Decode audio voor waveform
       const arrayBuffer = await audioFile.arrayBuffer();
@@ -661,7 +662,7 @@ export async function initializeAudioPresentation(state, elements, projectDirHan
       
       return {
         markers: audioData.markers,
-        duration: audioData.audioDuration
+        duration: audioData.duration
       };
     }
   } catch (error) {

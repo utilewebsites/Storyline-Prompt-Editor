@@ -50,6 +50,8 @@ let isEditorOpen = false;
 let currentAudioElement = null;
 let editorAudioContext = null;
 let editorAudioBuffer = null;
+let editorAudioFileName = ''; // Track current audio filename
+let editorAudioFile = null; // Track current audio File object for saving
 let editorMarkers = [];
 let currentPlayingSceneIndex = null;
 let isPlaying = false;
@@ -232,7 +234,15 @@ export function initializeAudioVideoEditor() {
     });
   }
 
-  console.log('Audio/Video Editor initialized');
+  // Event listener voor automatisch laden van audio bestand bij project open
+  document.addEventListener('loadAudioFile', async (event) => {
+    if (event.detail && event.detail.file) {
+      // Bewaar markers als ze worden meegeleverd voor restore
+      const markersToRestore = event.detail.restoreMarkers;
+      
+      await loadAudioFile(event.detail.file, markersToRestore);
+    }
+  });
 }
 
 /**
@@ -253,8 +263,6 @@ function handlePlayheadMouseDown(event) {
     elements.playhead.style.cursor = 'grabbing';
     elements.playhead.classList.add('dragging');
   }
-  
-  console.log('🎯 Started dragging playhead (paused)');
 }
 
 /**
@@ -333,8 +341,6 @@ function handlePlayheadMouseUp(event) {
         wasPlayingBeforeDrag = false;
       }
     }
-    
-    console.log('✅ Finished dragging playhead');
   }
 }
 
@@ -370,14 +376,6 @@ function loadExistingAudioData() {
   const oldFileName = getAudioFileName();
   const isActive = isAudioTimelineActive();
 
-  console.log('🎬 [Audio Editor] Loading existing audio data:', {
-    hasBuffer: !!oldAudioBuffer,
-    markersCount: oldMarkers?.length || 0,
-    markers: oldMarkers,
-    fileName: oldFileName,
-    isActive
-  });
-
   if (oldAudioBuffer) {
     editorAudioBuffer = oldAudioBuffer;
     
@@ -389,8 +387,6 @@ function loadExistingAudioData() {
     // Converteer markers naar editor formaat
     if (oldMarkers && oldMarkers.length > 0) {
       editorMarkers = oldMarkers.map((marker, index) => {
-        console.log('🎯 Converting marker:', marker);
-        
         // Haal preferred media type op van de gelinkte scene
         const sceneMediaType = getSceneMediaType(index);
         
@@ -400,8 +396,6 @@ function loadExistingAudioData() {
           mediaType: sceneMediaType || marker.mediaType || 'image'
         };
       });
-      
-      console.log('✅ Converted markers:', editorMarkers);
     }
 
     // Maak audio element voor playback als die nog niet bestaat
@@ -409,7 +403,6 @@ function loadExistingAudioData() {
       const oldAudioElement = getAudioElement();
       if (oldAudioElement && oldAudioElement.src) {
         currentAudioElement = oldAudioElement;
-        console.log('🔊 Reusing existing audio element');
       }
     }
 
@@ -428,13 +421,6 @@ function loadExistingAudioData() {
     if (oldContext) {
       editorAudioContext = oldContext;
     }
-
-    console.log('✅ Audio data loaded successfully:', {
-      duration: editorAudioBuffer.duration,
-      markersLoaded: editorMarkers.length
-    });
-  } else {
-    console.log('ℹ️ No existing audio data found');
   }
 }
 
@@ -455,19 +441,29 @@ function closeEditor() {
 
 /**
  * Laad een audio bestand
+ * @param {File} file - Het audio bestand
+ * @param {Array} restoreMarkers - Optioneel: markers om te herstellen na laden
  */
-async function loadAudioFile(file) {
+async function loadAudioFile(file, restoreMarkers = null) {
   try {
     // Maak audio context als die nog niet bestaat
     if (!editorAudioContext) {
       editorAudioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
 
+    // Check of dit een nieuw bestand is VOOR we de naam updaten
+    const isNewFile = (editorAudioFileName !== file.name);
+    const previousFileName = editorAudioFileName;
+    
     // Lees bestand
     const arrayBuffer = await file.arrayBuffer();
     editorAudioBuffer = await editorAudioContext.decodeAudioData(arrayBuffer);
 
+    // Sla File object op voor later opslaan
+    editorAudioFile = file;
+    
     // Update filename display
+    editorAudioFileName = file.name;
     if (elements.audioFilename) {
       elements.audioFilename.textContent = file.name;
     }
@@ -506,10 +502,50 @@ async function loadAudioFile(file) {
     // Draw waveform
     drawWaveform();
     
+    // Herstel markers als ze zijn meegeleverd (bij project laden)
+    if (restoreMarkers && Array.isArray(restoreMarkers) && restoreMarkers.length > 0) {
+      editorMarkers = restoreMarkers.map((time, index) => ({
+        time: time,
+        sceneIndex: index, // Dit is de marker index (0, 1, 2...)
+        mediaType: 'image' // Default, wordt later geüpdatet via getSceneMediaType
+      }));
+      
+      // Dispatch GEEN newAudioLoaded event - we willen de koppelingen behouden
+      
+      // Request media type voor elke marker van app.js
+      editorMarkers.forEach((marker, markerIndex) => {
+        const event = new CustomEvent('getSceneMediaType', {
+          detail: { markerIndex }
+        });
+        
+        // Listen voor response
+        const handleResponse = (e) => {
+          if (e.detail.markerIndex === markerIndex) {
+            marker.mediaType = e.detail.mediaType;
+            document.removeEventListener('sceneMediaTypeResponse', handleResponse);
+          }
+        };
+        
+        document.addEventListener('sceneMediaTypeResponse', handleResponse);
+        document.dispatchEvent(event);
+      });
+    } else if (isNewFile) {
+      // Dispatch event naar hoofdapp dat nieuwe audio is geladen
+      // Alleen als dit een ECHT nieuw bestand is (handmatig geüpload)
+      const event = new CustomEvent('newAudioLoaded', {
+        detail: {
+          fileName: file.name,
+          duration: editorAudioBuffer.duration,
+          previousFileName: previousFileName
+        }
+      });
+      document.dispatchEvent(event);
+    } else {
+      // Zelfde bestand - markers behouden
+    }
+    
     // Update markers display (shows inactive scenes)
     updateMarkersDisplay();
-
-    console.log('Audio loaded:', file.name, editorAudioBuffer.duration, 'seconds');
   } catch (error) {
     console.error('Error loading audio:', error);
     alert('Fout bij laden van audio: ' + error.message);
@@ -745,7 +781,6 @@ function handleWaveformMouseDown(event) {
       dragStartTime = marker.time;
       canvas.style.cursor = 'grabbing';
       
-      console.log('🎯 Start dragging marker', i, 'at', formatTime(marker.time));
       return;
     }
   }
@@ -808,8 +843,6 @@ function handleWaveformMouseUp(event) {
     const marker = editorMarkers[draggedMarkerIndex];
     const oldIndex = draggedMarkerIndex;
     
-    console.log('✅ Finished dragging marker', draggedMarkerIndex, 'to', formatTime(marker.time));
-    
     // Re-sort markers op tijd
     editorMarkers.sort((a, b) => a.time - b.time);
     
@@ -820,8 +853,6 @@ function handleWaveformMouseUp(event) {
     editorMarkers.forEach((m, idx) => {
       m.sceneIndex = idx;
     });
-    
-    console.log(`📊 Marker moved from index ${oldIndex} to ${newIndex}`);
     
     // Sync volgorde wijziging met hoofdapp (als volgorde is veranderd)
     if (oldIndex !== newIndex) {
@@ -938,8 +969,6 @@ function syncMarkerReorder(oldIndex, newIndex) {
     }
   });
   document.dispatchEvent(event);
-  
-  console.log('🔄 Synced marker reorder:', { oldIndex, newIndex });
 }
 
 /**
@@ -953,8 +982,6 @@ function syncMarkerPositionToScene(markerIndex, newTime) {
     }
   });
   document.dispatchEvent(event);
-  
-  console.log('📍 Synced marker position:', { markerIndex, newTime: formatTime(newTime) });
 }
 
 /**
@@ -1064,8 +1091,6 @@ function createSceneForMarker(markerIndex) {
     detail: { sceneData, markerIndex }
   });
   document.dispatchEvent(event);
-  
-  console.log('✅ Scene created for marker', markerIndex);
 }
 
 /**
@@ -1088,8 +1113,6 @@ function addMarker(time) {
 
   drawWaveform();
   updateMarkersDisplay();
-
-  console.log('Marker added at', formatTime(time));
 }
 
 /**
@@ -1133,7 +1156,6 @@ function getInactiveScenes() {
     detail: { scenes: [] }
   });
   document.dispatchEvent(event);
-  console.log('🔍 Inactive scenes retrieved:', event.detail.scenes.length, event.detail.scenes);
   return event.detail.scenes || [];
 }
 
@@ -1266,8 +1288,6 @@ function linkSceneToNewMarker(scene, time) {
   
   drawWaveform();
   updateMarkersDisplay();
-  
-  console.log('✅ Scene linked to new marker', newMarkerIndex, 'at', formatTime(time));
 }
 
 /**
@@ -1348,8 +1368,6 @@ function openSceneEditor(markerIndex) {
     }
   });
   document.dispatchEvent(event);
-  
-  console.log('🔍 Opening scene editor for marker', markerIndex);
 }
 
 /**
@@ -1542,7 +1560,7 @@ function controlVideoPlayback(shouldPlay) {
   const video = elements.previewCanvas.querySelector('video');
   if (video) {
     if (shouldPlay) {
-      video.play().catch(err => console.log('Video play error:', err));
+      video.play().catch(() => {});
     } else {
       video.pause();
     }
@@ -1716,8 +1734,7 @@ async function updatePreviewCanvas(marker) {
         // Auto-play video wanneer deze marker actief is
         video.addEventListener('loadeddata', () => {
           if (currentPlayingSceneIndex === marker.sceneIndex) {
-            video.play().catch(err => {
-              console.log('Video autoplay prevented:', err);
+            video.play().catch(() => {
               // Unmute als autoplay wordt geblokkeerd
               video.muted = false;
             });
@@ -1728,7 +1745,7 @@ async function updatePreviewCanvas(marker) {
         
         // Als audio speelt, sync video playback
         if (isPlaying) {
-          video.play().catch(err => console.log('Video play error:', err));
+          video.play().catch(() => {});
         }
       } else {
         // Show placeholder
@@ -1771,8 +1788,6 @@ export function setEditorMarkers(markers) {
  * Reset de audio video editor (bij project wisseling)
  */
 export function resetAudioVideoEditor() {
-  console.log('🔄 Resetting audio video editor...');
-  
   // Stop playback
   if (isPlaying && currentAudioElement) {
     pausePlayback();
@@ -1782,6 +1797,8 @@ export function resetAudioVideoEditor() {
   currentAudioElement = null;
   editorAudioContext = null;
   editorAudioBuffer = null;
+  editorAudioFileName = '';
+  editorAudioFile = null;
   editorMarkers = [];
   currentPlayingSceneIndex = null;
   isPlaying = false;
@@ -1846,6 +1863,63 @@ export function resetAudioVideoEditor() {
   
   // Hide tooltips
   hideTimeTooltip();
+}
+
+/**
+ * Export audio timeline data voor opslaan in project.json
+ */
+export function getAudioTimelineData() {
+  if (!editorAudioBuffer || !editorMarkers || editorMarkers.length === 0) {
+    return null;
+  }
   
-  console.log('✅ Audio video editor reset complete');
+  return {
+    audioBuffer: true, // Aanwezig indicator (de buffer zelf wordt niet opgeslagen)
+    audioFile: editorAudioFile, // Het File object voor opslaan in project map
+    fileName: editorAudioFileName,
+    markers: editorMarkers.map(m => m.time),
+    duration: editorAudioBuffer.duration,
+    isActive: true
+  };
+}
+
+/**
+ * Herstel audio timeline data vanuit project.json
+ * Note: Audio bestand moet opnieuw worden geüpload, alleen markers worden hersteld
+ */
+export function restoreAudioTimelineFromData(audioTimelineData) {
+  if (!audioTimelineData || !audioTimelineData.markers) {
+    return;
+  }
+  
+  // Restore markers (audio moet opnieuw worden geüpload)
+  editorMarkers = audioTimelineData.markers.map((time, index) => ({
+    time: time,
+    sceneIndex: index
+  }));
+  
+  // Update markers count
+  if (elements.markersCount) {
+    elements.markersCount.textContent = editorMarkers.length.toString();
+  }
+  
+  // Toon melding dat audio opnieuw moet worden geüpload om waveform te zien
+  if (elements.waveformCanvas) {
+    const ctx = elements.waveformCanvas.getContext('2d');
+    const width = elements.waveformCanvas.width;
+    const height = elements.waveformCanvas.height;
+    
+    // Clear canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Toon placeholder message
+    ctx.fillStyle = '#4a5568';
+    ctx.font = '14px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Upload audio bestand om waveform en markers te zien', width / 2, height / 2 - 10);
+    ctx.fillText(`${editorMarkers.length} markers opgeslagen bij: ${audioTimelineData.markers.map(t => t.toFixed(2)).join(', ')}s`, width / 2, height / 2 + 10);
+  }
+  
+  // Update markers display (werkt pas als audio is geladen)
+  updateMarkersDisplay();
 }

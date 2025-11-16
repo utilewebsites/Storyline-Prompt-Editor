@@ -17,10 +17,10 @@ import { uuid, slugify, formatDateTime, readJsonFile, writeJsonFile, writeTextFi
 import { addPrompt, deletePrompt, movePrompt, assignImageToPrompt, assignVideoToPrompt, removeImageFromPrompt, removeVideoFromPrompt } from "./modules/scenes.js";
 import { updatePresentationSlide, updateVideoPresentationSlide, nextSlide, prevSlide, setPresentationLanguage, setPresentationWorkflowMode, closePresentationMode, initializeCombinedVideoPresentation, updateCombinedVideoPresentation, seekCombinedVideoTimeline, renderPresentationWaveform, renderPresentationMarkers, renderMarkerButtons, setupPresentationAudioPlayer, initializeAudioPresentation } from "./modules/presentation.js";
 import { initializeHelpSystem, setHelpLanguage, toggleHelpMode, handleWorkflowModeChange, applyWorkflowModeToDialog, getWorkflowMode, updateHelpTexts } from "./modules/help.js";
-import { initializeAudioTimeline, generateScenesFromAudio, resetAudioTimeline, getAudioTimelineData, restoreAudioTimelineData, setAudioProjectHandle, loadAudioFromProject, hasAudioTimeline, setSceneCallbacks, redrawWaveform, refreshMarkersDisplay, waitAndShowMarkers, removeMarkerByIndex, updateAudioMarkerTime } from "./modules/audio-timeline.js";
+import { initializeAudioTimeline, generateScenesFromAudio, resetAudioTimeline, getAudioTimelineData as getOldAudioTimelineData, restoreAudioTimelineData, setAudioProjectHandle, loadAudioFromProject, hasAudioTimeline, setSceneCallbacks, redrawWaveform, refreshMarkersDisplay, waitAndShowMarkers, removeMarkerByIndex, updateAudioMarkerTime } from "./modules/audio-timeline.js";
 import { initializeAttachments, clearAttachmentCache } from "./modules/attachments.js";
 import { renderTransitionButton, showTransitionDialog, cleanupTransitions, reindexTransitions } from "./modules/transitions.js";
-import { initializeAudioVideoEditor, openEditor as openAudioVideoEditor, resetAudioVideoEditor } from "./modules/audio-video-editor.js";
+import { initializeAudioVideoEditor, openEditor as openAudioVideoEditor, resetAudioVideoEditor, getAudioTimelineData, restoreAudioTimelineFromData } from "./modules/audio-video-editor.js";
 // import { initLogger, log, logSection } from "./modules/logger.js"; // DEBUG: Uncomment om logging aan te zetten
 
 /**
@@ -1354,6 +1354,12 @@ async function openPresentation() {
     return;
   }
 
+  // Sla project eerst op als er wijzigingen zijn
+  if (state.isDirty) {
+    console.log('💾 Auto-saving project before opening presentation...');
+    await saveProject();
+  }
+
   // Reset presentation state volledig
   state.presentationMode.currentSlide = 0;
   state.presentationMode.languageMode = "both";
@@ -1606,10 +1612,12 @@ async function updatePresentationSlideWrapper() {
               elements.presentationVideo.src = blobUrl;
               elements.presentationVideo.load();
               
-              // Auto-play video
-              elements.presentationVideo.play().catch(err => {
-                console.log('Auto-play geblokkeerd door browser, gebruiker moet handmatig starten:', err);
-              });
+              // Wacht tot video geladen is voordat we auto-play doen
+              elements.presentationVideo.addEventListener('loadeddata', () => {
+                elements.presentationVideo.play().catch(err => {
+                  console.log('Auto-play geblokkeerd door browser:', err.name);
+                });
+              }, { once: true });
             }
             if (elements.presentationNoVideo) {
               elements.presentationNoVideo.style.display = "none";
@@ -1650,10 +1658,12 @@ async function updatePresentationSlideWrapper() {
                 elements.presentationVideo.src = blobUrl;
                 elements.presentationVideo.load();
                 
-                // Auto-play video
-                elements.presentationVideo.play().catch(err => {
-                  console.log('Auto-play geblokkeerd door browser, gebruiker moet handmatig starten:', err);
-                });
+                // Wacht tot video geladen is voordat we auto-play doen
+                elements.presentationVideo.addEventListener('loadeddata', () => {
+                  elements.presentationVideo.play().catch(err => {
+                    console.log('Auto-play geblokkeerd door browser:', err.name);
+                  });
+                }, { once: true });
               }
               if (elements.presentationNoVideo) {
                 elements.presentationNoVideo.style.display = "none";
@@ -2158,8 +2168,6 @@ async function openProject(projectId) {
     }
   });
 
-  console.log("Project geladen, check audio timeline:", projectData.audioTimeline ? "JA" : "NEE");
-
   // Reset audio timeline eerst
   resetAudioTimeline();
   
@@ -2181,15 +2189,90 @@ async function openProject(projectId) {
   
   // Laad audio timeline data indien aanwezig
   if (projectData.audioTimeline) {
-    console.log("Audio timeline gevonden, verwerk data...");
-    
     // FIX: Valideer en repareer duplicate marker assignments
     fixDuplicateMarkerAssignments(projectData);
     
+    // FIX: Repareer negatieve durations
+    fixNegativeDurations(projectData);
+    
+    // Restore audio timeline voor OUDE audio-timeline module (deprecated)
     await restoreAudioTimelineData(projectData.audioTimeline, projectDir);
     
-    // Sync scenes met markers - creëer ontbrekende scenes
-    syncScenesWithMarkers(projectData.audioTimeline.markers, projectData.audioTimeline.audioDuration);
+    // Laad audio bestand automatisch als het bestaat in de project map
+    if (projectData.audioTimeline.fileName) {
+      try {
+        const audioFileHandle = await projectDir.getFileHandle(projectData.audioTimeline.fileName, { create: false });
+        const audioFile = await audioFileHandle.getFile();
+        
+        // Dispatch event om audio te laden in de editor
+        const loadEvent = new CustomEvent('loadAudioFile', {
+          detail: { 
+            file: audioFile,
+            restoreMarkers: projectData.audioTimeline.markers // Geef markers mee voor restore
+          }
+        });
+        document.dispatchEvent(loadEvent);
+        
+        // Wacht even zodat audio geladen kan worden voordat we markers restoren
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Restore markers NA audio load
+        restoreAudioTimelineFromData(projectData.audioTimeline);
+      } catch (err) {
+        console.warn('⚠️ Audio bestand niet gevonden in project map:', projectData.audioTimeline.fileName);
+        
+        // Restore markers ook als audio niet kan worden geladen (toont placeholder)
+        restoreAudioTimelineFromData(projectData.audioTimeline);
+      }
+    } else {
+      // Geen fileName, maar wel audioTimeline - restore markers
+      restoreAudioTimelineFromData(projectData.audioTimeline);
+    }
+    
+    // NIET syncScenesWithMarkers aanroepen bij project load!
+    // De scenes zijn al gekoppeld aan markers via audioMarkerIndex
+    // syncScenesWithMarkers is alleen voor NIEUWE audio uploads
+    
+    // Auto-fix: Koppel scenes met media aan markers als dat nog niet is gebeurd
+    const linkedScenes = projectData.prompts.filter(p => p.isAudioLinked);
+    const markerCount = projectData.audioTimeline.markers.length;
+    
+    // Check of gekoppelde scenes media hebben
+    const linkedScenesWithMedia = linkedScenes.filter(p => p.imagePath || p.videoPath);
+    const needsAutoFix = linkedScenes.length > 0 && linkedScenesWithMedia.length === 0;
+    
+    if ((linkedScenes.length === 0 || needsAutoFix) && markerCount > 0) {
+      if (needsAutoFix) {
+        // Verwijder oude lege koppelingen
+        linkedScenes.forEach(scene => {
+          scene.isAudioLinked = false;
+          delete scene.audioMarkerIndex;
+          delete scene.audioMarkerTime;
+          delete scene.timeline;
+          delete scene.duration;
+        });
+      }
+      
+      // Auto-fix: Als er evenveel scenes zijn als markers, koppel ze automatisch
+      const scenesWithMedia = projectData.prompts.filter(p => p.imagePath || p.videoPath);
+      
+      if (scenesWithMedia.length >= markerCount) {
+        scenesWithMedia.slice(0, markerCount).forEach((scene, index) => {
+          const time = projectData.audioTimeline.markers[index];
+          const nextTime = projectData.audioTimeline.markers[index + 1] || projectData.audioTimeline.duration;
+          const duration = nextTime - time;
+          
+          scene.isAudioLinked = true;
+          scene.audioMarkerIndex = index;
+          scene.audioMarkerTime = time;
+          scene.timeline = `${formatTime(time)} - ${formatTime(nextTime)}`;
+          scene.duration = duration.toFixed(2);
+          scene.preferredMediaType = scene.imagePath ? 'image' : 'video';
+        });
+        
+        state.isDirty = true;
+      }
+    }
     
     // Sorteer scenes op basis van audio marker volgorde
     sortScenesByAudioMarkers();
@@ -2236,8 +2319,6 @@ async function openProject(projectId) {
         });
       }
       badge.classList.add("visible");
-      
-      console.log("Badge dynamisch toegevoegd en zichtbaar gemaakt");
     }
   } else {
     const audioBtn = document.querySelector("#toggle-audio-timeline");
@@ -2304,6 +2385,34 @@ function fixDuplicateMarkerAssignments(projectData) {
       // Verwijder timeline/duration want niet meer gekoppeld
       delete prompt.timeline;
       delete prompt.duration;
+    }
+  });
+}
+
+/**
+ * Fix negatieve durations door timeline/duration opnieuw te berekenen
+ */
+function fixNegativeDurations(projectData) {
+  if (!projectData?.prompts || !projectData?.audioTimeline) {
+    return;
+  }
+
+  const markers = projectData.audioTimeline.markers || [];
+  const totalDuration = projectData.audioTimeline.duration || 0;
+
+  projectData.prompts.forEach(prompt => {
+    if (prompt.isAudioLinked && prompt.audioMarkerIndex !== undefined) {
+      const markerIndex = prompt.audioMarkerIndex;
+      const markerTime = markers[markerIndex];
+      const nextMarkerTime = markers[markerIndex + 1] || totalDuration;
+      
+      // Herbereken timeline en duration
+      prompt.timeline = `${formatTime(markerTime)} - ${formatTime(nextMarkerTime)}`;
+      prompt.duration = (nextMarkerTime - markerTime).toFixed(2);
+      
+      if (parseFloat(prompt.duration) < 0) {
+        console.warn(`⚠️ Scene ${prompt.id} had negatieve duration, gefixed`);
+      }
     }
   });
 }
@@ -2521,8 +2630,6 @@ function getAllScenes() {
 function handleCreateSceneFromEditor(sceneData, markerIndex) {
   if (!state.projectData || !state.projectData.prompts) return;
   
-  console.log('🎬 Creating scene from editor marker:', markerIndex, sceneData);
-  
   // Check of er al een scene is voor deze marker
   const existingScene = state.projectData.prompts.find(p => 
     p.isAudioLinked && p.audioMarkerIndex === markerIndex
@@ -2537,8 +2644,6 @@ function handleCreateSceneFromEditor(sceneData, markerIndex) {
   const newPrompt = addPromptWrapper(sceneData);
   
   if (newPrompt) {
-    console.log('✅ Scene created successfully:', newPrompt.id);
-    
     // Update alle scenes na deze marker (hun index kan verschoven zijn)
     updateInactiveScenesAfterMarkers();
   }
@@ -2562,8 +2667,17 @@ function updateInactiveScenesAfterMarkers() {
   
   // Re-render
   renderProjectEditor();
+}
+
+/**
+ * Format tijd in MM:SS.MSS formaat
+ */
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  const ms = Math.floor((seconds % 1) * 1000);
   
-  console.log('📋 Scenes reordered: active scenes first, inactive scenes last');
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
 }
 
 /**
@@ -2577,6 +2691,20 @@ function handleLinkSceneToMarkerFromEditor(sceneId, markerIndex, time) {
   if (!scene) {
     console.warn('Scene not found:', sceneId);
     return;
+  }
+  
+  // Check of er al een andere scene aan deze marker gekoppeld is
+  const existingScene = state.projectData.prompts.find(p => 
+    p.id !== sceneId && p.isAudioLinked && p.audioMarkerIndex === markerIndex
+  );
+  
+  if (existingScene) {
+    // Ontkoppel de oude scene
+    existingScene.isAudioLinked = false;
+    delete existingScene.audioMarkerIndex;
+    delete existingScene.audioMarkerTime;
+    delete existingScene.timeline;
+    delete existingScene.duration;
   }
   
   // Update scene met marker info
@@ -2593,22 +2721,21 @@ function handleLinkSceneToMarkerFromEditor(sceneId, markerIndex, time) {
   
   // Re-render
   updateInactiveScenesAfterMarkers();
-  
-  console.log('✅ Scene linked to marker:', sceneId, markerIndex);
 }
 
 /**
  * Haal de tijd van de volgende marker op (of audio duration)
  */
 function getNextMarkerTime(markerIndex) {
-  if (!state.projectData?.audioTimeline?.audioBuffer) return 0;
+  if (!state.projectData?.audioTimeline) return 0;
   
   const markers = state.projectData.audioTimeline.markers || [];
   const nextMarker = markers[markerIndex + 1];
   
-  return nextMarker !== undefined 
-    ? nextMarker 
-    : state.projectData.audioTimeline.audioBuffer.duration;
+  // Gebruik de duration uit audioTimeline
+  const totalDuration = state.projectData.audioTimeline.duration || 0;
+  
+  return nextMarker !== undefined ? nextMarker : totalDuration;
 }
 
 /**
@@ -2723,8 +2850,6 @@ function updateMarkerPositionFromEditor(markerIndex, newTime) {
   );
   
   if (scene) {
-    console.log(`🎯 Updating marker ${markerIndex} position to ${newTime.toFixed(2)}s`);
-    
     // Update marker tijd in audio timeline module
     updateAudioMarkerTime(markerIndex, newTime);
   }
@@ -2736,19 +2861,15 @@ function updateMarkerPositionFromEditor(markerIndex, newTime) {
 function handleMarkerReorderFromEditor(oldIndex, newIndex) {
   if (!state.projectData || !state.projectData.prompts) return;
   
-  console.log(`🔄 Reordering marker from ${oldIndex} to ${newIndex}`);
-  
   // Vind de scene die verplaatst moet worden
   const sceneToMove = state.projectData.prompts.find(p => 
     p.isAudioLinked && p.audioMarkerIndex === oldIndex
   );
   
   if (!sceneToMove) {
-    console.warn(`Scene niet gevonden voor oude marker index ${oldIndex}`);
+    console.warn(`⚠️ Geen scene gevonden met marker index ${oldIndex}`);
     return;
   }
-  
-  console.log(`📌 Moving scene "${sceneToMove.prompt?.substring(0, 30)}..." from marker ${oldIndex} to ${newIndex}`);
   
   // Update audioMarkerIndex van de verplaatste scene
   sceneToMove.audioMarkerIndex = newIndex;
@@ -2760,13 +2881,11 @@ function handleMarkerReorderFromEditor(oldIndex, newIndex) {
     if (oldIndex < newIndex) {
       // Scene verschuift naar rechts, scenes ertussen schuiven naar links
       if (scene.audioMarkerIndex > oldIndex && scene.audioMarkerIndex <= newIndex) {
-        console.log(`  ⬅️ Scene marker ${scene.audioMarkerIndex} → ${scene.audioMarkerIndex - 1}`);
         scene.audioMarkerIndex--;
       }
     } else if (oldIndex > newIndex) {
       // Scene verschuift naar links, scenes ertussen schuiven naar rechts
       if (scene.audioMarkerIndex >= newIndex && scene.audioMarkerIndex < oldIndex) {
-        console.log(`  ➡️ Scene marker ${scene.audioMarkerIndex} → ${scene.audioMarkerIndex + 1}`);
         scene.audioMarkerIndex++;
       }
     }
@@ -2775,7 +2894,9 @@ function handleMarkerReorderFromEditor(oldIndex, newIndex) {
   // Sorteer scenes op basis van nieuwe audioMarkerIndex
   sortScenesByAudioMarkers();
   
-  console.log('✅ Marker reorder completed');
+  // Force refresh van de project editor UI (sortScenesByAudioMarkers doet geen render meer)
+  renderProjectEditor();
+  state.isDirty = true;
 }
 
 /**
@@ -2858,21 +2979,16 @@ function syncScenesWithMarkers(markers, audioDuration) {
  * Ongekoppelde scenes blijven aan het eind
  */
 function sortScenesByAudioMarkers() {
-  if (!state.projectData || !state.projectData.prompts) return;
+  if (!state.projectData || !state.projectData.prompts) {
+    return;
+  }
   
-  // Alleen sorteren als er audio timeline is
-  if (!hasAudioTimeline()) return;
+  // Check of er audio timeline data is
+  if (!state.projectData.audioTimeline || !state.projectData.audioTimeline.markers) {
+    return;
+  }
   
-  // Get markers from audio timeline
-  const audioData = getAudioTimelineData();
-  if (!audioData || !audioData.markers) return;
-  
-  const markers = audioData.markers; // Deze zijn al gesorteerd op tijd
-  
-  console.log('🔄 Sorting scenes by audio markers...', { 
-    totalScenes: state.projectData.prompts.length,
-    markers: markers.length
-  });
+  const markers = state.projectData.audioTimeline.markers; // Deze zijn al gesorteerd op tijd
   
   // Splits scenes in gekoppeld en ongekoppeld
   const linkedScenes = [];
@@ -2885,8 +3001,6 @@ function sortScenesByAudioMarkers() {
       unlinkedScenes.push(prompt);
     }
   });
-  
-  console.log('📊 Linked scenes:', linkedScenes.length, 'Unlinked scenes:', unlinkedScenes.length);
   
   // Sorteer gekoppelde scenes op basis van hun audioMarkerIndex
   linkedScenes.sort((a, b) => {
@@ -2905,11 +3019,6 @@ function sortScenesByAudioMarkers() {
   
   // Combineer: eerst gekoppelde scenes (gesorteerd op marker index), dan ongekoppelde
   state.projectData.prompts = [...linkedScenes, ...unlinkedScenes];
-  
-  console.log('✅ Scenes sorted:', linkedScenes.map(s => `Scene ${s.audioMarkerIndex}`).join(', '));
-  
-  // Update UI (zowel storyboard als audio timeline markers)
-  renderProjectEditor();
   
   // Update ook de markers display in de audio timeline
   if (hasAudioTimeline()) {
@@ -2931,19 +3040,16 @@ function handleLinkSceneToMarker(sceneIndex, markerIndex, time) {
   
   const scene = state.projectData.prompts[sceneIndex];
   
+  if (!scene) {
+    console.warn('Scene not found at index:', sceneIndex);
+    return;
+  }
+  
   // Check of deze scene niet al gekoppeld is
   if (scene.isAudioLinked) {
     console.warn('Scene is al gekoppeld aan een marker');
     return;
   }
-  
-  // Helper voor tijd formattering
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    const ms = Math.floor((seconds % 1) * 100);
-    return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
-  };
   
   // Haal marker data op via getAudioTimelineData
   const audioData = getAudioTimelineData();
@@ -2979,7 +3085,25 @@ async function saveProject() {
     // Sla audio timeline data op
     const audioData = getAudioTimelineData();
     if (audioData) {
-      state.projectData.audioTimeline = audioData;
+      // Maak een kopie zonder het audioFile object (kan niet worden geserializeerd naar JSON)
+      const { audioFile, ...audioTimelineForJson } = audioData;
+      state.projectData.audioTimeline = audioTimelineForJson;
+      
+      // Sla audio bestand op in project map (als er een is)
+      if (audioFile && state.projectDirHandle) {
+        try {
+          // Lees het File object als ArrayBuffer om permission errors te vermijden
+          const arrayBuffer = await audioFile.arrayBuffer();
+          const blob = new Blob([arrayBuffer], { type: audioFile.type || 'audio/wav' });
+          
+          const audioFileHandle = await state.projectDirHandle.getFileHandle(audioData.fileName, { create: true });
+          const writable = await audioFileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
+        } catch (err) {
+          console.error('Fout bij opslaan audio bestand:', err);
+        }
+      }
     } else if (state.projectData.audioTimeline) {
       // Verwijder audio timeline als het niet meer actief is
       delete state.projectData.audioTimeline;
@@ -3659,6 +3783,30 @@ function init() {
   // Initialiseer audio video editor
   initializeAudioVideoEditor();
   
+  // Event: Nieuwe audio geladen - verwijder alle oude marker koppelingen
+  document.addEventListener('newAudioLoaded', (e) => {
+    if (!state.projectData || !state.projectData.prompts) return;
+    
+    // Verwijder marker koppelingen van alle scenes
+    state.projectData.prompts.forEach(scene => {
+      if (scene.isAudioLinked) {
+        scene.isAudioLinked = false;
+        delete scene.audioMarkerIndex;
+        delete scene.audioMarkerTime;
+        delete scene.timeline;
+        delete scene.duration;
+      }
+    });
+    
+    // Verwijder oude audioTimeline data
+    if (state.projectData.audioTimeline) {
+      delete state.projectData.audioTimeline;
+    }
+    
+    state.isDirty = true;
+    renderProjectEditor();
+  });
+  
   // Event listeners voor audio editor <-> scene synchronisatie
   document.addEventListener('updateSceneMediaType', (e) => {
     const { markerIndex, mediaType } = e.detail;
@@ -3924,7 +4072,7 @@ function init() {
           if (elements.presentationAudioTimelineContainer) elements.presentationAudioTimelineContainer.style.display = "flex";
           
           // Initialiseer audio voor presentatie (alleen als project audio heeft)
-          if (state.projectData.audioTimeline && state.projectData.audioTimeline.audioFileName) {
+          if (state.projectData.audioTimeline && state.projectData.audioTimeline.fileName) {
             await initializeAudioPresentation(
               state, 
               elements,
@@ -3999,11 +4147,6 @@ function init() {
     );
     // Sorteer scenes op basis van de nieuwe marker volgorde
     sortScenesByAudioMarkers();
-  });
-  
-  // Link scene to marker event listener
-  document.addEventListener('linkSceneToMarker', (event) => {
-    handleLinkSceneToMarker(event.detail.sceneIndex, event.detail.markerIndex, event.detail.time);
   });
   
   // Keyboard shortcuts voor presentatie
