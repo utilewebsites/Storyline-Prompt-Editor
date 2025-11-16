@@ -162,59 +162,59 @@ I first created this editor as a handy companion while producing video prompts f
 storylineprompteditor/
 ├─ assets/
 │  ├─ css/
-│  │  ├─ style.css                    # Hoofd stylesheet
-│  │  ├─ variables.css                # CSS-variabelen (kleuren, spacing)
-│  │  ├─ base.css                     # Reset & basisstijlen
-│  │  ├─ layout.css                   # Grid- & flex-layouts
-│  │  ├─ buttons.css                  # Knopstijlen
-│  │  ├─ forms.css                    # Formulierelementen
-│  │  ├─ dialogs.css                  # Modale dialogen
-│  │  ├─ panels.css                   # Zijpanelen
-│  │  ├─ projects.css                 # Projectlijst & kaarten
-│  │  ├─ prompt-cards.css             # Scenekaart-stijlen
-│  │  ├─ media-upload.css             # Upload- & preview-componenten
-│  │  ├─ presentation.css             # Presentatiemodus
-│  │  ├─ audio-timeline.css           # Audio-timeline editor
-│  │  ├─ transitions.css              # Scene transitie-editor
-│  │  ├─ attachments.css              # Bijlagen-interface
-│  │  ├─ fullscreen-editor.css        # Fullscreen audio/video-editor
-│  │  ├─ help-system.css              # Help-tooltips & badges
-│  │  └─ responsive.css               # Mobiele responsiviteit
+│  │  ├─ style.css                    # Main stylesheet
+│  │  ├─ variables.css                # CSS variables (colors, spacing)
+│  │  ├─ base.css                     # Reset & base styles
+│  │  ├─ layout.css                   # Grid & flex layouts
+│  │  ├─ buttons.css                  # Button styles
+│  │  ├─ forms.css                    # Form elements
+│  │  ├─ dialogs.css                  # Modal dialogs
+│  │  ├─ panels.css                   # Side panels
+│  │  ├─ projects.css                 # Project list & cards
+│  │  ├─ prompt-cards.css             # Scene card styles
+│  │  ├─ media-upload.css             # Upload & preview components
+│  │  ├─ presentation.css             # Presentation mode
+│  │  ├─ audio-timeline.css           # Audio timeline editor
+│  │  ├─ transitions.css              # Scene transition editor
+│  │  ├─ attachments.css              # Attachments interface
+│  │  ├─ fullscreen-editor.css        # Fullscreen audio/video editor
+│  │  ├─ help-system.css              # Help tooltips & badges
+│  │  └─ responsive.css               # Mobile responsiveness
 │  └─ js/
-│     ├─ app.js                       # Hoofdscripts: applicatielogica en event-wiring
-│     ├─ translations.js              # Taaldefinities (NL/EN)
+│     ├─ app.js                       # Main scripts: app logic and event wiring
+│     ├─ translations.js              # Language definitions (NL/EN)
 │     └─ modules/
-│        ├─ state.js                  # Centrale state-management
-│        ├─ i18n.js                   # Internationalisatie & vertaling
-│        ├─ constants.js              # Applicatieconstanten
-│        ├─ file-system.js            # Wrappers voor File System Access API
-│        ├─ utils.js                  # UUID, slugify, datum/tijd, JSON I/O
-│        ├─ dialogs.js                # showError/showSuccess dialooghelpers
-│        ├─ dom-helpers.js            # DOM-hulpfuncties & applyTranslations
-│        ├─ ui-rendering.js           # UI-rendering functies
-│        ├─ project-manager.js        # Project synchronisatie & structuur
-│        ├─ project-operations.js     # Project CRUD-operaties
-│        ├─ project-actions.js        # Projectacties (verouderd)
-│        ├─ scenes.js                 # Scene/promptbeheer
-│        ├─ scene-actions.js          # Scene CRUD-helpers
-│        ├─ scene-copy.js             # Scene kopiëren tussen projecten
-│        ├─ media-handlers.js         # Afbeelding/video upload & preview
-│        ├─ upload-handlers.js        # Upload wrappers voor media
-│        ├─ attachments.js            # Bestandsbijlagen per scene
-│        ├─ presentation.js           # Fullscreen presentatiemodus
-│        ├─ transitions.js            # Scene transitiebeheer
-│        ├─ audio-timeline.js         # Audio-timeline (verouderd)
-│        ├─ audio-video-editor.js     # Audio/video-timeline editor
-│        ├─ drag-drop.js              # Drag & drop kaartherordening
-│        ├─ export-handlers.js        # Exporteer prompts, afbeeldingen, notities
-│        ├─ help.js                   # Contextueel help-systeem
-│        └─ logger.js                 # Debug-logging (optioneel)
+│        ├─ state.js                  # Central state management
+│        ├─ i18n.js                   # Internationalization & translation
+│        ├─ constants.js              # Application constants
+│        ├─ file-system.js            # Wrappers for File System Access API
+│        ├─ utils.js                  # UUID, slugify, date/time, JSON I/O
+│        ├─ dialogs.js                # showError/showSuccess dialog helpers
+│        ├─ dom-helpers.js            # DOM helpers & applyTranslations
+│        ├─ ui-rendering.js           # UI rendering functions
+│        ├─ project-manager.js        # Project synchronization & structure
+│        ├─ project-operations.js     # Project CRUD operations
+│        ├─ project-actions.js        # Project actions (deprecated)
+│        ├─ scenes.js                 # Scene/prompt management
+│        ├─ scene-actions.js          # Scene CRUD helpers
+│        ├─ scene-copy.js             # Copy scenes between projects
+│        ├─ media-handlers.js         # Image/video upload & preview
+│        ├─ upload-handlers.js        # Upload wrappers for media
+│        ├─ attachments.js            # File attachments per scene
+│        ├─ presentation.js           # Fullscreen presentation mode
+│        ├─ transitions.js            # Scene transition management
+│        ├─ audio-timeline.js         # Audio timeline (deprecated)
+│        ├─ audio-video-editor.js     # Audio/video timeline editor
+│        ├─ drag-drop.js              # Drag & drop card reordering
+│        ├─ export-handlers.js        # Export prompts, images, notes
+│        ├─ help.js                   # Contextual help system
+│        └─ logger.js                 # Debug logging (optional)
 ├─ docs/
-│  └─ images/                         # Screenshots voor README
-├─ server.sh                          # Start/stop script voor lokale server
-├─ index.html                         # Ingang van de applicatie
-├─ README.md                          # Engelstalige uitleg
-└─ README.nl.md                       # Nederlandstalige uitleg
+│  └─ images/                         # Screenshots for README
+├─ server.sh                          # Start/stop script for local server
+├─ index.html                         # Application entry point
+├─ README.md                          # English documentation
+└─ README.nl.md                       # Dutch documentation
 ```
 
 ## Getting started
