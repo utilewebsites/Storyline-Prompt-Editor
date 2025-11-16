@@ -2025,6 +2025,13 @@ async function copyProject() {
  */
 async function doCopyProject(newName) {
   if (!state.projectData || !state.projectenHandle) throw new Error("Geen actief project of projectenmap");
+  
+  // Zorg dat we de source project handles hebben
+  const sourceProjectDirHandle = state.projectDirHandle;
+  const sourceImagesHandle = state.projectImagesHandle;
+  const sourceVideosHandle = state.projectVideosHandle;
+  const sourceAttachmentsHandle = state.projectAttachmentsHandle;
+  
   const slugBase = slugify(newName);
   const existing = new Set(state.indexData.projects.map((p) => p.slug));
   let slug = slugBase;
@@ -2036,6 +2043,7 @@ async function doCopyProject(newName) {
   const projectDir = await state.projectenHandle.getDirectoryHandle(slug, { create: true });
   const imagesDir = await projectDir.getDirectoryHandle("images", { create: true });
   const videosDir = await projectDir.getDirectoryHandle("videos", { create: true });
+  const attachmentsDir = await projectDir.getDirectoryHandle("attachments", { create: true });
   const projectJsonHandle = await projectDir.getFileHandle("project.json", { create: true });
   const newProjectId = uuid();
   const createdAt = new Date().toISOString();
@@ -2047,7 +2055,41 @@ async function doCopyProject(newName) {
     createdAt,
     updatedAt: createdAt,
     prompts: [],
+    transitions: [], // Initialize transitions array
   };
+  
+  // Copy transitions array (project-level)
+  if (state.projectData.transitions && Array.isArray(state.projectData.transitions)) {
+    newProjectData.transitions = state.projectData.transitions.map(t => ({
+      sceneIndex: t.sceneIndex,
+      description: t.description,
+      updatedAt: createdAt
+    }));
+  }
+  
+  // Copy audioTimeline data if exists
+  if (state.projectData.audioTimeline) {
+    newProjectData.audioTimeline = {
+      fileName: state.projectData.audioTimeline.fileName,
+      markers: [...(state.projectData.audioTimeline.markers || [])],
+      duration: state.projectData.audioTimeline.duration,
+      isActive: state.projectData.audioTimeline.isActive
+    };
+    
+    // Copy audio file if it exists in the project directory
+    if (state.projectData.audioTimeline.fileName && sourceProjectDirHandle) {
+      try {
+        const audioFileHandle = await sourceProjectDirHandle.getFileHandle(state.projectData.audioTimeline.fileName);
+        const audioFile = await audioFileHandle.getFile();
+        const targetAudioHandle = await projectDir.getFileHandle(state.projectData.audioTimeline.fileName, { create: true });
+        const writable = await targetAudioHandle.createWritable();
+        await writable.write(await audioFile.arrayBuffer());
+        await writable.close();
+      } catch (error) {
+        console.warn("Kopiëren van audio bestand voor project duplicatie mislukt", error);
+      }
+    }
+  }
 
   // Copy prompts and images
   for (const p of state.projectData.prompts) {
@@ -2062,10 +2104,24 @@ async function doCopyProject(newName) {
       videoOriginalName: p.videoOriginalName ?? null,
       videoType: p.videoType ?? null,
       rating: p.rating ?? null,
+      // Copy audio timeline properties
+      isAudioLinked: p.isAudioLinked ?? false,
+      audioMarkerIndex: p.audioMarkerIndex ?? undefined,
+      audioMarkerTime: p.audioMarkerTime ?? undefined,
+      timeline: p.timeline ?? undefined,
+      duration: p.duration ?? undefined,
+      // Copy other properties
+      whatDoWeSee: p.whatDoWeSee ?? "",
+      howDoWeMake: p.howDoWeMake ?? "",
+      preferredMediaType: p.preferredMediaType ?? undefined,
+      // Copy attachments if they exist
+      attachments: p.attachments ? [...p.attachments] : undefined,
+      // Copy transitions if they exist
+      transitions: p.transitions ? {...p.transitions} : undefined
     };
-    if (p.imagePath && state.projectImagesHandle) {
+    if (p.imagePath && sourceImagesHandle) {
       try {
-        const sourceHandle = await state.projectImagesHandle.getFileHandle(p.imagePath);
+        const sourceHandle = await sourceImagesHandle.getFileHandle(p.imagePath);
         const sourceFile = await sourceHandle.getFile();
         const extension = p.imagePath.split('.').pop();
         const targetFilename = `${newPrompt.id}.${extension}`;
@@ -2079,9 +2135,9 @@ async function doCopyProject(newName) {
       }
     }
     // Copy video if exists
-    if (p.videoPath && state.projectVideosHandle) {
+    if (p.videoPath && sourceVideosHandle) {
       try {
-        const sourceHandle = await state.projectVideosHandle.getFileHandle(p.videoPath);
+        const sourceHandle = await sourceVideosHandle.getFileHandle(p.videoPath);
         const sourceFile = await sourceHandle.getFile();
         const extension = p.videoPath.split('.').pop();
         const targetFilename = `${newPrompt.id}.${extension}`;
@@ -2094,6 +2150,34 @@ async function doCopyProject(newName) {
         console.warn("Kopiëren van video voor project duplicatie mislukt", error);
       }
     }
+    
+    // Copy attachments if they exist
+    if (p.attachments && p.attachments.length > 0 && sourceAttachmentsHandle) {
+      const copiedAttachments = [];
+      for (const attachment of p.attachments) {
+        // Attachments gebruiken 'filename' (lowercase), niet 'fileName'
+        const attachmentFilename = attachment.filename || attachment.fileName;
+        if (!attachment || !attachmentFilename) {
+          console.warn('Attachment zonder filename gevonden, wordt overgeslagen', attachment);
+          continue;
+        }
+        try {
+          const sourceHandle = await sourceAttachmentsHandle.getFileHandle(attachmentFilename);
+          const sourceFile = await sourceHandle.getFile();
+          const targetHandle = await attachmentsDir.getFileHandle(attachmentFilename, { create: true });
+          const writable = await targetHandle.createWritable();
+          await writable.write(await sourceFile.arrayBuffer());
+          await writable.close();
+          copiedAttachments.push({...attachment});
+        } catch (error) {
+          console.warn(`Kopiëren van attachment ${attachmentFilename} mislukt`, error);
+        }
+      }
+      if (copiedAttachments.length > 0) {
+        newPrompt.attachments = copiedAttachments;
+      }
+    }
+    
     newProjectData.prompts.push(newPrompt);
   }
 

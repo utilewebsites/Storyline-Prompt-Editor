@@ -451,8 +451,8 @@ async function loadAudioFile(file, restoreMarkers = null) {
       editorAudioContext = new (window.AudioContext || window.webkitAudioContext)();
     }
 
-    // Check of dit een nieuw bestand is VOOR we de naam updaten
-    const isNewFile = (editorAudioFileName !== file.name);
+    // Check of er al een audio bestand geladen is (ongeacht de naam)
+    const hadPreviousAudio = (editorAudioFileName !== '');
     const previousFileName = editorAudioFileName;
     
     // Lees bestand
@@ -480,7 +480,7 @@ async function loadAudioFile(file, restoreMarkers = null) {
 
     // Update total time display
     currentAudioElement.addEventListener('loadedmetadata', () => {
-      if (elements.totalTimeDisplay) {
+      if (elements.totalTimeDisplay && currentAudioElement) {
         elements.totalTimeDisplay.textContent = formatTime(currentAudioElement.duration);
       }
     });
@@ -529,9 +529,8 @@ async function loadAudioFile(file, restoreMarkers = null) {
         document.addEventListener('sceneMediaTypeResponse', handleResponse);
         document.dispatchEvent(event);
       });
-    } else if (isNewFile) {
-      // Dispatch event naar hoofdapp dat nieuwe audio is geladen
-      // Alleen als dit een ECHT nieuw bestand is (handmatig geüpload)
+    } else if (hadPreviousAudio) {
+      // Er was al audio geladen - reset alles (ongeacht of het dezelfde naam heeft)
       const event = new CustomEvent('newAudioLoaded', {
         detail: {
           fileName: file.name,
@@ -540,8 +539,12 @@ async function loadAudioFile(file, restoreMarkers = null) {
         }
       });
       document.dispatchEvent(event);
-    } else {
-      // Zelfde bestand - markers behouden
+      
+      // Reset markers NA het event, zodat app.js eerst kan reageren
+      editorMarkers = [];
+      
+      // Wacht even zodat app.js de scene koppelingen kan verwijderen voordat we display updaten
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
     // Update markers display (shows inactive scenes)
