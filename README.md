@@ -156,9 +156,9 @@ I first created this editor as a handy companion while producing video prompts f
 
 
 ```
-# Uitleg (NL)
+# Explanation 
 
-```
+
 storylineprompteditor/
 ├─ assets/
 │  ├─ css/
@@ -216,7 +216,7 @@ storylineprompteditor/
 ├─ README.md                          # Engelstalige uitleg
 └─ README.nl.md                       # Nederlandstalige uitleg
 ```
-```
+
 ## Getting started
 
 1. **Install requirements**  

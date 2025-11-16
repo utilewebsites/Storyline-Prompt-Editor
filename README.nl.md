@@ -149,7 +149,7 @@ Ik heb de editor ontwikkeld als handige hulp bij het bouwen van videoprompts. Do
 - **Tweetalig** – schakel de interface tussen Nederlands en Engels via de switch in de header.
 - **Makkelijk mee te nemen** – kopieer de map `storylineprompteditor` naar een andere machine en ga verder waar je gebleven was.
 
-## Mapstructuur
+## Mapstructuur 
 
 ```
 storylineprompteditor/
