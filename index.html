@@ -548,6 +548,21 @@
               </div>
               
               <div class="toolbar-group">
+                <button id="editor-quick-marker" class="toolbar-btn" data-i18n="audioTimeline.quickMarker" title="">
+                  ⏱️ + Interval
+                </button>
+                <input type="number" id="quick-marker-seconds" class="quick-marker-input" 
+                       min="0.1" step="0.5" value="5" 
+                       placeholder="sec" title="Seconds after last marker">
+              </div>
+              
+              <div class="toolbar-group">
+                <button id="editor-preload-toggle" class="toolbar-btn active" title="Preload scenes (sneller maar meer geheugen)">
+                  ⚡ Preload: AAN
+                </button>
+              </div>
+              
+              <div class="toolbar-group">
                 <button id="editor-zoom-in" class="toolbar-btn-icon" title="Zoom in">🔍+</button>
                 <button id="editor-zoom-out" class="toolbar-btn-icon" title="Zoom out">🔍−</button>
                 <button id="editor-zoom-fit" class="toolbar-btn-icon" title="Fit to window">⬌</button>

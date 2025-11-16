@@ -628,16 +628,38 @@ export async function initializeAudioPresentation(state, localState, elements, p
     return null;
   }
   
-  // Controleer of project audio timeline heeft
+  // Controleer of project audio timeline heeft met markers
   const audioData = state.projectData.audioTimeline;
-  if (!audioData || !audioData.fileName) {
-    console.warn("Dit project heeft geen audio timeline");
+  if (!audioData || !audioData.markers || audioData.markers.length === 0) {
+    console.warn("Dit project heeft geen audio timeline of markers");
     return null;
+  }
+  
+  // Probeer audio bestand te vinden
+  let audioFileName = audioData.fileName;
+  
+  // Als fileName ontbreekt, auto-detect
+  if (!audioFileName) {
+    try {
+      for await (const entry of projectDirHandle.values()) {
+        if (entry.kind === 'file' && entry.name.match(/\.(wav|mp3|ogg|m4a|aac|flac)$/i)) {
+          audioFileName = entry.name;
+          break;
+        }
+      }
+    } catch (err) {
+      console.warn('Could not scan for audio files:', err);
+    }
+    
+    if (!audioFileName) {
+      console.warn("Geen audio bestand gevonden in project map");
+      return null;
+    }
   }
   
   try {
     // Laad audio file uit project directory (NIET uit audio submap)
-    const audioFileHandle = await projectDirHandle.getFileHandle(audioData.fileName);
+    const audioFileHandle = await projectDirHandle.getFileHandle(audioFileName);
     const audioFile = await audioFileHandle.getFile();
     
     // Set audio source
@@ -648,13 +670,15 @@ export async function initializeAudioPresentation(state, localState, elements, p
       
       // Store markers voor timeline visualization
       localState.presentationMode.audioMarkers = audioData.markers || [];
-      localState.presentationMode.audioDuration = audioData.duration || 0;
       
       // Decode audio voor waveform
       const arrayBuffer = await audioFile.arrayBuffer();
       const audioContext = new (window.AudioContext || window.webkitAudioContext)();
       const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
       localState.presentationMode.audioBuffer = audioBuffer;
+      
+      // Gebruik echte audio buffer duration (niet audioData.duration die mogelijk 0 is)
+      localState.presentationMode.audioDuration = audioBuffer.duration;
       
       // Setup audio player met waveform
       await setupPresentationAudioPlayer(

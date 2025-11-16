@@ -780,13 +780,14 @@ async function handleDeleteScene(promptId) {
     
     // Verwijder marker uit array
     if (markerIndex >= 0 && markerIndex < markers.length) {
-      markers.splice(markerIndex, 1);
-      
-      // Dispatch event naar audio-video-editor om marker te verwijderen
+      // EERST dispatch event naar audio-video-editor (met correcte index)
       const deleteEvent = new CustomEvent('deleteMarkerFromApp', {
         detail: { markerIndex: markerIndex }
       });
       document.dispatchEvent(deleteEvent);
+      
+      // DAN pas verwijder marker uit projectData
+      markers.splice(markerIndex, 1);
       
       // Dispatch markersReindexed event om alle scenes te updaten
       const reindexEvent = new CustomEvent('markersReindexed', {
@@ -1660,7 +1661,7 @@ async function doCopyProject(newName) {
         await writable.write(await audioFile.arrayBuffer());
         await writable.close();
       } catch (error) {
-        console.warn("Kopiëren van audio bestand voor project duplicatie mislukt", error);
+        console.warn("Kopiëren van audio bestand mislukt", error);
       }
     }
   }
@@ -1850,16 +1851,36 @@ async function openProject(projectId) {
     // FIX: Valideer en repareer duplicate marker assignments
     fixDuplicateMarkerAssignments(projectData);
     
-    // FIX: Repareer negatieve durations
-    fixNegativeDurations(projectData);
-    
     // Restore audio timeline voor OUDE audio-timeline module (deprecated)
     await restoreAudioTimelineData(projectData.audioTimeline, projectDir);
     
-    // Laad audio bestand automatisch als het bestaat in de project map
-    if (projectData.audioTimeline.fileName) {
+    // Auto-detect audio bestand als fileName ontbreekt
+    let audioFileName = projectData.audioTimeline.fileName;
+    
+    if (!audioFileName) {
+      // Zoek naar audio bestanden in de project map
       try {
-        const audioFileHandle = await projectDir.getFileHandle(projectData.audioTimeline.fileName, { create: false });
+        const entries = [];
+        for await (const entry of projectDir.values()) {
+          if (entry.kind === 'file' && entry.name.match(/\.(wav|mp3|ogg|m4a|aac|flac)$/i)) {
+            entries.push(entry.name);
+          }
+        }
+        
+        if (entries.length > 0) {
+          // Gebruik eerste gevonden audio bestand
+          audioFileName = entries[0];
+          projectData.audioTimeline.fileName = audioFileName;
+        }
+      } catch (err) {
+        console.warn('Could not scan for audio files:', err);
+      }
+    }
+    
+    // Laad audio bestand automatisch als het bestaat in de project map
+    if (audioFileName) {
+      try {
+        const audioFileHandle = await projectDir.getFileHandle(audioFileName, { create: false });
         const audioFile = await audioFileHandle.getFile();
         
         // Dispatch event om audio te laden in de editor
@@ -1877,7 +1898,7 @@ async function openProject(projectId) {
         // Restore markers NA audio load
         restoreAudioTimelineFromData(projectData.audioTimeline);
       } catch (err) {
-        console.warn('⚠️ Audio bestand niet gevonden in project map:', projectData.audioTimeline.fileName);
+        console.warn('⚠️ Audio bestand niet gevonden in project map:', audioFileName);
         
         // Restore markers ook als audio niet kan worden geladen (toont placeholder)
         restoreAudioTimelineFromData(projectData.audioTimeline);
@@ -1891,21 +1912,32 @@ async function openProject(projectId) {
     // De scenes zijn al gekoppeld aan markers via audioMarkerIndex
     // syncScenesWithMarkers is alleen voor NIEUWE audio uploads
     
+    // Zet projectData EERST in state voordat cleanup draait
+    state.projectData = projectData;
+    
+    // Sync scene markers naar audioTimeline.markers array VOOR cleanup
+    syncSceneMarkersToTimeline();
+    
+    // FIX: Reset scenes met ongeldige marker indices
+    cleanupInvalidSceneMarkerIndices();
+    
+    // FIX: Repareer negatieve durations NA sync (zodat alle markers beschikbaar zijn)
+    fixNegativeDurations(projectData);
+    
     // Cleanup: Verwijder orphaned markers (markers zonder gekoppelde scene)
     cleanupOrphanedMarkers();
     
     // Check of audioTimeline nog bestaat na cleanup (kan zijn verwijderd als er geen scenes zijn)
-    if (!projectData.audioTimeline || !projectData.audioTimeline.markers) {
+    if (!state.projectData.audioTimeline || !state.projectData.audioTimeline.markers) {
       // Geen audio timeline meer, stop hier
-      state.projectData = projectData;
       state.isDirty = false;
       renderProjectEditor();
       return;
     }
     
     // Auto-fix: Koppel scenes met media aan markers als dat nog niet is gebeurd
-    const linkedScenes = projectData.prompts.filter(p => p.isAudioLinked);
-    const markerCount = projectData.audioTimeline.markers.length;
+    const linkedScenes = state.projectData.prompts.filter(p => p.isAudioLinked);
+    const markerCount = state.projectData.audioTimeline.markers.length;
     
     // Check of gekoppelde scenes media hebben
     const linkedScenesWithMedia = linkedScenes.filter(p => p.imagePath || p.videoPath);
@@ -1924,12 +1956,12 @@ async function openProject(projectId) {
       }
       
       // Auto-fix: Als er evenveel scenes zijn als markers, koppel ze automatisch
-      const scenesWithMedia = projectData.prompts.filter(p => p.imagePath || p.videoPath);
+      const scenesWithMedia = state.projectData.prompts.filter(p => p.imagePath || p.videoPath);
       
       if (scenesWithMedia.length >= markerCount) {
         scenesWithMedia.slice(0, markerCount).forEach((scene, index) => {
-          const time = projectData.audioTimeline.markers[index];
-          const nextTime = projectData.audioTimeline.markers[index + 1] || projectData.audioTimeline.duration;
+          const time = state.projectData.audioTimeline.markers[index];
+          const nextTime = state.projectData.audioTimeline.markers[index + 1] || state.projectData.audioTimeline.duration;
           const duration = nextTime - time;
           
           scene.isAudioLinked = true;
@@ -1963,7 +1995,7 @@ async function openProject(projectId) {
   
   // Update audio timeline button NADAT renderProjectEditor() is aangeroepen
   // (renderProjectEditor roept applyTranslations aan die de button innerHTML overschrijft)
-  if (projectData.audioTimeline) {
+  if (state.projectData.audioTimeline) {
     const audioBtn = document.querySelector("#toggle-audio-timeline");
     
     if (audioBtn) {
@@ -2059,6 +2091,31 @@ function fixDuplicateMarkerAssignments(projectData) {
 }
 
 /**
+ * Bereken de duration van een prompt op basis van audio timeline markers
+ * @param {string} promptId - ID van de prompt
+ * @returns {number|null} Duration in seconden of null als niet gekoppeld
+ */
+function calculatePromptDuration(promptId) {
+  if (!state.projectData?.prompts || !state.projectData?.audioTimeline?.markers) {
+    return null;
+  }
+  
+  const prompt = state.projectData.prompts.find(p => p.id === promptId);
+  if (!prompt || !prompt.isAudioLinked || prompt.audioMarkerIndex === undefined) {
+    return null;
+  }
+  
+  const markers = state.projectData.audioTimeline.markers;
+  const totalDuration = state.projectData.audioTimeline.duration || 0;
+  const markerIndex = prompt.audioMarkerIndex;
+  
+  const markerTime = markers[markerIndex];
+  const nextMarkerTime = markers[markerIndex + 1] || totalDuration;
+  
+  return nextMarkerTime - markerTime;
+}
+
+/**
  * Fix negatieve durations door timeline/duration opnieuw te berekenen
  */
 function fixNegativeDurations(projectData) {
@@ -2078,9 +2135,94 @@ function fixNegativeDurations(projectData) {
       // Herbereken timeline en duration
       prompt.timeline = `${formatTime(markerTime)} - ${formatTime(nextMarkerTime)}`;
       prompt.duration = (nextMarkerTime - markerTime).toFixed(2);
+    }
+  });
+}
+
+/**
+ * Sync alle scene audioMarkerTime waarden naar audioTimeline.markers array
+ * Dit zorgt ervoor dat scenes die zijn aangemaakt hun markers behouden
+ */
+function syncSceneMarkersToTimeline() {
+  if (!state.projectData?.audioTimeline || !state.projectData?.prompts) return;
+  
+  // Verzamel alle marker times van scenes
+  const sceneMarkerTimes = new Set();
+  state.projectData.prompts.forEach((scene, idx) => {
+    let markerTime = scene.audioMarkerTime;
+    
+    // Als audioMarkerTime ontbreekt maar timeline bestaat, haal tijd uit timeline string
+    if ((markerTime === undefined || markerTime === 0) && scene.timeline && scene.isAudioLinked) {
+      // Parse timeline formaat: "00:26.688 - 00:31.688" of "0:26 - 0:31" of "01:15.802 - 04:24.746"
+      const timeMatch = scene.timeline.match(/^(\d+):(\d+(?:\.\d+)?)/);
+      if (timeMatch) {
+        const minutes = parseInt(timeMatch[1]);
+        const seconds = parseFloat(timeMatch[2]);
+        markerTime = minutes * 60 + seconds;
+        
+        // Update scene met de geparsede tijd
+        scene.audioMarkerTime = markerTime;
+      }
+    }
+    
+    if (markerTime !== undefined && markerTime > 0) {
+      sceneMarkerTimes.add(markerTime);
+    }
+  });
+  
+  // Voeg ontbrekende marker times toe aan audioTimeline.markers
+  sceneMarkerTimes.forEach(time => {
+    const markerExists = state.projectData.audioTimeline.markers.some(m => 
+      Math.abs(m - time) < 0.01
+    );
+    
+    if (!markerExists) {
+      state.projectData.audioTimeline.markers.push(time);
+    }
+  });
+  
+  // Sorteer markers op tijd
+  state.projectData.audioTimeline.markers.sort((a, b) => a - b);
+  
+  // Update alle audioMarkerIndex waarden na sync
+  state.projectData.prompts.forEach(scene => {
+    if (scene.isAudioLinked && scene.audioMarkerTime !== undefined && scene.audioMarkerTime > 0) {
+      const newIndex = state.projectData.audioTimeline.markers.findIndex(m => 
+        Math.abs(m - scene.audioMarkerTime) < 0.01
+      );
+      if (newIndex !== -1) {
+        scene.audioMarkerIndex = newIndex;
+      }
+    }
+  });
+}
+
+/**
+ * Reset scenes met ongeldige marker indices naar ontkoppeld
+ * Dit gebeurt wanneer audioMarkerIndex verwijst naar een niet-bestaande marker
+ */
+function cleanupInvalidSceneMarkerIndices() {
+  if (!state.projectData?.audioTimeline?.markers || !state.projectData?.prompts) return;
+  
+  const maxMarkerIndex = state.projectData.audioTimeline.markers.length - 1;
+  
+  state.projectData.prompts.forEach(scene => {
+    if (scene.isAudioLinked) {
+      // Check of audioMarkerIndex geldig is
+      const hasValidIndex = scene.audioMarkerIndex !== undefined && 
+                           scene.audioMarkerIndex >= 0 && 
+                           scene.audioMarkerIndex <= maxMarkerIndex;
       
-      if (parseFloat(prompt.duration) < 0) {
-        console.warn(`⚠️ Scene ${prompt.id} had negatieve duration, gefixed`);
+      // Check of audioMarkerTime geldig is (moet > 0 zijn)
+      const hasValidTime = scene.audioMarkerTime !== undefined && scene.audioMarkerTime > 0;
+      
+      // Als scene gekoppeld is maar geen geldige index OF tijd heeft, ontkoppel
+      if (!hasValidIndex || !hasValidTime) {
+        scene.isAudioLinked = false;
+        delete scene.audioMarkerIndex;
+        delete scene.audioMarkerTime;
+        delete scene.timeline;
+        delete scene.duration;
       }
     }
   });
@@ -2095,7 +2237,12 @@ function cleanupOrphanedMarkers() {
   
   const markers = state.projectData.audioTimeline.markers;
   const prompts = state.projectData.prompts || [];
-  const linkedScenes = prompts.filter(p => p.isAudioLinked);
+  
+  // Filter scenes: actief gekoppeld OF hebben audioMarkerTime (inactief maar wel gekoppeld geweest)
+  const scenesWithMarkers = prompts.filter(p => 
+    (p.isAudioLinked && p.audioMarkerIndex !== undefined) || 
+    (p.audioMarkerTime !== undefined)
+  );
   
   // Als er geen prompts zijn, verwijder ALLES: markers EN audio timeline
   if (prompts.length === 0 && state.projectData.audioTimeline) {
@@ -2119,26 +2266,38 @@ function cleanupOrphanedMarkers() {
     return;
   }
   
-  // Maak een set van gebruikte marker indices
-  const usedIndices = new Set(linkedScenes.map(p => p.audioMarkerIndex).filter(idx => idx !== undefined));
+  // Maak een set van gebruikte marker tijden (gebruik audioMarkerTime als bron)
+  const usedMarkerTimes = new Set();
+  scenesWithMarkers.forEach(scene => {
+    if (scene.audioMarkerTime !== undefined) {
+      usedMarkerTimes.add(scene.audioMarkerTime);
+    }
+  });
   
-  // Filter markers: behoud alleen markers die een gekoppelde scene hebben
-  const cleanedMarkers = markers.filter((marker, index) => {
-    const isUsed = usedIndices.has(index);
-    return isUsed;
+  // Filter markers: behoud alleen markers die door een scene worden gebruikt
+  const cleanedMarkers = markers.filter((markerTime, index) => {
+    // Check of deze marker tijd voorkomt in de set van gebruikte tijden
+    for (const usedTime of usedMarkerTimes) {
+      if (Math.abs(markerTime - usedTime) < 0.01) {
+        return true; // Marker wordt gebruikt
+      }
+    }
+    return false; // Orphaned marker
   });
   
   if (cleanedMarkers.length !== markers.length) {
     state.projectData.audioTimeline.markers = cleanedMarkers;
     
     // Update alle scene indices na cleanup
-    linkedScenes.forEach(scene => {
-      const oldIndex = scene.audioMarkerIndex;
+    scenesWithMarkers.forEach(scene => {
       if (scene.audioMarkerTime !== undefined) {
         // Vind de nieuwe index voor deze marker tijd
         const newIndex = cleanedMarkers.findIndex(time => Math.abs(time - scene.audioMarkerTime) < 0.01);
-        if (newIndex !== -1 && newIndex !== oldIndex) {
-          scene.audioMarkerIndex = newIndex;
+        if (newIndex !== -1) {
+          // Update audioMarkerIndex voor actief gekoppelde scenes
+          if (scene.isAudioLinked) {
+            scene.audioMarkerIndex = newIndex;
+          }
         }
       }
     });
@@ -2147,6 +2306,7 @@ function cleanupOrphanedMarkers() {
     const event = new CustomEvent('markersReindexed', {
       detail: { markers: cleanedMarkers }
     });
+    document.dispatchEvent(event);
     document.dispatchEvent(event);
     
     state.isDirty = true;
@@ -2382,6 +2542,19 @@ function handleCreateSceneFromEditor(sceneData, markerIndex) {
     return;
   }
   
+  // Voeg marker toe aan state.projectData.audioTimeline.markers als deze er nog niet is
+  if (state.projectData.audioTimeline && markerTime !== undefined) {
+    const markerExists = state.projectData.audioTimeline.markers.some(m => 
+      Math.abs(m - markerTime) < 0.01
+    );
+    
+    if (!markerExists) {
+      state.projectData.audioTimeline.markers.push(markerTime);
+      // Sorteer markers op tijd
+      state.projectData.audioTimeline.markers.sort((a, b) => a - b);
+    }
+  }
+  
   // Voeg scene toe via wrapper (met sceneData)
   const newPrompt = handleAddScene(sceneData);
   
@@ -2537,14 +2710,14 @@ function deleteMarkerFromProject(markerIndex) {
     // audioMarkerTime wordt BEHOUDEN voor toekomstige koppeling
   }
   
-  // Verwijder uit projectData
-  markers.splice(markerIndex, 1);
-  
-  // Dispatch event naar audio-video-editor om marker te verwijderen
+  // EERST dispatch event naar audio-video-editor (met correcte index)
   const deleteEvent = new CustomEvent('deleteMarkerFromApp', {
     detail: { markerIndex: markerIndex }
   });
   document.dispatchEvent(deleteEvent);
+  
+  // DAN pas verwijder uit projectData
+  markers.splice(markerIndex, 1);
   
   // Dispatch markersReindexed event om alle scenes te updaten
   const reindexEvent = new CustomEvent('markersReindexed', {
@@ -2911,39 +3084,62 @@ async function saveProject() {
   try {
     state.projectData.updatedAt = new Date().toISOString();
     
-    // Cleanup orphaned markers voor het opslaan
+    // Haal markers van oude audio-timeline module op
+    const audioData = getAudioTimelineData();
+    
+    if (state.projectData.audioTimeline) {
+      // Combineer markers van oude module EN scene marker times
+      const allMarkerTimes = new Set();
+      
+      // Voeg markers van oude module toe (als beschikbaar)
+      if (audioData?.markers) {
+        audioData.markers.forEach(time => allMarkerTimes.add(time));
+      }
+      
+      // Voeg scene marker times toe
+      state.projectData.prompts.forEach(scene => {
+        if (scene.audioMarkerTime !== undefined) {
+          allMarkerTimes.add(scene.audioMarkerTime);
+        }
+      });
+      
+      // Update markers array (gesorteerd)
+      state.projectData.audioTimeline.markers = Array.from(allMarkerTimes).sort((a, b) => a - b);
+      
+      // Update fileName en duration ALLEEN als audioData beschikbaar is
+      // Anders behoud bestaande waarden
+      if (audioData) {
+        state.projectData.audioTimeline.fileName = audioData.audioFileName;
+        state.projectData.audioTimeline.duration = audioData.audioDuration;
+      }
+      
+      // Zorg dat isActive en audioBuffer altijd gezet zijn
+      state.projectData.audioTimeline.isActive = true;
+      state.projectData.audioTimeline.audioBuffer = true;
+    }
+    
+    // Cleanup orphaned markers na sync
     cleanupOrphanedMarkers();
     
-    // Sla audio timeline data op
-    const audioData = getAudioTimelineData();
-    if (audioData) {
-      // Maak een kopie zonder het audioFile object (kan niet worden geserializeerd naar JSON)
-      const { audioFile, ...audioTimelineForJson } = audioData;
-      state.projectData.audioTimeline = audioTimelineForJson;
-      
-      // Sla audio bestand op in project map (als er een is en het nog geldig is)
-      if (audioFile && state.projectDirHandle) {
-        try {
-          // Controleer of het File object nog geldig is
-          if (audioFile instanceof File && audioFile.size > 0) {
-            // Lees het File object als ArrayBuffer om permission errors te vermijden
-            const arrayBuffer = await audioFile.arrayBuffer();
-            const blob = new Blob([arrayBuffer], { type: audioFile.type || 'audio/wav' });
-            
-            const audioFileHandle = await state.projectDirHandle.getFileHandle(audioData.fileName, { create: true });
-            const writable = await audioFileHandle.createWritable();
-            await writable.write(blob);
-            await writable.close();
-          }
-        } catch (err) {
-          // Audio file is niet meer geldig of kan niet worden gelezen
-          // Dit is normaal bij het laden van een bestaand project
-          // Het audiobestand staat al in de projectmap
+    // Sla audio bestand op in project map (als er een is)
+    if (state.projectData.audioTimeline?.fileName && state.projectDirHandle && audioData?.audioFile) {
+      try {
+        // Controleer of het File object nog geldig is
+        if (audioData.audioFile instanceof File && audioData.audioFile.size > 0) {
+          // Lees het File object als ArrayBuffer om permission errors te vermijden
+          const arrayBuffer = await audioData.audioFile.arrayBuffer();
+          const blob = new Blob([arrayBuffer], { type: audioData.audioFile.type || 'audio/wav' });
+          
+          const audioFileHandle = await state.projectDirHandle.getFileHandle(state.projectData.audioTimeline.fileName, { create: true });
+          const writable = await audioFileHandle.createWritable();
+          await writable.write(blob);
+          await writable.close();
         }
+      } catch (err) {
+        // Audio file is niet meer geldig of kan niet worden gelezen
+        // Dit is normaal bij het laden van een bestaand project
+        // Het audiobestand staat al in de projectmap
       }
-    } else if (state.projectData.audioTimeline) {
-      // Verwijder audio timeline als het niet meer actief is
-      delete state.projectData.audioTimeline;
     }
     
     await writeJsonFile(state.projectHandle, state.projectData);
@@ -3268,7 +3464,18 @@ async function openPromptDialog(promptId) {
     elements.dialogTimeline.value = prompt.timeline ?? "";
   }
   if (elements.dialogDuration) {
-    elements.dialogDuration.value = prompt.duration ?? "";
+    // Bereken automatisch duration op basis van audio timeline markers
+    const calculatedDuration = calculatePromptDuration(prompt.id);
+    elements.dialogDuration.value = calculatedDuration !== null ? calculatedDuration.toFixed(2) : (prompt.duration ?? "");
+    
+    // Maak read-only als er een audio timeline is (auto-calculated)
+    if (state.projectData?.audioTimeline?.markers && calculatedDuration !== null) {
+      elements.dialogDuration.disabled = true;
+      elements.dialogDuration.title = "Automatisch berekend uit audio timeline markers";
+    } else {
+      elements.dialogDuration.disabled = false;
+      elements.dialogDuration.title = "";
+    }
   }
   
   elements.dialogOpenImage.disabled = !prompt.imagePath;
@@ -3929,8 +4136,12 @@ function init() {
           if (elements.videoTimelineContainer) elements.videoTimelineContainer.style.display = "none";
           if (elements.presentationAudioTimelineContainer) elements.presentationAudioTimelineContainer.style.display = "flex";
           
-          // Initialiseer audio voor presentatie (alleen als project audio heeft)
-          if (state.projectData.audioTimeline && state.projectData.audioTimeline.fileName) {
+          // Initialiseer audio voor presentatie (check of project audio timeline heeft met markers)
+          const hasAudioTimeline = state.projectData.audioTimeline && 
+                                   state.projectData.audioTimeline.markers && 
+                                   state.projectData.audioTimeline.markers.length > 0;
+          
+          if (hasAudioTimeline) {
             await initializeAudioPresentation(
               state,
               localState,
@@ -3941,7 +4152,7 @@ function init() {
               handlePresentationSlideUpdate
             );
           } else {
-            console.warn("Kan niet naar audio mode: project heeft geen audio timeline");
+            console.warn("Kan niet naar audio mode: project heeft geen audio timeline of markers");
             // Fallback naar image mode
             event.target.value = "image";
             localState.presentationMode.audioMode = false;

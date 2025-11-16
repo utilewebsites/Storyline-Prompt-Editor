@@ -69,6 +69,11 @@ let lastPlayheadUpdateTime = 0;
 let playheadAnimationFrame = null;
 let wasPlayingBeforeDrag = false;
 
+// Preload state
+let preloadEnabled = true; // Default aan
+let preloadedSceneIndex = -1;
+let preloadCache = null;
+
 // DOM elements
 let elements = {
   dialog: null,
@@ -92,6 +97,7 @@ let elements = {
   zoomOutBtn: null,
   zoomFitBtn: null,
   timelineRuler: null,
+  preloadToggle: null,
 };
 
 // Zoom state
@@ -131,10 +137,28 @@ export function initializeAudioVideoEditor() {
   elements.zoomOutBtn = editorDialog.querySelector('#editor-zoom-out');
   elements.zoomFitBtn = editorDialog.querySelector('#editor-zoom-fit');
   elements.timelineRuler = editorDialog.querySelector('#timeline-ruler');
+  elements.preloadToggle = editorDialog.querySelector('#editor-preload-toggle');
 
   // Event listeners
   if (elements.closeBtn) {
     elements.closeBtn.addEventListener('click', closeEditor);
+  }
+  
+  // Preload toggle
+  if (elements.preloadToggle) {
+    elements.preloadToggle.addEventListener('click', () => {
+      preloadEnabled = !preloadEnabled;
+      elements.preloadToggle.classList.toggle('active', preloadEnabled);
+      elements.preloadToggle.textContent = preloadEnabled ? '⚡ Preload: AAN' : '⚡ Preload: UIT';
+      
+      if (preloadEnabled) {
+        // Als we preload aanzetten, laad dan alle scenes direct
+        preloadAllScenes();
+      } else {
+        // Clear de cache
+        clearPreloadCache();
+      }
+    });
   }
 
   if (elements.uploadBtn && elements.audioInput) {
@@ -193,6 +217,26 @@ export function initializeAudioVideoEditor() {
     });
   }
 
+  // Quick Marker button
+  const quickMarkerBtn = document.getElementById('editor-quick-marker');
+  const quickMarkerInput = document.getElementById('quick-marker-seconds');
+  
+  if (quickMarkerBtn && quickMarkerInput) {
+    // Set tooltip via i18n
+    quickMarkerBtn.title = t('audioTimeline.quickMarkerTooltip');
+    
+    quickMarkerBtn.addEventListener('click', () => {
+      handleQuickMarker(parseFloat(quickMarkerInput.value) || 5);
+    });
+    
+    // Enter key in input field
+    quickMarkerInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        handleQuickMarker(parseFloat(quickMarkerInput.value) || 5);
+      }
+    });
+  }
+
   // Canvas interactions
   if (elements.waveformCanvas) {
     elements.waveformCanvas.addEventListener('mousedown', handleWaveformMouseDown);
@@ -201,22 +245,15 @@ export function initializeAudioVideoEditor() {
     elements.waveformCanvas.addEventListener('mouseleave', handleWaveformMouseUp);
   }
 
-  // Playhead dragging
+  // Playhead dragging (alleen op playhead element zelf)
   if (elements.playhead) {
     elements.playhead.addEventListener('mousedown', handlePlayheadMouseDown);
     elements.playhead.style.cursor = 'grab';
   }
   
-  // Global mouse events voor playhead drag
+  // Global mouse events voor playhead drag (geregistreerd op document niveau)
   document.addEventListener('mousemove', handlePlayheadMouseMove);
   document.addEventListener('mouseup', handlePlayheadMouseUp);
-
-  // Playhead dragging
-  if (elements.playhead) {
-    elements.playhead.addEventListener('mousedown', handlePlayheadMouseDown);
-    document.addEventListener('mousemove', handlePlayheadMouseMove);
-    document.addEventListener('mouseup', handlePlayheadMouseUp);
-  }
   
   // Scene media toggle buttons in side panel
   if (elements.sceneMediaToggle) {
@@ -411,6 +448,11 @@ export function openEditor() {
   if (editorAudioBuffer) {
     drawWaveform();
     updateMarkersDisplay();
+    
+    // Preload alle scenes als preload enabled is
+    if (preloadEnabled) {
+      preloadAllScenes();
+    }
   }
 }
 
@@ -680,18 +722,18 @@ function drawMarkers(ctx, width, height) {
   editorMarkers.forEach((marker, index) => {
     const x = (marker.time / duration) * width;
 
-    // Marker line
+    // Marker line (met 1px offset voor centrering van 2px lijn, sync met playhead)
     ctx.strokeStyle = '#ffc107';
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, height);
+    ctx.moveTo(x + 1, 0);
+    ctx.lineTo(x + 1, height);
     ctx.stroke();
 
     // Marker number
     ctx.fillStyle = '#ffc107';
     ctx.font = 'bold 12px sans-serif';
-    ctx.fillText(`${index + 1}`, x + 4, 16);
+    ctx.fillText(`${index + 1}`, x + 5, 16);
   });
 }
 
@@ -822,7 +864,7 @@ function handleWaveformMouseDown(event) {
 
   for (let i = 0; i < editorMarkers.length; i++) {
     const marker = editorMarkers[i];
-    const markerX = (marker.time / editorAudioBuffer.duration) * canvas.width;
+    const markerX = (marker.time / editorAudioBuffer.duration) * canvas.width + 1; // +1 voor centrering (sync met drawMarkers)
     
     if (Math.abs(x - markerX) < markerThreshold) {
       // Start marker drag
@@ -866,7 +908,7 @@ function handleWaveformMouseMove(event) {
 
     for (let i = 0; i < editorMarkers.length; i++) {
       const marker = editorMarkers[i];
-      const markerX = (marker.time / editorAudioBuffer.duration) * canvas.width;
+      const markerX = (marker.time / editorAudioBuffer.duration) * canvas.width + 1; // +1 voor centrering (sync met drawMarkers)
       
       if (Math.abs(x - markerX) < markerThreshold) {
         canvas.style.cursor = 'grab';
@@ -1047,6 +1089,37 @@ function handleWaveformClick(event) {
   const time = (x / canvas.width) * editorAudioBuffer.duration;
 
   addMarker(time);
+}
+
+/**
+ * Handle Quick Marker - voeg marker toe X seconden na laatste marker
+ */
+function handleQuickMarker(intervalSeconds) {
+  if (!editorAudioBuffer) {
+    alert(t('audioTimeline.noAudio'));
+    return;
+  }
+  
+  // Bepaal tijd voor nieuwe marker
+  let newTime;
+  
+  if (editorMarkers.length === 0) {
+    // Geen markers: start bij 0
+    newTime = 0;
+  } else {
+    // Voeg toe na laatste marker
+    const lastMarker = editorMarkers[editorMarkers.length - 1];
+    newTime = lastMarker.time + intervalSeconds;
+  }
+  
+  // Check of tijd binnen audio duration valt
+  if (newTime > editorAudioBuffer.duration) {
+    alert(`Marker tijd (${formatTime(newTime)}) overschrijdt audio duur (${formatTime(editorAudioBuffer.duration)})`);
+    return;
+  }
+  
+  // Toon bevestigingsdialog
+  showMarkerSceneConfirmDialog(newTime);
 }
 
 /**
@@ -1356,6 +1429,11 @@ function linkSceneToNewMarker(scene, time) {
   
   drawWaveform();
   updateMarkersDisplay();
+  
+  // Preload de nieuwe scene als preload enabled is
+  if (preloadEnabled) {
+    preloadAllScenes();
+  }
 }
 
 /**
@@ -1600,6 +1678,10 @@ function updatePlaybackLoop() {
 /**
  * Update current scene info based on playback time
  */
+let nextScenePreloaded = false;
+let nextSceneReadyToSwap = false;
+let justSwapped = false; // Track of we net een instant swap hebben gedaan
+
 function updateCurrentScene(currentTime) {
   let activeSceneIndex = -1;
 
@@ -1611,16 +1693,217 @@ function updateCurrentScene(currentTime) {
   }
 
   if (activeSceneIndex !== currentPlayingSceneIndex) {
+    // Zet vorige scene terug in preload container (als die er was)
+    if (preloadEnabled && currentPlayingSceneIndex >= 0 && editorMarkers[currentPlayingSceneIndex]) {
+      const prevMarker = editorMarkers[currentPlayingSceneIndex];
+      const prevContainer = document.getElementById(`preload-scene-${prevMarker.sceneIndex}`);
+      
+      if (prevContainer && elements.previewCanvas.children.length > 0) {
+        // Verplaats content terug naar preload container
+        Array.from(elements.previewCanvas.children).forEach(child => {
+          // Stop video als het speelt
+          if (child.tagName === 'VIDEO') {
+            child.pause();
+            child.currentTime = 0;
+          }
+          prevContainer.appendChild(child);
+        });
+      }
+    }
+    
     currentPlayingSceneIndex = activeSceneIndex;
+    justSwapped = false;
+    
+    // Als preload aan staat, haal de pre-rendered scene uit de preload container
+    if (preloadEnabled && activeSceneIndex >= 0) {
+      const marker = editorMarkers[activeSceneIndex];
+      const preloadedScene = document.getElementById(`preload-scene-${marker.sceneIndex}`);
+      
+      if (preloadedScene && preloadedScene.children.length > 0) {
+        // VERPLAATS de content (niet clonen, want gebufferde video data gaat verloren)
+        elements.previewCanvas.innerHTML = '';
+        
+        // Onthoud originele parent om later terug te zetten
+        const children = Array.from(preloadedScene.children);
+        children.forEach(child => {
+          // Verplaats naar preview canvas
+          elements.previewCanvas.appendChild(child);
+          
+          // Start video playback instant als het een video is EN we zijn bij/na de marker tijd
+          if (child.tagName === 'VIDEO') {
+            child.currentTime = 0;
+            child.muted = true;
+            
+            // Check of we op of na de marker tijd zijn (met kleine tolerance)
+            const timeDiff = currentTime - marker.time;
+            if (isPlaying && timeDiff >= -0.01) {
+              // We zijn op/na de marker, start video direct
+              child.play().catch(() => {});
+            } else {
+              // We zijn nog voor de marker, pause de video
+              child.pause();
+            }
+          }
+        });
+        
+        justSwapped = true;
+      }
+    }
+    
+    // Update scene info (zal updatePreviewCanvas skippen als justSwapped=true)
     displaySceneInfo(activeSceneIndex);
     
     // Control video playback als er een video is
     controlVideoPlayback(isPlaying && activeSceneIndex >= 0);
+    nextScenePreloaded = false;
+    nextSceneReadyToSwap = false;
+  }
+  
+  // Pre-render de volgende scene als we binnen 0.5 seconden zitten
+  if (preloadEnabled && !nextScenePreloaded && activeSceneIndex >= 0) {
+    const nextSceneIndex = activeSceneIndex + 1;
+    if (nextSceneIndex < editorMarkers.length) {
+      const timeUntilNext = editorMarkers[nextSceneIndex].time - currentTime;
+      if (timeUntilNext > 0 && timeUntilNext <= 0.5) {
+        // Pre-render de volgende scene onzichtbaar
+        preRenderNextScene(editorMarkers[nextSceneIndex]);
+        nextScenePreloaded = true;
+      }
+    }
+  }
+  
+  // Maak de pre-rendered scene klaar voor swap als we binnen 0.2s zitten
+  if (preloadEnabled && nextScenePreloaded && !nextSceneReadyToSwap && activeSceneIndex >= 0) {
+    const nextSceneIndex = activeSceneIndex + 1;
+    if (nextSceneIndex < editorMarkers.length) {
+      const timeUntilNext = editorMarkers[nextSceneIndex].time - currentTime;
+      if (timeUntilNext > 0 && timeUntilNext <= 0.2) {
+        // Activeer de swap VOORDAT de marker wordt bereikt (200ms vooruit)
+        prepareInstantSwap(editorMarkers[nextSceneIndex]);
+        nextSceneReadyToSwap = true;
+      }
+    }
   }
 }
 
 /**
+ * Bereid instant swap voor - toggle visibility op exact moment
+ */
+function prepareInstantSwap(marker) {
+  const hiddenPreview = document.getElementById('next-scene-preview');
+  if (!hiddenPreview || hiddenPreview.children.length === 0) return;
+  
+  // Start video alvast
+  const video = hiddenPreview.querySelector('video');
+  if (video && isPlaying) {
+    video.currentTime = 0;
+    video.muted = true;
+    video.play().catch(() => {});
+  }
+  
+  // Toggle visibility op exact moment (geen DOM manipulatie!)
+  elements.previewCanvas.style.opacity = '0';
+  hiddenPreview.style.opacity = '1';
+  hiddenPreview.style.zIndex = '1';
+  
+  // Cleanup: verplaats content na transition
+  setTimeout(() => {
+    if (hiddenPreview.children.length > 0) {
+      elements.previewCanvas.innerHTML = '';
+      while (hiddenPreview.firstChild) {
+        elements.previewCanvas.appendChild(hiddenPreview.firstChild);
+      }
+      elements.previewCanvas.style.opacity = '1';
+      hiddenPreview.style.opacity = '0';
+      hiddenPreview.style.zIndex = '-1';
+    }
+  }, 100);
+}
+
+/**
+ * Pre-render de volgende scene onzichtbaar zodat deze instant kan worden getoond
+ */
+function preRenderNextScene(marker) {
+  if (!elements.previewCanvas) return;
+  
+  // Maak een verborgen preview element met absolute positioning (over de huidige canvas)
+  const previewId = 'next-scene-preview';
+  let hiddenPreview = document.getElementById(previewId);
+  
+  if (!hiddenPreview) {
+    hiddenPreview = document.createElement('div');
+    hiddenPreview.id = previewId;
+    hiddenPreview.style.cssText = `
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: -1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-panel);
+    `;
+    elements.previewCanvas.parentElement.style.position = 'relative';
+    elements.previewCanvas.parentElement.appendChild(hiddenPreview);
+  }
+  
+  // Dispatch event om preview op te halen
+  const event = new CustomEvent('getScenePreview', {
+    detail: {
+      markerIndex: marker.sceneIndex,
+      mediaType: marker.mediaType
+    }
+  });
+  
+  const handlePreviewResponse = (e) => {
+    if (e.detail.markerIndex === marker.sceneIndex) {
+      const { imageUrl, videoUrl, mediaType } = e.detail;
+      
+      hiddenPreview.innerHTML = '';
+      
+      if (mediaType === 'image' && imageUrl) {
+        const img = document.createElement('img');
+        img.src = imageUrl;
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
+        img.style.objectFit = 'contain';
+        hiddenPreview.appendChild(img);
+      } else if (mediaType === 'video' && videoUrl) {
+        const video = document.createElement('video');
+        video.src = videoUrl;
+        video.style.maxWidth = '100%';
+        video.style.maxHeight = '100%';
+        video.style.objectFit = 'contain';
+        video.muted = true;
+        video.loop = true;
+        video.preload = 'auto';
+        
+        // Zorg dat video al geladen is
+        video.addEventListener('loadeddata', () => {
+          // Video is ready
+        }, { once: true });
+        
+        video.load();
+        hiddenPreview.appendChild(video);
+      }
+      
+      document.removeEventListener('scenePreviewResponse', handlePreviewResponse);
+    }
+  };
+  
+  document.addEventListener('scenePreviewResponse', handlePreviewResponse);
+  document.dispatchEvent(event);
+}
+
+/**
  * Control video playback in preview canvas
+ */
+/**
+ * Control video playback (alleen starten als we bij/na de marker tijd zijn)
  */
 function controlVideoPlayback(shouldPlay) {
   if (!elements.previewCanvas) return;
@@ -1628,7 +1911,21 @@ function controlVideoPlayback(shouldPlay) {
   const video = elements.previewCanvas.querySelector('video');
   if (video) {
     if (shouldPlay) {
-      video.play().catch(() => {});
+      // Check of we bij/na de marker tijd zijn
+      const currentMarker = editorMarkers[currentPlayingSceneIndex];
+      if (currentMarker && editorAudioBuffer && elements.audioElement) {
+        const currentTime = elements.audioElement.currentTime;
+        const timeDiff = currentTime - currentMarker.time;
+        
+        // Alleen starten als we op of na de marker tijd zijn
+        if (timeDiff >= -0.01) {
+          video.play().catch(() => {});
+        } else {
+          video.pause();
+        }
+      } else {
+        video.play().catch(() => {});
+      }
     } else {
       video.pause();
     }
@@ -1673,8 +1970,13 @@ function displaySceneInfo(sceneIndex) {
     });
   }
   
-  // Update preview canvas
-  updatePreviewCanvas(marker);
+  // Update preview canvas ALLEEN als:
+  // 1. Preload UIT staat (dan gebruiken we normale load flow)
+  // 2. OF we zijn niet aan het afspelen (bijv. bij seek/jump)
+  // 3. OF de instant swap is mislukt (geen pre-rendered content)
+  if (!preloadEnabled || !isPlaying || !justSwapped) {
+    updatePreviewCanvas(marker);
+  }
 }
 
 /**
@@ -1764,7 +2066,40 @@ function syncMarkerMediaTypeToScene(markerIndex, mediaType) {
 async function updatePreviewCanvas(marker) {
   if (!elements.previewCanvas) return;
   
-  const placeholder = elements.previewCanvas.querySelector('.preview-placeholder');
+  // Check of de instant swap al heeft plaatsgevonden
+  const hiddenPreview = document.getElementById('next-scene-preview');
+  if (preloadEnabled && hiddenPreview && hiddenPreview.style.opacity === '1') {
+    // Swap is al gebeurd door prepareInstantSwap - doe niets
+    return;
+  }
+  
+  // Fallback: check of er pre-rendered content beschikbaar is die nog niet geswapped is
+  if (preloadEnabled && hiddenPreview && hiddenPreview.children.length > 0) {
+    // Direct swap zonder delay
+    elements.previewCanvas.innerHTML = '';
+    while (hiddenPreview.firstChild) {
+      elements.previewCanvas.appendChild(hiddenPreview.firstChild);
+    }
+    
+    const video = elements.previewCanvas.querySelector('video');
+    if (video && isPlaying) {
+      video.currentTime = 0;
+      video.muted = true;
+      video.play().catch(() => {});
+    }
+    
+    return;
+  }
+  
+  // Anders: normale load flow (voor seek operations of als preload uit staat)
+  if (!preloadEnabled) {
+    elements.previewCanvas.innerHTML = `
+      <div class="preview-placeholder">
+        <div class="loading-spinner"></div>
+        <p style="margin-top: 1rem;">Laden...</p>
+      </div>
+    `;
+  }
   
   // Dispatch event om preview te vragen van hoofdapp
   const event = new CustomEvent('getScenePreview', {
@@ -1779,7 +2114,7 @@ async function updatePreviewCanvas(marker) {
     if (e.detail.markerIndex === marker.sceneIndex) {
       const { imageUrl, videoUrl, mediaType } = e.detail;
       
-      // Clear existing content
+      // Clear loading spinner
       elements.previewCanvas.innerHTML = '';
       
       if (mediaType === 'image' && imageUrl) {
@@ -1788,6 +2123,16 @@ async function updatePreviewCanvas(marker) {
         img.style.maxWidth = '100%';
         img.style.maxHeight = '100%';
         img.style.objectFit = 'contain';
+        
+        // Alleen fade-in als preload uit staat (anders is het al gecached)
+        if (!preloadEnabled) {
+          img.style.opacity = '0';
+          img.style.transition = 'opacity 0.2s';
+          img.addEventListener('load', () => {
+            img.style.opacity = '1';
+          });
+        }
+        
         elements.previewCanvas.appendChild(img);
       } else if (mediaType === 'video' && videoUrl) {
         const video = document.createElement('video');
@@ -1799,8 +2144,17 @@ async function updatePreviewCanvas(marker) {
         video.muted = true;
         video.loop = true;
         
-        // Auto-play video wanneer deze marker actief is
+        // Alleen fade-in als preload uit staat
+        if (!preloadEnabled) {
+          video.style.opacity = '0';
+          video.style.transition = 'opacity 0.2s';
+        }
+        
+        // Fade in wanneer geladen + auto-play
         video.addEventListener('loadeddata', () => {
+          if (!preloadEnabled) {
+            video.style.opacity = '1';
+          }
           if (currentPlayingSceneIndex === marker.sceneIndex) {
             video.play().catch(() => {
               // Unmute als autoplay wordt geblokkeerd
@@ -1990,4 +2344,91 @@ export function restoreAudioTimelineFromData(audioTimelineData) {
   
   // Update markers display (werkt pas als audio is geladen)
   updateMarkersDisplay();
+}
+
+/**
+ * Preload alle scenes (wanneer preload is ingeschakeld)
+ * Plaatst alle scenes in verborgen containers voor instant swapping
+ */
+function preloadAllScenes() {
+  if (!preloadEnabled || editorMarkers.length === 0) return;
+  
+  // Maak een container voor alle pre-rendered scenes
+  let preloadContainer = document.getElementById('preload-scenes-container');
+  if (!preloadContainer) {
+    preloadContainer = document.createElement('div');
+    preloadContainer.id = 'preload-scenes-container';
+    preloadContainer.style.cssText = 'position: absolute; opacity: 0; pointer-events: none; z-index: -999;';
+    document.body.appendChild(preloadContainer);
+  }
+  
+  // Clear existing preloads
+  preloadContainer.innerHTML = '';
+  
+  editorMarkers.forEach((marker, index) => {
+    // Maak een container voor deze scene
+    const sceneContainer = document.createElement('div');
+    sceneContainer.id = `preload-scene-${marker.sceneIndex}`;
+    sceneContainer.style.cssText = 'width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;';
+    preloadContainer.appendChild(sceneContainer);
+    
+    // Vraag preview op
+    const event = new CustomEvent('getScenePreview', {
+      detail: {
+        markerIndex: marker.sceneIndex,
+        mediaType: marker.mediaType
+      }
+    });
+    
+    // Listen voor response en render in container
+    const handlePreloadResponse = (e) => {
+      if (e.detail.markerIndex === marker.sceneIndex) {
+        const { imageUrl, videoUrl, mediaType } = e.detail;
+        
+        if (mediaType === 'image' && imageUrl) {
+          const img = document.createElement('img');
+          img.src = imageUrl;
+          img.style.maxWidth = '100%';
+          img.style.maxHeight = '100%';
+          img.style.objectFit = 'contain';
+          sceneContainer.appendChild(img);
+        } else if (mediaType === 'video' && videoUrl) {
+          const video = document.createElement('video');
+          video.src = videoUrl;
+          video.style.maxWidth = '100%';
+          video.style.maxHeight = '100%';
+          video.style.objectFit = 'contain';
+          video.muted = true;
+          video.loop = true;
+          video.preload = 'auto';
+          
+          // Force video buffering met play/pause trick
+          video.onloadeddata = () => {
+            video.currentTime = 0;
+          };
+          
+          video.load();
+          // Trigger buffering door te proberen af te spelen en direct te pauzeren
+          video.play().then(() => {
+            video.pause();
+            video.currentTime = 0;
+          }).catch(() => {});
+          
+          sceneContainer.appendChild(video);
+        }
+        
+        document.removeEventListener('scenePreviewResponse', handlePreloadResponse);
+      }
+    };
+    
+    document.addEventListener('scenePreviewResponse', handlePreloadResponse);
+    document.dispatchEvent(event);
+  });
+}
+
+/**
+ * Clear preload cache
+ */
+function clearPreloadCache() {
+  preloadCache = null;
 }
