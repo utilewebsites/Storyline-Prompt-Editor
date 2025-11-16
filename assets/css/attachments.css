@@ -1,0 +1,313 @@
+/* Attachments dialog en componenten */
+.attachment-button {
+  flex: 0 0 auto !important;
+  min-width: auto !important;
+  padding: 0.5rem 0.75rem !important;
+  position: relative;
+}
+
+.attachment-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f44336;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-panel);
+}
+
+.attachments-dialog {
+  max-width: 700px;
+  width: 90vw;
+  max-height: 80vh;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.attachments-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+.attachments-dialog .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: 12px 12px 0 0;
+}
+
+.attachments-dialog h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.close-attachments {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.close-attachments:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.attachment-dropzone {
+  padding: 2rem;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  margin: 1.5rem;
+  text-align: center;
+  background: var(--bg-panel);
+  transition: all 0.2s;
+}
+
+.attachment-dropzone.drag-over {
+  border-color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.05);
+}
+
+.attachment-dropzone p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.dropzone-hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.attachments-gallery-wrapper {
+  padding: 0 1.5rem 1.5rem;
+  min-height: 40px;
+}
+
+.attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+  max-height: 350px;
+  overflow-y: auto;
+  min-height: 20px;
+}
+
+.attachments-gallery-wrapper:empty {
+  display: none;
+}
+
+.no-attachments {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem;
+}
+
+.attachment-item {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-panel);
+}
+
+.attachment-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.attachment-preview {
+  width: 100%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.attachment-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-preview.icon-preview {
+  font-size: 2rem;
+}
+
+.attachment-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.25rem;
+}
+
+.delete-attachment {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(244, 67, 54, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.attachment-item:hover .delete-attachment {
+  opacity: 1;
+}
+
+.delete-attachment:hover {
+  background: rgba(211, 47, 47, 1);
+}
+
+/* Attachment Preview Dialog */
+.attachment-preview-dialog {
+  max-width: 90vw;
+  max-height: 90vh;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.attachment-preview-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+.attachment-preview-dialog .preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: 12px 12px 0 0;
+}
+
+.attachment-preview-dialog .preview-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.attachment-preview-dialog .close-preview {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.attachment-preview-dialog .close-preview:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.attachment-preview-dialog .preview-content {
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-body);
+  min-height: 200px;
+}
+
+.attachment-preview-dialog pre {
+  background: var(--bg-panel);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 0;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+/* Attachment Delete Confirmation Dialog */
+.attachment-delete-dialog {
+  max-width: 420px;
+  border: none;
+  border-radius: 12px;
+  padding: 1.8rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.attachment-delete-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+.attachment-delete-dialog h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.attachment-delete-dialog p {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.attachment-delete-dialog .filename {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.attachment-delete-dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}

@@ -1,0 +1,51 @@
+/* Panel componenten */
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.panel-actions {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.projects-actions {
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.panel-actions button {
+  padding: 0.4rem 0.5rem;
+  line-height: 1;
+}
+
+.projects-actions .sort-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.projects-actions select {
+  width: 100%;
+}
+
+.panel-actions select {
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}

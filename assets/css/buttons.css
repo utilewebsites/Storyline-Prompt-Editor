@@ -1,0 +1,90 @@
+/* Button styling */
+button {
+  border: none;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+button.primary {
+  background: var(--primary);
+  color: var(--primary-text);
+  border: 1px solid var(--primary);
+}
+
+button.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.danger {
+  background: #dc3545;
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+button.danger:hover:not(:disabled) {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+button.danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Icon-only buttons */
+button.icon-btn {
+  padding: 0.5rem 0.65rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  min-width: auto;
+}
+
+/* Split-button (export prompts + dropdown) */
+.split-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+
+.split-button > button {
+  border-radius: 8px;
+  margin: 0;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.split-button > button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: 0.6rem;
+}
+
+.split-button > button:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 0 0.6rem;
+  border-left: 1px solid var(--border);
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+
+#export-prompts-dropdown {
+  height: 100%;
+}
+
+.split-button > button {
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+}

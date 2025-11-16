@@ -30,6 +30,21 @@
         </label>
       </div>
       <div class="header-actions">
+        <button id="header-save-project" class="primary" title="Opslaan">
+          💾 Opslaan
+        </button>
+        <button id="toggle-project-header-header" class="secondary icon-btn" title="Maximaliseer project info" style="display: none;">
+          ⬇️
+        </button>
+        <button id="toggle-all-minimize" class="secondary icon-btn" title="Alles minimaliseren">
+          ⚡
+        </button>
+        <button id="toggle-sidebar" class="secondary icon-btn" title="Verberg projectenlijst">
+          ◀️
+        </button>
+        <button id="toggle-header-minimize" class="secondary icon-btn" title="Minimaliseer header">
+          ⬆️
+        </button>
         <button id="toggle-help" class="secondary" data-i18n="actions.toggleHelp" title="Toon uitleg bij alle functies" data-help="help.toggleHelp">
           💡 Uitleg tonen
         </button>
@@ -42,6 +57,10 @@
 
     <main class="layout">
       <aside class="sidebar">
+        <button id="toggle-sidebar-inline" class="sidebar-toggle-inline" title="Toon projectenlijst">
+          ▶️
+        </button>
+        <div class="sidebar-content">
         <section class="panel">
           <header>
             <h2 data-i18n="projects.title">Projecten</h2>
@@ -98,9 +117,10 @@
             </button>
           </form>
         </section>
+        </div>
       </aside>
 
-      <section class="workspace">
+      <div class="workspace">
         <div id="project-empty-state" class="empty-state">
           <h2 id="empty-title" data-i18n="workspace.emptyTitle">Kies of maak een project</h2>
           <p id="empty-description" data-i18n="workspace.emptyDescription">
@@ -111,11 +131,15 @@
 
         <div id="project-editor" class="hidden">
           <header class="project-header">
-            <div>
-          <h2 id="project-title"></h2>
-              <p id="project-meta" class="muted"></p>
-            </div>
-          <div class="project-actions">
+            <button id="toggle-project-header" class="project-header-toggle" title="Minimaliseer project info">
+              ⬆️
+            </button>
+            <div class="project-header-content">
+              <div class="project-info">
+                <h2 id="project-title"></h2>
+                <p id="project-meta" class="muted"></p>
+              </div>
+              <div class="project-actions">
             <button id="save-project" class="primary" data-i18n="project.save" data-help="help.saveProject">💾 Opslaan</button>
               <button id="start-presentation" data-i18n="project.presentation" data-help="help.startPresentation">🎬 Presentatie</button>
               <button id="duplicate-project" data-i18n="project.duplicate" data-help="help.duplicateProject">📄 Kopieer project</button>
@@ -125,6 +149,7 @@
               </div>
               <button id="export-images" data-i18n="project.exportImages" data-help="help.exportImages">🖼️ Exporteer afbeeldingen</button>
               <button id="delete-project" class="danger" data-i18n="project.delete" data-help="help.deleteProject">🗑️ Verwijder project</button>
+              </div>
             </div>
           </header>
 
@@ -518,7 +543,7 @@
                 <button id="editor-upload-audio" class="toolbar-btn primary">
                   📁 Upload Audio
                 </button>
-                <input type="file" id="editor-audio-input" accept="audio/*" style="display: none;" />
+                <input type="file" id="editor-audio-input" style="display: none;" />
                 <span id="editor-audio-filename" class="audio-filename"></span>
               </div>
               

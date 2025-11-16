@@ -1,0 +1,312 @@
+/* Help system en workflow mode styling */
+.workflow-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-top: 0.35rem;
+  margin-left: 1rem;
+}
+
+.workflow-mode-switch span {
+  font-weight: 500;
+}
+
+.workflow-mode-switch select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+body.help-mode-active [data-help] {
+  position: relative;
+  z-index: 1;
+}
+
+body.help-mode-active [data-help]::after {
+  content: attr(data-help-text);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.95);
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  max-width: 300px;
+  white-space: normal;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 99999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.help-mode-active [data-help]:hover::after {
+  opacity: 1;
+}
+
+body.help-mode-active [data-help]::before {
+  content: "ℹ️";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 0.85rem;
+  background: var(--primary);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--bg-panel);
+  pointer-events: none;
+}
+
+body.help-mode-active label [data-help]::before {
+  top: -6px;
+  right: -6px;
+}
+
+body.help-mode-active .project-actions [data-help]::before,
+body.help-mode-active .header-actions [data-help]::before {
+  top: -10px;
+  right: -10px;
+}
+
+body.help-mode-active input[data-help],
+body.help-mode-active textarea[data-help],
+body.help-mode-active select[data-help] {
+  position: relative;
+}
+
+body.help-mode-active .language-switch select[data-help]::before,
+body.help-mode-active .workflow-mode-switch select[data-help]::before {
+  top: -8px;
+  right: -8px;
+}
+
+body.help-mode-active .panel-actions button[data-help]::before {
+  width: 16px;
+  height: 16px;
+  font-size: 0.7rem;
+  top: -6px;
+  right: -6px;
+}
+
+body.help-mode-active select[data-help]::after {
+  min-width: 200px;
+  max-width: 350px;
+  white-space: normal;
+}
+
+body.help-mode-active .prompt-dialog textarea[data-help]::before,
+body.help-mode-active .input-with-help[data-help]::before {
+  top: 8px;
+  right: 8px;
+}
+
+body.help-mode-active .rating-stars[data-help] {
+  position: relative;
+}
+
+body.help-mode-active .rating-stars[data-help]::before {
+  top: -10px;
+  right: -10px;
+}
+
+body.help-mode-active .rating-stars[data-help]::after {
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 250px;
+}
+
+body.help-mode-active .traditional-video-fields textarea[data-help]::before,
+body.help-mode-active .traditional-video-fields input[data-help]::before {
+  top: 8px;
+  right: 8px;
+}
+
+body.help-mode-active .traditional-video-fields textarea[data-help]::after,
+body.help-mode-active .traditional-video-fields input[data-help]::after {
+  bottom: calc(100% + 12px);
+  max-width: 300px;
+}
+
+.traditional-video-fields {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(58, 109, 240, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(58, 109, 240, 0.2);
+}
+
+.traditional-video-fields h4 {
+  margin: 0 0 1rem 0;
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.traditional-video-fields label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.traditional-video-fields label:last-child {
+  margin-bottom: 0;
+}
+
+.traditional-video-fields textarea,
+.traditional-video-fields input {
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-top: 0.25rem;
+}
+
+.traditional-video-fields input[type="number"] {
+  max-width: 200px;
+}
+
+.ai-prompt-fields label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+body[data-workflow-mode="traditional-video"] .ai-prompt-fields {
+  display: none !important;
+}
+
+body[data-workflow-mode="traditional-video"] .traditional-video-fields {
+  display: block !important;
+}
+
+body[data-workflow-mode="ai-prompt"] .traditional-video-fields {
+  display: none !important;
+}
+
+body[data-workflow-mode="ai-prompt"] .ai-prompt-fields {
+  display: block !important;
+}
+
+body[data-workflow-mode="both"] .traditional-video-fields,
+body[data-workflow-mode="both"] .ai-prompt-fields {
+  display: block !important;
+}
+
+body[data-workflow-mode="traditional-video"]::before {
+  content: "📹 Traditionele Video Storyline Mode";
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(58, 109, 240, 0.9);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+body[data-workflow-mode="ai-prompt"]::before {
+  content: "🤖 AI Prompt Mode";
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(139, 92, 246, 0.9);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+body[data-workflow-mode="both"]::before {
+  content: "🎬 Beide Modi Actief";
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(58, 109, 240, 0.9));
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+#toggle-help {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#toggle-help:hover {
+  background: rgba(58, 109, 240, 0.1);
+  border-color: var(--primary);
+}
+
+body.help-mode-active #toggle-help {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text);
+}
+
+.scene-ai-fields,
+.scene-traditional-fields,
+.scene-both-mode {
+  display: none;
+}
+
+body[data-workflow-mode="ai-prompt"] .scene-ai-fields {
+  display: block;
+}
+
+body[data-workflow-mode="traditional-video"] .scene-traditional-fields {
+  display: block;
+}
+
+body[data-workflow-mode="both"] .scene-both-mode {
+  display: block;
+}
+
+.edit-scene-btn {
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.edit-scene-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+}
+
+.scene-traditional-fields .field {
+  margin-bottom: 0.5rem;
+}
+
+.scene-traditional-fields textarea {
+  font-size: 0.9rem;
+}

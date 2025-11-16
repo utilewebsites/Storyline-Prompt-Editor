@@ -1,0 +1,3677 @@
+/* Basisopmaak voor de Storyline Prompt Editor */
+:root {
+  color-scheme: dark;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  --bg: #141419;
+  --bg-panel: #1f1f26;
+  --border: #2d2d36;
+  --text: #e4e4e7;
+  --muted: #9b9ba6;
+  --primary: #3a6df0;
+  --primary-text: #ffffff;
+  --shadow: rgba(0, 0, 0, 0.4);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+textarea,
+input,
+button,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+/* Audio Timeline Info Badge */
+#audio-timeline-info-badge {
+  display: none; /* Standaard verborgen */
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #f44336;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(244, 67, 54, 0.5);
+  border: 2px solid white;
+  z-index: 100;
+  pointer-events: auto;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#audio-timeline-info-badge:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(244, 67, 54, 0.7);
+}
+
+#audio-timeline-info-badge.visible {
+  display: block !important;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 2px var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.title-group h1 {
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-top: 0.35rem;
+}
+
+.language-switch span {
+  font-weight: 500;
+}
+
+.language-switch select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+#root-path {
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: calc(100vh - 92px);
+}
+
+.sidebar {
+  padding: 1.5rem;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.panel-actions {
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.projects-actions {
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+}
+
+.panel-actions button {
+  padding: 0.4rem 0.5rem;
+  line-height: 1;
+}
+
+/* Split-button (export prompts + dropdown) */
+.split-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+}
+.split-button > button {
+  border-radius: 8px;
+  margin: 0;
+  padding: 0.55rem 0.9rem; /* match regular button sizing */
+  font: inherit;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.split-button > button:first-child {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: 0.6rem;
+}
+.split-button > button:last-child {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  padding: 0 0.6rem;
+  border-left: 1px solid var(--border);
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+}
+
+/* Ensure the small dropdown button matches the full height of the main button */
+#export-prompts-dropdown {
+  height: 100%;
+}
+
+/* Compact export-choice dialog styling */
+.export-choice-dialog {
+  padding: 1rem 1.2rem;
+  max-width: 420px;
+}
+.export-choice-dialog h3 {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+}
+.export-choice-dialog p {
+  margin: 0 0 0.6rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.export-choice-dialog menu {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+.export-choice-dialog menu button {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.95rem;
+}
+
+/* Make the split-button visually tighter */
+.split-button > button {
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+}
+
+.projects-actions .sort-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.projects-actions select {
+  width: 100%;
+}
+
+.panel-actions select {
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 48vh;
+  overflow-y: auto;
+}
+
+.project-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  background: var(--bg);
+  display: grid;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.project-item:hover,
+.project-item.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(34, 81, 255, 0.15);
+}
+
+.project-item span {
+  font-size: 0.85rem;
+}
+
+.form-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+}
+
+input[type="text"],
+textarea {
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  resize: vertical;
+}
+
+input:disabled {
+  opacity: 0.7;
+}
+
+button {
+  border: none;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--primary);
+}
+
+button.primary {
+  background: var(--primary);
+  color: var(--primary-text);
+  border: 1px solid var(--primary);
+}
+
+button.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+button.danger {
+  background: #dc3545;
+  color: white;
+  border: 1px solid #dc3545;
+}
+
+button.danger:hover:not(:disabled) {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+button.danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.workspace {
+  padding: 1.5rem 2rem;
+  overflow-y: auto;
+}
+
+.empty-state {
+  margin-top: 15vh;
+  text-align: center;
+  background: var(--bg-panel);
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 26px var(--shadow);
+}
+
+.project-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+}
+
+.project-meta {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.95rem;
+}
+
+.project-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.metadata label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field span {
+  font-weight: 500;
+}
+
+.prompts-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.5rem;
+  box-shadow: 0 18px 36px var(--shadow);
+}
+
+.prompts-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.prompts-container {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scroll-snap-type: x proximity;
+}
+
+.prompt-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1rem;
+  display: grid;
+  gap: 0.8rem;
+  background: var(--bg);
+  transition: border-color 0.2s;
+  min-width: 320px;
+  max-width: 360px;
+  scroll-snap-align: start;
+  position: relative;
+}
+
+.prompt-card.dragging {
+  opacity: 0.6;
+  border-color: var(--primary);
+}
+
+.prompt-card.drag-over .image-preview {
+  border-color: var(--primary);
+  border-style: solid;
+}
+
+.video-uploader.drag-over,
+.image-uploader.drag-over {
+  border-color: var(--primary);
+  border-style: solid;
+  background-color: rgba(34, 81, 255, 0.05);
+}
+
+.prompt-card:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(34, 81, 255, 0.12);
+}
+
+.prompt-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.prompt-card-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.prompt-card-actions {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.prompt-card-actions button,
+.prompt-card-title button {
+  padding: 0.35rem 0.45rem;
+  font-size: 0.95rem;
+}
+
+.prompt-card-actions .drag-handle {
+  cursor: grab;
+}
+
+.prompt-card-actions .drag-handle:active {
+  cursor: grabbing;
+}
+
+.field textarea {
+  min-height: 80px;
+}
+
+.image-uploader {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.image-preview {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg-panel);
+  position: relative;
+}
+
+.image-preview img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  display: none;
+}
+
+.image-preview .placeholder {
+  color: var(--muted);
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.image-uploader[data-has-image="true"] .placeholder {
+  display: none;
+}
+
+.image-uploader[data-has-image="true"] img {
+  display: block;
+}
+
+.image-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.upload-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.upload-button input {
+  display: none;
+}
+
+.remove-image {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  color: var(--muted);
+}
+
+.remove-image:hover {
+  color: #d9534f;
+}
+
+/* Media toggle (image/video keuze) */
+.media-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.media-toggle button {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.media-toggle button.active {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+
+.media-toggle button:hover:not(.active) {
+  background: var(--border);
+}
+
+/* Attachment button styling */
+.attachment-button {
+  flex: 0 0 auto !important;
+  min-width: auto !important;
+  padding: 0.5rem 0.75rem !important;
+  position: relative;
+}
+
+.attachment-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f44336;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-panel);
+}
+
+/* Attachments Dialog */
+.attachments-dialog {
+  max-width: 700px;
+  width: 90vw;
+  max-height: 80vh;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.attachments-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+.attachments-dialog .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ============================================================================
+   TRANSITIONS - Overgangen tussen scenes
+   ============================================================================ */
+
+/* Transitie wrapper tussen scenes */
+.transition-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+/* Transitie button met + icon en status indicator */
+.transition-button {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg-panel);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.transition-button:hover {
+  border-color: var(--primary);
+  background: var(--bg);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+}
+
+.transition-button:active {
+  transform: scale(1.05);
+}
+
+/* Plus icon */
+.transition-icon {
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.transition-button:hover .transition-icon {
+  color: var(--primary);
+}
+
+/* Status indicator - bolletje rechtsbovenin */
+.transition-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+/* Grijs bolletje - geen transitie beschrijving */
+.transition-indicator.empty {
+  background-color: #5a5a66;
+}
+
+/* Groen bolletje - transitie beschrijving aanwezig */
+.transition-indicator.filled {
+  background-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.transition-button:hover .transition-indicator.filled {
+  transform: scale(1.2);
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+/* Transitie Dialog */
+.transition-dialog {
+  max-width: 650px;
+  width: 90vw;
+  max-height: 85vh;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  background: var(--bg-panel);
+  color: var(--text);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.transition-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7) !important;
+}
+
+.transition-dialog .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.transition-dialog .dialog-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text);
+}
+
+.transition-dialog .close-dialog {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.transition-dialog .close-dialog:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+.transition-dialog .dialog-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  max-height: calc(85vh - 160px);
+}
+
+.transition-help {
+  margin: 0 0 1.5rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 1rem;
+  background: rgba(58, 109, 240, 0.1);
+  border-left: 3px solid var(--primary);
+  border-radius: 4px;
+}
+
+.transition-dialog label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.label-hint {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: normal;
+  margin-top: 0.25rem;
+}
+
+.transition-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  transition: border-color 0.2s ease;
+}
+
+.transition-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(58, 109, 240, 0.1);
+}
+
+.transition-textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+/* Transitie voorbeelden */
+.transition-examples {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.transition-examples strong {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.transition-examples ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
+.transition-examples li {
+  margin-bottom: 0.5rem;
+}
+
+.transition-examples li strong {
+  display: inline;
+  color: var(--primary);
+  font-size: inherit;
+  margin: 0;
+}
+
+.transition-dialog .dialog-footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.transition-dialog .dialog-footer button {
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.transition-dialog .btn-cancel,
+.transition-dialog .btn-clear {
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.transition-dialog .btn-cancel:hover,
+.transition-dialog .btn-clear:hover {
+  background: var(--border);
+}
+
+.transition-dialog .btn-save {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.transition-dialog .btn-save:hover {
+  background: #4e7ef8;
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+  background: var(--bg-secondary);
+  border-radius: 12px 12px 0 0;
+}
+
+.attachments-dialog h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.close-attachments {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.close-attachments:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.attachment-dropzone {
+  padding: 2rem;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  margin: 1.5rem;
+  text-align: center;
+  background: var(--bg-panel);
+  transition: all 0.2s;
+}
+
+.attachment-dropzone.drag-over {
+  border-color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.05);
+}
+
+.attachment-dropzone p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.dropzone-hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.attachments-gallery-wrapper {
+  padding: 0 1.5rem 1.5rem;
+  min-height: 40px;
+}
+
+.attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+  max-height: 350px;
+  overflow-y: auto;
+  min-height: 20px; /* Zorg dat de grid altijd bestaat */
+}
+
+/* Verberg gallery wrapper als er geen items zijn */
+.attachments-gallery-wrapper:empty {
+  display: none;
+}
+
+.no-attachments {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem;
+}
+
+.attachment-item {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-panel);
+}
+
+.attachment-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.attachment-preview {
+  width: 100%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.attachment-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-preview.icon-preview {
+  font-size: 2rem;
+}
+
+.attachment-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.25rem;
+}
+
+.delete-attachment {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(244, 67, 54, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.attachment-item:hover .delete-attachment {
+  opacity: 1;
+}
+
+.delete-attachment:hover {
+  background: rgba(211, 47, 47, 1);
+}
+
+/* Attachment Preview Dialog */
+.attachment-preview-dialog {
+  max-width: 90vw;
+  max-height: 90vh;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.attachment-preview-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+.attachment-preview-dialog .preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: 12px 12px 0 0;
+}
+
+.attachment-preview-dialog .preview-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.attachment-preview-dialog .close-preview {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.attachment-preview-dialog .close-preview:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.attachment-preview-dialog .preview-content {
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-body);
+  min-height: 200px;
+}
+
+.attachment-preview-dialog pre {
+  background: var(--bg-panel);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 0;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+/* Attachment Delete Confirmation Dialog */
+.attachment-delete-dialog {
+  max-width: 420px;
+  border: none;
+  border-radius: 12px;
+  padding: 1.8rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.attachment-delete-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+.attachment-delete-dialog h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.attachment-delete-dialog p {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.attachment-delete-dialog .filename {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.attachment-delete-dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+/* Media sections (image en video uploader) */
+.media-section {
+  display: none; /* Hide by default */
+}
+
+.media-section[data-active="true"] {
+  display: grid; /* Show when active */
+  gap: 0.75rem;
+}
+
+/* Globale view modes overschrijven de data-active state */
+.prompts-container.media-view-images .prompt-card .image-uploader {
+  display: grid !important;
+  gap: 0.75rem;
+}
+
+.prompts-container.media-view-images .prompt-card .video-uploader {
+  display: none !important;
+}
+
+.prompts-container.media-view-videos .prompt-card .video-uploader {
+  display: grid !important;
+  gap: 0.75rem;
+}
+
+.prompts-container.media-view-videos .prompt-card .image-uploader {
+  display: none !important;
+}
+
+/* Video uploader styling (maar display wordt gecontroleerd door .media-section) */
+.video-uploader {
+  gap: 0.75rem;
+}
+
+.video-preview {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg-panel);
+  position: relative;
+}
+
+.video-preview video {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  display: none;
+}
+
+.video-preview .placeholder {
+  color: var(--muted);
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.video-uploader[data-has-video="true"] .placeholder {
+  display: none;
+}
+
+.video-uploader[data-has-video="true"] video {
+  display: block;
+}
+
+.video-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.remove-video {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  color: var(--muted);
+}
+
+.remove-video:hover {
+  color: #d9534f;
+}
+
+dialog {
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 420px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+dialog#prompt-dialog {
+  max-width: none !important;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.export-dialog {
+  padding: 1.8rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.copy-dialog {
+  padding: 2rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.copy-dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+dialog#prompt-dialog .prompt-dialog {
+  padding: 2rem !important;
+  display: grid;
+  gap: 1.2rem;
+  max-width: 1500px !important;
+  max-height: 95vh;
+  overflow-y: auto;
+  width: 1300px !important;
+  min-height: 85vh;
+}
+
+@media (max-width: 1400px) {
+  dialog#prompt-dialog .prompt-dialog {
+    width: 95vw !important;
+  }
+  
+  dialog#prompt-dialog .dialog-image-preview {
+    flex: 0 0 400px;
+  }
+  
+  dialog#prompt-dialog .prompt-dialog-body {
+    gap: 1.5rem;
+  }
+}
+
+.prompt-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dialog-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dialog-nav-btn {
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-nav-btn:hover:not(:disabled) {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  transform: scale(1.1);
+}
+
+.dialog-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.prompt-dialog-header menu {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.prompt-dialog-header button {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+/* FORCE LAYOUT OVERRIDE - VERSION 5.0 ULTRA SPECIFIC */
+dialog#prompt-dialog form.prompt-dialog .prompt-dialog-body {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 2rem !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+}
+
+/* Media container (image + video samen) */
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  width: 500px !important;
+  min-width: 500px !important;
+  max-width: 500px !important;
+  flex-shrink: 0 !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .dialog-image-preview,
+dialog#prompt-dialog form.prompt-dialog .dialog-video-preview {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  flex-shrink: 0 !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content > label {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  margin-bottom: 1.5rem !important;
+  clear: both !important;
+  float: none !important;
+  gap: 0.5rem !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content > label:last-child {
+  margin-bottom: 0 !important;
+}
+
+#prompt-dialog .prompt-dialog-content textarea {
+  width: 100% !important;
+  min-height: 140px !important;
+  padding: 1.2rem !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg) !important;
+  font-family: inherit !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  resize: vertical !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  margin-top: 0.5rem !important;
+}
+
+#prompt-dialog textarea#dialog-text {
+  min-height: 180px !important;
+
+}
+
+#prompt-dialog textarea#dialog-translation {
+  min-height: 160px !important;
+
+}
+
+#dialog-text {
+  min-height: 180px;
+}
+
+#dialog-translation {
+  min-height: 160px;
+}
+
+.dialog-image-preview {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  min-height: 400px;
+  height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+}
+
+.dialog-image-preview img {
+  max-width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+  display: none;
+}
+
+.dialog-image-preview[data-has-image="true"] img {
+  display: block;
+}
+
+.dialog-image-preview[data-has-image="true"] #dialog-image-placeholder {
+  display: none;
+}
+
+/* Dialog video preview (onder image) */
+.dialog-video-preview {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  min-height: 250px;
+  height: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+  margin-top: 1rem;
+}
+
+.dialog-video-preview video {
+  max-width: 100%;
+  max-height: 330px;
+  object-fit: contain;
+  display: none;
+}
+
+.dialog-video-preview[data-has-video="true"] video {
+  display: block;
+}
+
+.dialog-video-preview[data-has-video="true"] #dialog-video-placeholder {
+  display: none;
+}
+
+#export-preview-text {
+  width: 100%;
+  resize: vertical;
+  min-height: 200px;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-family: "Fira Code", Consolas, "Courier New", monospace;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+.export-preview-dialog {
+  padding: 1.25rem 1.5rem;
+  max-width: 720px;
+}
+
+.export-preview-dialog h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.05rem;
+}
+
+.export-preview-dialog #export-preview-info {
+  margin: 0 0 0.75rem 0;
+  color: var(--muted);
+}
+
+.export-preview-dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 1080px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+@media (max-width: 720px) {
+  .metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .project-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .prompts-container {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .prompt-card {
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* Presentatiemodus styling */
+#presentation-dialog {
+  max-width: 95vw !important;
+  max-height: 95vh !important;
+  padding: 0 !important;
+  border-radius: 0;
+}
+
+#presentation-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.9);
+}
+
+.presentation-form {
+  display: flex;
+  flex-direction: column;
+  height: 95vh;
+  width: 95vw;
+  background: var(--bg);
+  color: var(--text);
+  gap: 0;
+  padding: 0;
+}
+
+.presentation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.presentation-title {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.presentation-title h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.presentation-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.presentation-lang-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.presentation-lang-label select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.presentation-mode-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.presentation-mode-label select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+}
+
+#presentation-close {
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+#presentation-close:hover {
+  background: var(--border);
+}
+
+.presentation-slide {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 2rem;
+  overflow-y: auto;
+}
+
+.slide-media-container {
+  position: relative;
+  min-height: 300px;
+}
+
+.slide-image-container,
+.slide-video-container {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-height: 300px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  position: relative;
+}
+
+.slide-image-container[data-active="true"],
+.slide-video-container[data-active="true"] {
+  display: flex;
+}
+
+#presentation-image {
+  max-width: 100%;
+  max-height: 400px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+#presentation-video {
+  max-width: 100%;
+  max-height: 350px;
+  border-radius: 8px;
+}
+
+/* Kleinere containers in audio mode voor audio timeline ruimte */
+.presentation-form.has-audio-timeline .slide-image-container {
+  max-height: 350px;
+}
+
+.presentation-form.has-audio-timeline .slide-video-container {
+  max-height: 300px;
+}
+
+.presentation-form.has-audio-timeline #presentation-image {
+  max-height: 320px;
+}
+
+.presentation-form.has-audio-timeline #presentation-video {
+  max-height: 270px;
+}
+
+/* Video timeline slider voor gecombineerde video's */
+.video-timeline-container {
+  position: relative;
+  width: 100%;
+  display: none;
+  padding: 0.5rem 0;
+}
+
+.presentation-footer .video-timeline-container {
+  flex: 1;
+  margin: 0;
+  padding: 0;
+}
+
+.slide-video-container[data-active="true"] .video-timeline-container {
+  display: none; /* Verberg in video container zelf */
+}
+
+.presentation-footer.video-mode .video-timeline-container {
+  display: block; /* Toon in footer tijdens video mode */
+}
+
+.presentation-footer.video-mode #presentation-prev,
+.presentation-footer.video-mode #presentation-next {
+  display: none; /* Verberg knoppen in video mode */
+}
+
+.presentation-footer.video-mode .presentation-progress {
+  display: none; /* Verberg progress bar in video mode */
+}
+
+/* Audio mode footer styling */
+.presentation-footer.audio-mode #presentation-prev,
+.presentation-footer.audio-mode #presentation-next {
+  display: none; /* Verberg knoppen in audio mode */
+}
+
+.presentation-footer.audio-mode .presentation-progress {
+  display: none; /* Verberg progress bar in audio mode */
+}
+
+.presentation-footer.audio-mode .audio-timeline-container {
+  display: flex; /* Toon audio controls in audio mode */
+}
+
+.presentation-footer.audio-mode .video-timeline-container {
+  display: none; /* Verberg video timeline in audio mode */
+}
+
+#video-timeline-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+#video-timeline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+#video-timeline-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+}
+
+#video-timeline-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s;
+}
+
+#video-timeline-slider::-moz-range-thumb:hover {
+  transform: scale(1.3);
+}
+
+.video-timeline-markers {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  pointer-events: none;
+}
+
+.video-marker {
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background: rgba(34, 81, 255, 0.4);
+  transform: translateX(-50%);
+}
+
+.video-marker.active {
+  background: var(--primary);
+  height: 24px;
+  width: 3px;
+}
+
+/* Audio timeline slider voor audio presentatie modes */
+.audio-timeline-container,
+#presentation-audio-timeline-container {
+  display: none; /* Default hidden, shown via .audio-mode class */
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.presentation-footer.audio-mode .audio-timeline-container,
+.presentation-footer.audio-mode #presentation-audio-timeline-container {
+  display: flex; /* Toon audio controls in audio mode */
+}
+
+/* Compacte audio player met waveform */
+.presentation-audio-player {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--bg-panel);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.audio-play-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.audio-play-btn:hover {
+  transform: scale(1.1);
+  background: var(--primary-hover);
+}
+
+.audio-play-btn:active {
+  transform: scale(0.95);
+}
+
+.audio-time-display {
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  min-width: 45px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Waveform container */
+.presentation-waveform-container {
+  position: relative;
+  flex: 1;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+
+#presentation-waveform {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Playhead indicator */
+.presentation-playhead {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--primary);
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(0, 122, 255, 0.5);
+}
+
+/* Markers op waveform */
+.presentation-audio-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.presentation-marker-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 59, 48, 0.6);
+  z-index: 5;
+}
+
+.presentation-marker-line.active {
+  background: #FF3B30;
+  width: 3px;
+  box-shadow: 0 0 8px rgba(255, 59, 48, 0.8);
+}
+
+.presentation-marker-label {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 59, 48, 0.9);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+  font-weight: 600;
+}
+
+/* Marker jump buttons */
+.presentation-marker-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.presentation-marker-btn {
+  padding: 0.5rem 1rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.presentation-marker-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.presentation-marker-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+.presentation-marker-btn:active {
+  transform: translateY(0);
+}
+
+.audio-timeline-slider-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+}
+
+#audio-timeline-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+#audio-timeline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+#audio-timeline-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+}
+
+#audio-timeline-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s;
+}
+
+#audio-timeline-slider::-moz-range-thumb:hover {
+  transform: scale(1.3);
+}
+
+.audio-timeline-markers {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  pointer-events: none;
+}
+
+.audio-marker {
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background: rgba(255, 59, 48, 0.4);
+  transform: translateX(-50%);
+}
+
+.audio-marker.active {
+  background: #FF3B30;
+  height: 24px;
+  width: 3px;
+}
+
+#presentation-audio {
+  border-radius: 8px;
+  background: var(--bg-panel);
+}
+
+#presentation-no-image,
+#presentation-no-video {
+  position: absolute;
+  font-style: italic;
+}
+
+.slide-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.presentation-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.presentation-field-group.hidden {
+  display: none !important;
+}
+
+/* Compact layout voor traditionele velden in presentatie */
+#presentation-traditional-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  padding: 0;
+}
+
+#presentation-traditional-fields .slide-text {
+  display: block;
+  padding: 0.75rem 1rem;
+  background: var(--bg-panel);
+  border-radius: 6px;
+  border-left: 3px solid var(--primary);
+}
+
+/* Timeline veld neemt volle breedte */
+#presentation-traditional-fields .slide-text:last-child {
+  grid-column: 1 / -1;
+}
+
+#presentation-traditional-fields h4 {
+  margin: 0 0 0.4rem 0;
+  font-size: 0.85rem;
+  color: var(--primary);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+#presentation-traditional-fields p {
+  margin: 0;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+/* Responsive: stack op kleinere schermen */
+@media (max-width: 900px) {
+  #presentation-traditional-fields {
+    grid-template-columns: 1fr;
+  }
+  
+  #presentation-traditional-fields .slide-text:last-child {
+    grid-column: 1;
+  }
+}
+
+.slide-text {
+  display: none;
+  padding: 1.5rem;
+  background: var(--bg-panel);
+  border-radius: 8px;
+  border-left: 4px solid var(--primary);
+}
+
+.slide-text h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: var(--primary);
+}
+
+.slide-text p {
+  margin: 0;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.slide-text.visible {
+  display: block;
+}
+
+.presentation-footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#presentation-prev,
+#presentation-next {
+  padding: 0.45rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s;
+}
+
+#presentation-prev:hover,
+#presentation-next:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text);
+}
+
+#presentation-prev:disabled,
+#presentation-next:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.presentation-progress {
+  flex: 1;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+#presentation-progress-bar {
+  height: 100%;
+  background: var(--primary);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+@media (max-width: 1024px) {
+  .presentation-slide {
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+
+  .slide-image-container {
+    min-height: 250px;
+  }
+
+  #presentation-image {
+    max-height: 300px;
+  }
+
+  .presentation-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 640px) {
+  #presentation-dialog {
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+  }
+
+  .presentation-form {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .presentation-header {
+    padding: 1rem;
+  }
+
+  .presentation-title h3 {
+    font-size: 1rem;
+  }
+
+  .presentation-slide {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .slide-image-container {
+    min-height: 200px;
+  }
+
+  #presentation-image {
+    max-height: 250px;
+  }
+
+  .presentation-footer {
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  #presentation-prev,
+  #presentation-next {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .presentation-progress {
+    height: 3px;
+  }
+}
+
+/* ============================================
+   HELP SYSTEM & WORKFLOW MODE STYLING
+   ============================================ */
+
+/* Workflow mode selector styling */
+.workflow-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-top: 0.35rem;
+  margin-left: 1rem;
+}
+
+.workflow-mode-switch span {
+  font-weight: 500;
+}
+
+.workflow-mode-switch select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+/* Help mode active state */
+body.help-mode-active [data-help] {
+  position: relative;
+  z-index: 1;
+}
+
+/* Input wrapper for help icons on form fields */
+.input-with-help {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.input-with-help textarea,
+.input-with-help input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body.help-mode-active [data-help]::after {
+  content: attr(data-help-text);
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.95);
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  max-width: 300px;
+  white-space: normal;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 99999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.help-mode-active [data-help]:hover::after {
+  opacity: 1;
+}
+
+/* Help indicator icon */
+body.help-mode-active [data-help]::before {
+  content: "ℹ️";
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  font-size: 0.85rem;
+  background: var(--primary);
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  border: 2px solid var(--bg-panel);
+  pointer-events: none;
+}
+
+/* Special positioning for elements inside labels */
+body.help-mode-active label [data-help]::before {
+  top: -6px;
+  right: -6px;
+}
+
+/* Special positioning for buttons in button groups */
+body.help-mode-active .project-actions [data-help]::before,
+body.help-mode-active .header-actions [data-help]::before {
+  top: -10px;
+  right: -10px;
+}
+
+/* Ensure help icons work on inputs and textareas */
+body.help-mode-active input[data-help],
+body.help-mode-active textarea[data-help],
+body.help-mode-active select[data-help] {
+  position: relative;
+}
+
+/* Special positioning for select elements in header */
+body.help-mode-active .language-switch select[data-help]::before,
+body.help-mode-active .workflow-mode-switch select[data-help]::before {
+  top: -8px;
+  right: -8px;
+}
+
+/* For small buttons, adjust icon size */
+body.help-mode-active .panel-actions button[data-help]::before {
+  width: 16px;
+  height: 16px;
+  font-size: 0.7rem;
+  top: -6px;
+  right: -6px;
+}
+
+/* Ensure help tooltips for selects don't overflow */
+body.help-mode-active select[data-help]::after {
+  min-width: 200px;
+  max-width: 350px;
+  white-space: normal;
+}
+
+/* Help icons for textareas in dialogs */
+body.help-mode-active .prompt-dialog textarea[data-help]::before,
+body.help-mode-active .input-with-help[data-help]::before {
+  top: 8px;
+  right: 8px;
+}
+
+/* Help icon for rating stars */
+body.help-mode-active .rating-stars[data-help] {
+  position: relative;
+}
+
+body.help-mode-active .rating-stars[data-help]::before {
+  top: -10px;
+  right: -10px;
+}
+
+body.help-mode-active .rating-stars[data-help]::after {
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 250px;
+}
+
+/* Ensure tooltips for inputs in traditional fields work */
+body.help-mode-active .traditional-video-fields textarea[data-help]::before,
+body.help-mode-active .traditional-video-fields input[data-help]::before {
+  top: 8px;
+  right: 8px;
+}
+
+body.help-mode-active .traditional-video-fields textarea[data-help]::after,
+body.help-mode-active .traditional-video-fields input[data-help]::after {
+  bottom: calc(100% + 12px);
+  max-width: 300px;
+}
+
+/* Traditional video fields styling */
+.traditional-video-fields {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(58, 109, 240, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(58, 109, 240, 0.2);
+}
+
+.traditional-video-fields h4 {
+  margin: 0 0 1rem 0;
+  color: var(--primary);
+  font-size: 1rem;
+}
+
+.traditional-video-fields label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.traditional-video-fields label:last-child {
+  margin-bottom: 0;
+}
+
+.traditional-video-fields textarea,
+.traditional-video-fields input {
+  width: 100%;
+  padding: 0.5rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-top: 0.25rem;
+}
+
+.traditional-video-fields input[type="number"] {
+  max-width: 200px;
+}
+
+/* AI Prompt fields styling */
+.ai-prompt-fields label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+/* Workflow mode styling - hide/show fields based on mode */
+body[data-workflow-mode="traditional-video"] .ai-prompt-fields {
+  display: none !important;
+}
+
+body[data-workflow-mode="traditional-video"] .traditional-video-fields {
+  display: block !important;
+}
+
+body[data-workflow-mode="ai-prompt"] .traditional-video-fields {
+  display: none !important;
+}
+
+body[data-workflow-mode="ai-prompt"] .ai-prompt-fields {
+  display: block !important;
+}
+
+body[data-workflow-mode="both"] .traditional-video-fields {
+  display: block !important;
+}
+
+body[data-workflow-mode="both"] .ai-prompt-fields {
+  display: block !important;
+}
+
+/* Visual indicator for workflow mode */
+body[data-workflow-mode="traditional-video"]::before {
+  content: "📹 Traditionele Video Storyline Mode";
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(58, 109, 240, 0.9);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+body[data-workflow-mode="ai-prompt"]::before {
+  content: "🤖 AI Prompt Mode";
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(139, 92, 246, 0.9);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+body[data-workflow-mode="both"]::before {
+  content: "🎬 Beide Modi Actief";
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(58, 109, 240, 0.9));
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Help toggle button styling */
+#toggle-help {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#toggle-help:hover {
+  background: rgba(58, 109, 240, 0.1);
+  border-color: var(--primary);
+}
+
+body.help-mode-active #toggle-help {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--primary-text);
+}
+
+/* ============================================
+   SCENE CARD WORKFLOW MODE VISIBILITY
+   ============================================ */
+
+/* Default: hide all mode-specific sections */
+.scene-ai-fields,
+.scene-traditional-fields,
+.scene-both-mode {
+  display: none;
+}
+
+/* AI Prompt Mode: show only AI fields */
+body[data-workflow-mode="ai-prompt"] .scene-ai-fields {
+  display: block;
+}
+
+/* Traditional Video Mode: show only traditional fields */
+body[data-workflow-mode="traditional-video"] .scene-traditional-fields {
+  display: block;
+}
+
+/* Both Mode: show only the edit button */
+body[data-workflow-mode="both"] .scene-both-mode {
+  display: block;
+}
+
+/* Edit scene button styling */
+.edit-scene-btn {
+  width: 100%;
+  margin: 0.5rem 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.edit-scene-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+}
+
+/* Compact styling for traditional fields in scene cards */
+.scene-traditional-fields .field {
+  margin-bottom: 0.5rem;
+}
+
+.scene-traditional-fields textarea {
+  font-size: 0.9rem;
+}
+
+/* ============================================
+   AUDIO TIMELINE STYLING
+   ============================================ */
+
+.prompts-header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+/* Media toggle group */
+.media-toggle-group {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.media-toggle {
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  border-right: 1px solid var(--border-color);
+}
+
+.media-toggle:last-child {
+  border-right: none;
+}
+
+.media-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.media-toggle.active {
+  background: var(--primary-color);
+  color: white;
+  font-weight: 500;
+}
+
+/* Media view modes - control visibility of image/video uploaders */
+/* In images mode: toon image sections, verberg video sections */
+.prompts-container.media-view-images .prompt-card .video-uploader {
+  display: none !important;
+}
+
+.prompts-container.media-view-images .prompt-card .image-uploader {
+  display: grid !important;
+  gap: 0.75rem;
+}
+
+/* In videos mode: toon video sections, verberg image sections */
+.prompts-container.media-view-videos .prompt-card .image-uploader {
+  display: none !important;
+}
+
+.prompts-container.media-view-videos .prompt-card .video-uploader {
+  display: grid !important;
+  gap: 0.75rem;
+}
+
+.audio-timeline-container {
+  background: var(--bg-body);
+  border: 2px solid var(--primary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden; /* Zorg dat content binnen blijft */
+  box-sizing: border-box;
+  display: block; /* Expliciet block wanneer zichtbaar */
+}
+
+.audio-timeline-container.hidden {
+  display: none !important;
+}
+
+.audio-timeline-header h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--primary);
+}
+
+.audio-timeline-header p {
+  margin: 0 0 1rem 0;
+}
+
+.audio-upload-section {
+  margin-bottom: 1rem;
+}
+
+.audio-player-container {
+  margin: 1rem 0;
+}
+
+.audio-player-container audio {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.audio-waveform-container {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  cursor: crosshair;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+#audio-waveform {
+  width: 100%;
+  height: 150px;
+  display: block;
+  cursor: crosshair;
+  user-select: none;
+}
+
+#audio-waveform:active {
+  cursor: grabbing;
+}
+
+.audio-markers-section {
+  margin: 1.5rem 0 0 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden; /* Voorkom dat markers buiten popup gaan */
+  box-sizing: border-box;
+}
+
+.audio-markers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.audio-markers-header h5 {
+  margin: 0;
+}
+
+.audio-markers-list {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1rem 0.5rem;
+  width: 100%;
+  max-width: 100%; /* Blijf binnen parent container */
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scroll-behavior: smooth; /* Smooth scroll voor auto-scroll functie */
+}
+
+.audio-markers-list::-webkit-scrollbar {
+  height: 8px;
+}
+
+.audio-markers-list::-webkit-scrollbar-track {
+  background: var(--bg-panel);
+  border-radius: 4px;
+}
+
+.audio-markers-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.audio-markers-list::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.audio-marker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  min-width: 280px;
+  max-width: 320px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  scroll-snap-align: start;
+}
+
+/* Ongevoppelde scenes styling - grijze variant */
+.audio-marker-item.unlinked-scene-item {
+  background: var(--bg-panel);
+  border: 1px dashed var(--muted);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.audio-marker-item.unlinked-scene-item:hover {
+  opacity: 1;
+  border-color: var(--primary);
+  background: rgba(58, 109, 240, 0.05);
+  box-shadow: 0 0 0 2px rgba(34, 81, 255, 0.12);
+}
+
+.audio-marker-item:active {
+  cursor: grabbing;
+}
+
+.audio-marker-item[draggable="true"]:hover {
+  background: rgba(58, 109, 240, 0.05);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(34, 81, 255, 0.12);
+}
+
+/* Bovenste rij: drag handle + nummer + knoppen */
+.marker-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Onderste rij: tijd + duration */
+.marker-item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.marker-drag-handle {
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.marker-drag-handle:active {
+  cursor: grabbing;
+}
+
+.marker-number {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  font-size: 1.05rem;
+}
+
+.marker-time {
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  padding: 0.5rem;
+  background: var(--bg-panel);
+  border-radius: 6px;
+  display: block;
+}
+
+.marker-time.editable-time {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.marker-time.editable-time:hover {
+  color: var(--primary);
+  background: rgba(58, 109, 240, 0.1);
+}
+
+.marker-duration {
+  color: var(--primary);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(58, 109, 240, 0.1);
+  border-radius: 6px;
+}
+
+.edit-marker-scene {
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  min-width: 36px;
+  text-align: center;
+}
+
+.edit-marker-scene:hover {
+  background: rgba(58, 109, 240, 0.15);
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.remove-marker {
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  min-width: 36px;
+  text-align: center;
+}
+
+.remove-marker:hover {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: #FF3B30;
+  transform: scale(1.05);
+}
+
+/* Link scene button voor ongevoppelde scenes */
+.link-scene-btn {
+  padding: 0.4rem 0.6rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  min-width: 36px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.link-scene-btn:hover {
+  background: var(--primary-hover);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(58, 109, 240, 0.3);
+}
+
+.audio-timeline-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* Audio indicator in project list */
+.audio-indicator {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.project-item.has-audio-timeline {
+  border-left: 3px solid var(--primary);
+}
+
+/* Presentation Loader */
+#presentation-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  gap: 1.5rem;
+}
+
+.loader-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.1);
+  border-top: 4px solid var(--primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-text {
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.project-item.has-audio-timeline strong {
+  color: var(--primary);
+}
+
+/* Audio timeline button with indicator */
+#toggle-audio-timeline.has-audio {
+  background: linear-gradient(135deg, var(--primary), #4a7bff);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+}
+
+#toggle-audio-timeline.has-audio:hover {
+  box-shadow: 0 6px 16px rgba(58, 109, 240, 0.4);
+  transform: translateY(-1px);
+}
+
+/* ============================================================================
+   FULLSCREEN AUDIO/VIDEO TIMELINE EDITOR
+   ============================================================================ */
+
+.fullscreen-editor-dialog {
+  max-width: 100vw;
+  max-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.fullscreen-editor-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.95) !important;
+}
+
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Editor Header */
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--bg-panel);
+  border-bottom: 2px solid var(--border);
+  flex-shrink: 0;
+}
+
+.editor-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text);
+}
+
+.editor-subtitle {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.close-editor-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.close-editor-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* Main editor area - split: preview boven, timeline onder */
+.editor-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: min-content;
+  gap: 1px;
+  background: var(--border);
+}
+
+/* Preview sectie (40% van hoogte) */
+.editor-preview-section {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  height: auto;
+  min-height: 180px;
+  max-height: 25vh;
+  flex-shrink: 1;
+}
+
+.preview-window {
+  flex: 2;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.preview-canvas {
+  flex: 1;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-placeholder {
+  text-align: center;
+  color: var(--muted);
+}
+
+.preview-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.preview-placeholder p {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.preview-hint {
+  font-size: 0.9rem !important;
+  opacity: 0.7;
+}
+
+/* Preview controls onder het venster */
+.preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.preview-btn {
+  background: var(--primary);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.2rem;
+}
+
+.preview-btn:hover:not(:disabled) {
+  background: #4e7ef8;
+  transform: scale(1.05);
+}
+
+.preview-btn:disabled {
+  background: var(--border);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.play-icon {
+  margin-left: 3px; /* Center play triangle */
+}
+
+.preview-time-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.time-separator {
+  color: var(--muted);
+}
+
+.preview-volume {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.preview-btn-small {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.preview-btn-small:hover {
+  background: var(--border);
+}
+
+#preview-volume-slider {
+  width: 100px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+#preview-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+}
+
+#preview-volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+}
+
+/* Scene info panel rechts van preview */
+.scene-info-panel {
+  flex: 1;
+  background: var(--bg-panel);
+  padding: 1.5rem;
+  overflow-y: auto;
+  min-width: 250px;
+}
+
+.scene-info-panel h4 {
+  margin: 0 0 1rem 0;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.scene-info-content {
+  background: var(--bg);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.scene-info-content p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+/* Media type toggle per scene */
+.scene-media-toggle {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.scene-media-toggle label {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.media-type-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.media-type-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.media-type-btn:hover {
+  background: var(--border);
+}
+
+.media-type-btn.active {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+
+/* Timeline sectie (60% van hoogte) */
+.editor-timeline-section {
+  flex: 1 1 auto;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Timeline toolbar */
+.timeline-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toolbar-btn {
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.toolbar-btn:hover {
+  background: #4e7ef8;
+}
+
+.toolbar-btn-icon {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.toolbar-btn-icon:hover {
+  background: var(--border);
+}
+
+.audio-filename {
+  color: var(--muted);
+  font-size: 0.9rem;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Waveform container met ruler */
+.timeline-waveform-container {
+  flex: 0 0 auto;
+  max-height: 150px;
+  background: #1a1a1a;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-shrink: 0;
+}
+
+.timeline-ruler {
+  height: 30px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.waveform-wrapper {
+  position: relative;
+  height: calc(100% - 30px);
+  min-height: 80px;
+  max-height: 100px;
+}
+
+.editor-waveform {
+  width: 100%; /* Volledige breedte binnen padding */
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+  margin: 0 !important; /* Expliciet geen margin */
+  padding: 0 !important; /* Expliciet geen padding */
+  border: none; /* Geen border */
+  box-sizing: border-box;
+}
+
+/* Playhead (rode lijn) */
+.timeline-playhead {
+  position: absolute;
+  top: 0;
+  left: -1.5px; /* -1.5px zodat 3px brede lijn gecentreerd is op positie */
+  width: 3px;
+  height: 100%;
+  background: #ff0000;
+  pointer-events: auto;
+  z-index: 10;
+  display: none;
+  cursor: grab;
+  will-change: transform; /* Hardware acceleratie voor smooth beweging met transform */
+  transform: translateZ(0); /* Force GPU rendering */
+}
+
+/* Grote ronde knop bovenaan playhead */
+.timeline-playhead::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  background: #ff0000;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.15s ease;
+}
+
+.timeline-playhead:hover::before {
+  width: 24px;
+  height: 24px;
+  top: -14px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Grotere klikbare area rondom playhead */
+.timeline-playhead::after {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: -12px;
+  width: 27px;
+  height: calc(100% + 15px);
+  background: transparent;
+}
+
+.timeline-playhead.active {
+  display: block;
+}
+
+.timeline-playhead:active::before,
+.timeline-playhead.dragging::before {
+  cursor: grabbing;
+  background: #cc0000;
+  width: 24px;
+  height: 24px;
+  top: -14px;
+}
+
+.timeline-playhead.dragging {
+  cursor: grabbing;
+}
+
+/* Markers lijst onder waveform */
+.timeline-markers-section {
+  flex: 1 1 auto;
+  padding: 1rem 1.5rem;
+  overflow-y: visible;
+  background: var(--bg);
+  min-height: 120px;
+}
+
+.markers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.markers-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.markers-count {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--bg-panel);
+  border-radius: 12px;
+}
+
+.editor-markers-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* Responsive aanpassingen */
+@media (max-height: 900px) {
+  .editor-preview-section {
+    max-height: 20vh;
+    min-height: 150px;
+  }
+  
+  .timeline-waveform-container {
+    max-height: 120px;
+  }
+  
+  .waveform-wrapper {
+    min-height: 60px;
+    max-height: 80px;
+  }
+}
+
+@media (max-height: 800px) {
+  .editor-preview-section {
+    max-height: 25vh;
+  }
+  
+  .timeline-waveform-container {
+    max-height: 120px;
+  }
+  
+  .waveform-wrapper {
+    min-height: 60px;
+    max-height: 80px;
+  }
+  
+  .editor-header {
+    padding: 0.75rem 1.5rem;
+  }
+  
+  .editor-title h2 {
+    font-size: 1.25rem;
+  }
+  
+  .editor-subtitle {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .editor-preview-section {
+    flex-direction: column;
+    height: auto;
+    min-height: 400px;
+  }
+  
+  .scene-info-panel {
+    min-width: 100%;
+  }
+}

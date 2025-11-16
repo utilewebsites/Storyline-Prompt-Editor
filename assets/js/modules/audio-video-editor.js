@@ -144,8 +144,17 @@ export function initializeAudioVideoEditor() {
 
     elements.audioInput.addEventListener('change', async (event) => {
       const file = event.target.files[0];
-      if (file && file.type.startsWith('audio/')) {
-        await loadAudioFile(file);
+      if (file) {
+        // Accepteer alle bestanden met audio extensie of audio MIME type
+        const isAudio = file.type.startsWith('audio/') || 
+                       file.name.match(/\.(wav|mp3|ogg|m4a|aac|flac)$/i);
+        
+        if (isAudio) {
+          await loadAudioFile(file);
+        } else {
+          console.warn('Geen audio bestand geselecteerd:', file.name, file.type);
+          alert('Selecteer een audio bestand (.wav, .mp3, .ogg, etc.)');
+        }
         event.target.value = ''; // Reset voor hergebruik
       }
     });
@@ -241,6 +250,45 @@ export function initializeAudioVideoEditor() {
       const markersToRestore = event.detail.restoreMarkers;
       
       await loadAudioFile(event.detail.file, markersToRestore);
+    }
+  });
+
+  // Event listener voor verwijderen van marker vanuit app.js (bij scene delete)
+  document.addEventListener('deleteMarkerFromApp', (event) => {
+    if (event.detail && event.detail.markerIndex !== undefined) {
+      const index = event.detail.markerIndex;
+      if (index >= 0 && index < editorMarkers.length) {
+        editorMarkers.splice(index, 1);
+        
+        // Re-index
+        editorMarkers.forEach((m, idx) => {
+          m.sceneIndex = idx;
+        });
+        
+        drawWaveform();
+        updateMarkersDisplay();
+      }
+    }
+  });
+  
+  // Event listener voor complete audio timeline clear
+  document.addEventListener('clearAudioTimeline', () => {
+    // Reset alle audio timeline data
+    editorMarkers = [];
+    editorAudioBuffer = null;
+    editorAudioFile = null;
+    editorAudioFileName = '';
+    
+    // Clear waveform
+    if (elements.waveformCanvas) {
+      const ctx = elements.waveformCanvas.getContext('2d');
+      ctx.clearRect(0, 0, elements.waveformCanvas.width, elements.waveformCanvas.height);
+    }
+    
+    // Update UI
+    updateMarkersDisplay();
+    if (elements.markersCount) {
+      elements.markersCount.textContent = '0 markers';
     }
   });
 }
@@ -1034,6 +1082,12 @@ function showMarkerSceneConfirmDialog(time) {
       m.sceneIndex = idx;
     });
     
+    // Dispatch event om scenes te updaten met nieuwe indices
+    const reindexEvent = new CustomEvent('markersReindexed', {
+      detail: { markers: editorMarkers.map(m => m.time) }
+    });
+    document.dispatchEvent(reindexEvent);
+    
     // Maak scene aan
     createSceneForMarker(newMarkerIndex);
     
@@ -1086,6 +1140,7 @@ function createSceneForMarker(markerIndex) {
     text: t('prompts.scene', {index: markerIndex + 1}),
     translation: "",
     audioMarkerIndex: markerIndex,
+    audioMarkerTime: time,  // Voeg marker tijd toe voor unieke identificatie
     isAudioLinked: true
   };
   
@@ -1114,6 +1169,12 @@ function addMarker(time) {
     m.sceneIndex = idx;
   });
 
+  // Dispatch event om scenes te updaten met nieuwe indices
+  const event = new CustomEvent('markersReindexed', {
+    detail: { markers: editorMarkers.map(m => m.time) }
+  });
+  document.dispatchEvent(event);
+
   drawWaveform();
   updateMarkersDisplay();
 }
@@ -1136,12 +1197,16 @@ function updateMarkersDisplay() {
     elements.markersList.appendChild(card);
   });
   
-  // Add inactive scenes (scenes zonder marker)
+  // Toon inactieve scenes (scenes die ontkoppeld zijn van markers)
+  // Toon ALLE scenes zonder actieve marker koppeling, ongeacht of ze ooit gekoppeld waren
   const inactiveScenes = getInactiveScenes();
+  
+  // Toon alle inactieve scenes - geen filter op audioMarkerTime of media
+  // Scenes kunnen aan timeline gekoppeld worden ongeacht of ze image/video hebben
   if (inactiveScenes.length > 0) {
     const separator = document.createElement('div');
     separator.style.cssText = 'margin: 1rem 0; padding: 0.5rem; background: var(--muted-bg); border-radius: 4px; font-size: 0.9rem; color: var(--muted);';
-    separator.textContent = `📋 Inactieve scenes (${inactiveScenes.length})`;
+    separator.textContent = `📋 Ontkoppelde scenes (${inactiveScenes.length})`;
     elements.markersList.appendChild(separator);
     
     inactiveScenes.forEach(scene => {
@@ -1376,16 +1441,16 @@ function openSceneEditor(markerIndex) {
 /**
  * Verwijder marker
  */
-function deleteMarker(index) {
-  editorMarkers.splice(index, 1);
-  
-  // Re-index
-  editorMarkers.forEach((m, idx) => {
-    m.sceneIndex = idx;
+export function deleteMarker(index) {
+  // Dispatch event naar app.js om marker uit projectData te verwijderen
+  // Dit zorgt ervoor dat de scene wordt ontkoppeld en projectData wordt bijgewerkt
+  const event = new CustomEvent('deleteMarkerRequest', {
+    detail: { markerIndex: index }
   });
-
-  drawWaveform();
-  updateMarkersDisplay();
+  document.dispatchEvent(event);
+  
+  // De rest gebeurt via de deleteMarkerFromApp event listener
+  // die de marker uit editorMarkers verwijdert na app.js cleanup
 }
 
 /**

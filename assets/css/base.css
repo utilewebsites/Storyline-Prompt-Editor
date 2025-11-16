@@ -1,0 +1,36 @@
+/* Basis CSS reset en globale styling */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: 600;
+}
+
+textarea,
+input,
+button,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+/* Utility classes */
+.hidden {
+  display: none !important;
+}
+
+.muted {
+  color: var(--muted);
+}

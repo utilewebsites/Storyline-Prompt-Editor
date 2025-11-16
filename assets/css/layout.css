@@ -1,0 +1,158 @@
+/* Header en layout structuur */
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 2px var(--shadow);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: all 0.3s ease;
+}
+
+.app-header.minimized {
+  padding: 0.5rem 1rem;
+  box-shadow: 0 1px 1px var(--shadow);
+}
+
+.app-header.minimized .title-group h1,
+.app-header.minimized .subtitle,
+.app-header.minimized .language-switch,
+.app-header.minimized .workflow-mode-switch {
+  display: none;
+}
+
+.app-header.minimized .header-actions {
+  margin-left: auto;
+}
+
+.title-group h1 {
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Dynamische save button (verschijnt bij project-header minimized) */
+#header-save-project {
+  display: none;
+}
+
+#header-save-project.visible {
+  display: inline-flex;
+}
+
+.language-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  margin-top: 0.35rem;
+}
+
+.language-switch span {
+  font-weight: 500;
+}
+
+.language-switch select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+#root-path {
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  min-height: calc(100vh - 92px);
+  transition: grid-template-columns 0.3s ease;
+}
+
+.layout.sidebar-collapsed {
+  grid-template-columns: 2.5rem 1fr;
+}
+
+.sidebar {
+  padding: 1.5rem;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  position: relative;
+  overflow: hidden;
+  transition: padding 0.3s ease;
+}
+
+.sidebar.collapsed {
+  padding: 0.5rem 0.25rem;
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.sidebar.collapsed .sidebar-content {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-toggle-inline {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 5;
+  background: var(--primary);
+  color: var(--primary-text);
+  border: 1px solid var(--primary);
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.sidebar.collapsed .sidebar-toggle-inline {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.workspace {
+  padding: 1.5rem 2rem;
+  overflow-y: auto;
+}
+
+.empty-state {
+  margin-top: 15vh;
+  text-align: center;
+  background: var(--bg-panel);
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 26px var(--shadow);
+}

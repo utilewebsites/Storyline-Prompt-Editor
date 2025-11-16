@@ -1,0 +1,124 @@
+/* Project lijst styling */
+.project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 48vh;
+  overflow-y: auto;
+}
+
+.project-item {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+  background: var(--bg);
+  display: grid;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.project-item:hover,
+.project-item.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(34, 81, 255, 0.15);
+}
+
+.project-item span {
+  font-size: 0.85rem;
+}
+
+.project-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 1rem;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.project-header.minimized {
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.project-header-toggle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  z-index: 2;
+  transition: all 0.2s ease;
+}
+
+.project-header.minimized .project-header-toggle {
+  display: none;
+}
+
+.project-header-toggle:hover {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.project-header-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  width: 100%;
+  transition: opacity 0.2s ease;
+}
+
+.project-header.minimized .project-header-content {
+  display: none;
+}
+
+.project-header.minimized .project-info {
+  display: none;
+}
+
+.project-header.minimized + .metadata {
+  display: none;
+}
+
+.project-meta {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.95rem;
+}
+
+.project-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Audio indicator in project list */
+.audio-indicator {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.project-item.has-audio-timeline {
+  border-left: 3px solid var(--primary);
+}
+
+.project-item.has-audio-timeline strong {
+  color: var(--primary);
+}

@@ -1,0 +1,587 @@
+/* Audio timeline componenten */
+#audio-timeline-info-badge {
+  display: none;
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #f44336;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(244, 67, 54, 0.5);
+  border: 2px solid white;
+  z-index: 100;
+  pointer-events: auto;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#audio-timeline-info-badge:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 8px rgba(244, 67, 54, 0.7);
+}
+
+#audio-timeline-info-badge.visible {
+  display: block !important;
+}
+
+.audio-timeline-container,
+#presentation-audio-timeline-container {
+  display: none;
+  flex-direction: column;
+  gap: 1rem;
+  flex: 1;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.presentation-footer.audio-mode .audio-timeline-container,
+.presentation-footer.audio-mode #presentation-audio-timeline-container {
+  display: flex;
+}
+
+.presentation-footer.audio-mode #presentation-prev,
+.presentation-footer.audio-mode #presentation-next,
+.presentation-footer.audio-mode .presentation-progress,
+.presentation-footer.audio-mode .video-timeline-container {
+  display: none;
+}
+
+.audio-timeline-container {
+  background: var(--bg-body);
+  border: 2px solid var(--primary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: block;
+}
+
+.audio-timeline-container.hidden {
+  display: none !important;
+}
+
+.audio-timeline-header h4 {
+  margin: 0 0 0.5rem 0;
+  color: var(--primary);
+}
+
+.audio-timeline-header p {
+  margin: 0 0 1rem 0;
+}
+
+.audio-upload-section {
+  margin-bottom: 1rem;
+}
+
+.audio-player-container {
+  margin: 1rem 0;
+}
+
+.audio-player-container audio {
+  width: 100%;
+  margin-bottom: 1rem;
+}
+
+.audio-waveform-container {
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 1rem;
+  margin: 1rem 0;
+  cursor: crosshair;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+#audio-waveform {
+  width: 100%;
+  height: 150px;
+  display: block;
+  cursor: crosshair;
+  user-select: none;
+}
+
+#audio-waveform:active {
+  cursor: grabbing;
+}
+
+.audio-markers-section {
+  margin: 1.5rem 0 0 0;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.audio-markers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.audio-markers-header h5 {
+  margin: 0;
+}
+
+.audio-markers-list {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1rem 0.5rem;
+  width: 100%;
+  max-width: 100%;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+
+.audio-markers-list::-webkit-scrollbar {
+  height: 8px;
+}
+
+.audio-markers-list::-webkit-scrollbar-track {
+  background: var(--bg-panel);
+  border-radius: 4px;
+}
+
+.audio-markers-list::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.audio-markers-list::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+.audio-marker-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: grab;
+  transition: all 0.2s ease;
+  min-width: 280px;
+  max-width: 320px;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  scroll-snap-align: start;
+}
+
+.audio-marker-item.unlinked-scene-item {
+  background: var(--bg-panel);
+  border: 1px dashed var(--muted);
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.audio-marker-item.unlinked-scene-item:hover {
+  opacity: 1;
+  border-color: var(--primary);
+  background: rgba(58, 109, 240, 0.05);
+  box-shadow: 0 0 0 2px rgba(34, 81, 255, 0.12);
+}
+
+.audio-marker-item:active {
+  cursor: grabbing;
+}
+
+.audio-marker-item[draggable="true"]:hover {
+  background: rgba(58, 109, 240, 0.05);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(34, 81, 255, 0.12);
+}
+
+.marker-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.marker-item-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.marker-drag-handle {
+  color: var(--muted);
+  font-size: 1.2rem;
+  cursor: grab;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.marker-drag-handle:active {
+  cursor: grabbing;
+}
+
+.marker-number {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  font-size: 1.05rem;
+}
+
+.marker-time {
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  font-size: 0.95rem;
+  padding: 0.5rem;
+  background: var(--bg-panel);
+  border-radius: 6px;
+  display: block;
+}
+
+.marker-time.editable-time {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.marker-time.editable-time:hover {
+  color: var(--primary);
+  background: rgba(58, 109, 240, 0.1);
+}
+
+.marker-duration {
+  color: var(--primary);
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  text-align: center;
+  padding: 0.5rem;
+  background: rgba(58, 109, 240, 0.1);
+  border-radius: 6px;
+}
+
+.edit-marker-scene {
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  min-width: 36px;
+  text-align: center;
+}
+
+.edit-marker-scene:hover {
+  background: rgba(58, 109, 240, 0.15);
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.remove-marker {
+  padding: 0.4rem 0.6rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  min-width: 36px;
+  text-align: center;
+}
+
+.remove-marker:hover {
+  background: rgba(255, 59, 48, 0.15);
+  border-color: #FF3B30;
+  transform: scale(1.05);
+}
+
+.link-scene-btn {
+  padding: 0.4rem 0.6rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  min-width: 36px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.link-scene-btn:hover {
+  background: var(--primary-hover);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(58, 109, 240, 0.3);
+}
+
+.audio-timeline-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: flex-end;
+}
+
+#toggle-audio-timeline.has-audio {
+  background: linear-gradient(135deg, var(--primary), #4a7bff);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+}
+
+#toggle-audio-timeline.has-audio:hover {
+  box-shadow: 0 6px 16px rgba(58, 109, 240, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Audio player in presentation */
+.presentation-audio-player {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--bg-panel);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.audio-play-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.audio-play-btn:hover {
+  transform: scale(1.1);
+  background: var(--primary-hover);
+}
+
+.audio-play-btn:active {
+  transform: scale(0.95);
+}
+
+.audio-time-display {
+  font-family: 'SF Mono', 'Monaco', 'Menlo', monospace;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  min-width: 45px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.presentation-waveform-container {
+  position: relative;
+  flex: 1;
+  height: 60px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid var(--border);
+}
+
+#presentation-waveform {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.presentation-playhead {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--primary);
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(0, 122, 255, 0.5);
+}
+
+.presentation-audio-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.presentation-marker-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: rgba(255, 59, 48, 0.6);
+  z-index: 5;
+}
+
+.presentation-marker-line.active {
+  background: #FF3B30;
+  width: 3px;
+  box-shadow: 0 0 8px rgba(255, 59, 48, 0.8);
+}
+
+.presentation-marker-label {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 59, 48, 0.9);
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 6;
+  font-weight: 600;
+}
+
+.presentation-marker-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+}
+
+.presentation-marker-btn {
+  padding: 0.5rem 1rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: all 0.2s;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.presentation-marker-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.presentation-marker-btn.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+  font-weight: 600;
+}
+
+.presentation-marker-btn:active {
+  transform: translateY(0);
+}
+
+.audio-timeline-slider-container {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+}
+
+#audio-timeline-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+#audio-timeline-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+#audio-timeline-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.3);
+}
+
+#audio-timeline-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+  transition: transform 0.2s;
+}
+
+#audio-timeline-slider::-moz-range-thumb:hover {
+  transform: scale(1.3);
+}
+
+.audio-timeline-markers {
+  position: absolute;
+  top: -24px;
+  left: 0;
+  right: 0;
+  height: 20px;
+  pointer-events: none;
+}
+
+.audio-marker {
+  position: absolute;
+  width: 2px;
+  height: 20px;
+  background: rgba(255, 59, 48, 0.4);
+  transform: translateX(-50%);
+}
+
+.audio-marker.active {
+  background: #FF3B30;
+  height: 24px;
+  width: 3px;
+}
+
+#presentation-audio {
+  border-radius: 8px;
+  background: var(--bg-panel);
+}

@@ -1,0 +1,27 @@
+/* CSS Variabelen en root configuratie */
+:root {
+  color-scheme: dark;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  line-height: 1.4;
+  
+  /* Kleuren */
+  --bg: #141419;
+  --bg-panel: #1f1f26;
+  --bg-secondary: #1f1f26;
+  --bg-body: #141419;
+  --bg-hover: #2d2d36;
+  --border: #2d2d36;
+  --border-color: #2d2d36;
+  --text: #e4e4e7;
+  --text-primary: #e4e4e7;
+  --text-secondary: #9b9ba6;
+  --muted: #9b9ba6;
+  --text-muted: #9b9ba6;
+  --primary: #3a6df0;
+  --primary-color: #3a6df0;
+  --primary-hover: #4e7ef8;
+  --primary-text: #ffffff;
+  --primary-rgb: 58, 109, 240;
+  --shadow: rgba(0, 0, 0, 0.4);
+}

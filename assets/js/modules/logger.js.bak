@@ -60,6 +60,7 @@ export async function log(message, data = null) {
   logLine += '\n';
   
   // ALTIJD naar console voor real-time debugging
+  console.log(`📝 LOG: ${message}`, data !== null ? data : '');
   
   // Buffer de logs
   logBuffer.push(logLine);

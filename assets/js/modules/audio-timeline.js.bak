@@ -576,6 +576,7 @@ function addStartMarker() {
     createSceneForMarker(markerIndex);
   }
   
+  console.log("Start marker toegevoegd op 0:00");
 }
 
 /**
@@ -842,6 +843,7 @@ function showMarkersOnly() {
  */
 function showUnlinkedScenes() {
   // Deze functie doet niets meer - alle scenes worden nu getoond in updateMarkersDisplay()
+  console.log("showUnlinkedScenes: DEPRECATED - wordt niet meer gebruikt");
 }
 
 // Pending scene to link (voor click-to-place marker)
@@ -1322,6 +1324,7 @@ async function saveAudioToProject(file) {
     await writable.write(file);
     await writable.close();
     
+    console.log("Audio opgeslagen:", file.name);
   } catch (error) {
     console.error("Fout bij opslaan audio:", error);
   }
@@ -1436,6 +1439,7 @@ export function updateAudioMarkerTime(markerIndex, newTime) {
     redrawWaveform();
     refreshMarkersDisplay();
     
+    console.log(`🔄 Updated marker ${markerIndex} to ${newTime.toFixed(2)}s`);
   }
 }
 

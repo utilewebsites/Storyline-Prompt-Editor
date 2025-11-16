@@ -9,6 +9,19 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ## update — 16 november 2025
 
+Gezien onze workflows bij playanote.nl, waarin veelal vanuit een audiobestand een video wordt opgebouwd, hebben we een speciale editor toegevoegd om snel een storyline op te zetten. Je kunt een audiobestand inladen en scènes eraan koppelen, waardoor je eenvoudig storyboards maakt voor zowel greenscreen-opnamen als prompts voor een AI-video-server. Dit versnelt de productie aanzienlijk en is nuttig voor teams en makers die een op audio gebaseerde 4.0 video-workflow hanteren.
+
+Wil je de tool direct proberen zonder installatie? Stuur ons via een van onze platformen een e-mail; we sturen je dan een URL (en inlog) zodat je meteen aan de slag kunt.
+
+Privacy en veiligheid: de editor werkt volledig lokaal met de File System Access (in chrome) — er worden geen projectbestanden naar onze servers geüpload of opgeslagen. Alle gegevens blijven in de map op jouw computer.
+
+**Code Refactoring & Optimalisatie:**
+- **Modulaire architectuur**: app.js opgesplitst in 25 ES6 modules voor betere onderhoudbaarheid en overzichtelijkheid
+- **UI minimalisatie**: toggle knoppen om header, sidebar en project-header te minimaliseren voor maximale werkruimte
+![Storyline Prompt Editor Screenshot](docs/images/minimal.png)
+- **Audio timeline verbeteringen**: scenes zonder media kunnen nu gekoppeld worden aan audio markers, orphaned markers worden automatisch opgeschoond
+- **Bug fixes**: rating synchronisatie tussen card en dialog, scene-marker consistency bij verwijderen, duplicate marker warnings verwijderd
+
 **Professionele Audio/Video Timeline Editor:**
 - **Fullscreen editor**: nieuwe Final Cut Pro-achtige interface met grote waveform, preview canvas en tijdlijn scrubbing voor professionele audio/video editing.
 - **GPU-versnelde playhead**: soepel slepen door audio met instant visuele feedback. Muziek pauzeert automatisch tijdens scrubbing en hervat op nieuw punt bij loslaten.
@@ -142,14 +155,59 @@ Ik heb de editor ontwikkeld als handige hulp bij het bouwen van videoprompts. Do
 storylineprompteditor/
 ├─ assets/
 │  ├─ css/
-│  │  └─ style.css           # Stylesheet
+│  │  ├─ style.css                    # Hoofd stylesheet
+│  │  ├─ variables.css                # CSS variabelen (kleuren, spacing)
+│  │  ├─ base.css                     # Reset & basis styles
+│  │  ├─ layout.css                   # Grid & flex layouts
+│  │  ├─ buttons.css                  # Knop styles
+│  │  ├─ forms.css                    # Formulier elementen
+│  │  ├─ dialogs.css                  # Modale dialogen
+│  │  ├─ panels.css                   # Side panels
+│  │  ├─ projects.css                 # Project lijst & cards
+│  │  ├─ prompt-cards.css             # Scene kaart styles
+│  │  ├─ media-upload.css             # Upload & preview componenten
+│  │  ├─ presentation.css             # Presentatiemodus
+│  │  ├─ audio-timeline.css           # Audio timeline editor
+│  │  ├─ transitions.css              # Scene transitie editor
+│  │  ├─ attachments.css              # Attachments interface
+│  │  ├─ fullscreen-editor.css        # Fullscreen audio/video editor
+│  │  ├─ help-system.css              # Help tooltips & badges
+│  │  └─ responsive.css               # Mobile responsiveness
 │  └─ js/
-│     ├─ app.js              # Applicatielogica
-│     └─ translations.js     # Taaldefinities (NL/EN)
-├─ server.sh                 # Start/stop script voor lokale server
-├─ index.html                # Ingang van de applicatie
-├─ README.md                 # Engelstalige uitleg
-└─ README.nl.md              # Deze Nederlandstalige uitleg
+│     ├─ app.js                       # Hoofd applicatielogica & event wiring
+│     ├─ translations.js              # Taaldefinities (NL/EN)
+│     └─ modules/
+│        ├─ state.js                  # Centrale state management
+│        ├─ i18n.js                   # Internationalisatie & vertaling
+│        ├─ constants.js              # Applicatie constanten
+│        ├─ file-system.js            # File System Access API wrappers
+│        ├─ utils.js                  # UUID, slugify, datum, JSON I/O
+│        ├─ dialogs.js                # showError, showSuccess
+│        ├─ dom-helpers.js            # DOM utilities & applyTranslations
+│        ├─ ui-rendering.js           # UI component rendering
+│        ├─ project-manager.js        # Project sync & structuur
+│        ├─ project-operations.js     # Project CRUD operaties
+│        ├─ project-actions.js        # Project acties (deprecated)
+│        ├─ scenes.js                 # Scene/prompt management
+│        ├─ scene-actions.js          # Scene CRUD wrappers
+│        ├─ scene-copy.js             # Scene kopiëren tussen projecten
+│        ├─ media-handlers.js         # Image/video upload & preview
+│        ├─ upload-handlers.js        # Media upload wrappers
+│        ├─ attachments.js            # File attachments per scene
+│        ├─ presentation.js           # Fullscreen presentatiemodus
+│        ├─ transitions.js            # Scene transitie management
+│        ├─ audio-timeline.js         # Audio timeline (deprecated)
+│        ├─ audio-video-editor.js     # Audio/video timeline editor
+│        ├─ drag-drop.js              # Drag & drop card reordering
+│        ├─ export-handlers.js        # Export prompts, images, notes
+│        ├─ help.js                   # Contextueel help systeem
+│        └─ logger.js                 # Debug logging (opt-in)
+├─ docs/
+│  └─ images/                         # Screenshots voor README
+├─ server.sh                          # Start/stop script voor lokale server
+├─ index.html                         # Ingang van de applicatie
+├─ README.md                          # Engelstalige uitleg
+└─ README.nl.md                       # Deze Nederlandstalige uitleg
 ```
 
 ## Aan de slag

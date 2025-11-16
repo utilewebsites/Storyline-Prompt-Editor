@@ -1,0 +1,303 @@
+/* Dialog styling */
+dialog {
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  max-width: 420px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+dialog#prompt-dialog {
+  max-width: none !important;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.export-dialog {
+  padding: 1.8rem;
+  display: grid;
+  gap: 1rem;
+}
+
+.copy-dialog {
+  padding: 2rem;
+  display: grid;
+  gap: 1.5rem;
+}
+
+.copy-dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+/* Export choice dialog */
+.export-choice-dialog {
+  padding: 1rem 1.2rem;
+  max-width: 420px;
+}
+
+.export-choice-dialog h3 {
+  margin: 0 0 0.35rem 0;
+  font-size: 1rem;
+}
+
+.export-choice-dialog p {
+  margin: 0 0 0.6rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.export-choice-dialog menu {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}
+
+.export-choice-dialog menu button {
+  padding: 0.45rem 0.7rem;
+  font-size: 0.95rem;
+}
+
+/* Export preview dialog */
+.export-preview-dialog {
+  padding: 1.25rem 1.5rem;
+  max-width: 720px;
+}
+
+.export-preview-dialog h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.05rem;
+}
+
+.export-preview-dialog #export-preview-info {
+  margin: 0 0 0.75rem 0;
+  color: var(--muted);
+}
+
+.export-preview-dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+#export-preview-text {
+  width: 100%;
+  resize: vertical;
+  min-height: 200px;
+  padding: 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-family: "Fira Code", Consolas, "Courier New", monospace;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+/* Prompt edit dialog */
+dialog#prompt-dialog .prompt-dialog {
+  padding: 2rem !important;
+  display: grid;
+  gap: 1.2rem;
+  max-width: 1500px !important;
+  max-height: 95vh;
+  overflow-y: auto;
+  width: 1300px !important;
+  min-height: 85vh;
+}
+
+.prompt-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dialog-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.dialog-nav-btn {
+  padding: 0.35rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.1rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-nav-btn:hover:not(:disabled) {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: white;
+  transform: scale(1.1);
+}
+
+.dialog-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.prompt-dialog-header menu {
+  display: flex;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+}
+
+.prompt-dialog-header button {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+/* Dialog layout */
+dialog#prompt-dialog form.prompt-dialog .prompt-dialog-body {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 2rem !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  width: 500px !important;
+  min-width: 500px !important;
+  max-width: 500px !important;
+  flex-shrink: 0 !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .dialog-image-preview,
+dialog#prompt-dialog form.prompt-dialog .dialog-video-preview {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  flex-shrink: 0 !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content > label {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  margin-bottom: 1.5rem !important;
+  clear: both !important;
+  float: none !important;
+  gap: 0.5rem !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content > label:last-child {
+  margin-bottom: 0 !important;
+}
+
+#prompt-dialog .prompt-dialog-content textarea {
+  width: 100% !important;
+  min-height: 140px !important;
+  padding: 1.2rem !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--bg) !important;
+  font-family: inherit !important;
+  font-size: 1rem !important;
+  line-height: 1.5 !important;
+  resize: vertical !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  margin-top: 0.5rem !important;
+}
+
+#prompt-dialog textarea#dialog-text {
+  min-height: 180px !important;
+}
+
+#prompt-dialog textarea#dialog-translation {
+  min-height: 160px !important;
+}
+
+#dialog-text {
+  min-height: 180px;
+}
+
+#dialog-translation {
+  min-height: 160px;
+}
+
+.dialog-image-preview {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  min-height: 400px;
+  height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+}
+
+.dialog-image-preview img {
+  max-width: 100%;
+  max-height: 350px;
+  object-fit: contain;
+  display: none;
+}
+
+.dialog-image-preview[data-has-image="true"] img {
+  display: block;
+}
+
+.dialog-image-preview[data-has-image="true"] #dialog-image-placeholder {
+  display: none;
+}
+
+.dialog-video-preview {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  min-height: 250px;
+  height: 350px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  position: relative;
+  margin-top: 1rem;
+}
+
+.dialog-video-preview video {
+  max-width: 100%;
+  max-height: 330px;
+  object-fit: contain;
+  display: none;
+}
+
+.dialog-video-preview[data-has-video="true"] video {
+  display: block;
+}
+
+.dialog-video-preview[data-has-video="true"] #dialog-video-placeholder {
+  display: none;
+}

@@ -1,0 +1,64 @@
+/* Form elementen styling */
+.form-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.92rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field span {
+  font-weight: 500;
+}
+
+.field textarea {
+  min-height: 80px;
+}
+
+input[type="text"],
+textarea {
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  resize: vertical;
+}
+
+input:disabled {
+  opacity: 0.7;
+}
+
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.metadata label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+/* Input wrapper for help icons on form fields */
+.input-with-help {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.input-with-help textarea,
+.input-with-help input {
+  width: 100%;
+  box-sizing: border-box;
+}

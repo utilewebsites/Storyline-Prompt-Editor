@@ -1,0 +1,186 @@
+/* Responsive media queries */
+
+/* Dialog responsive */
+@media (max-width: 1400px) {
+  dialog#prompt-dialog .prompt-dialog {
+    width: 95vw !important;
+  }
+  
+  dialog#prompt-dialog .dialog-image-preview {
+    flex: 0 0 400px;
+  }
+  
+  dialog#prompt-dialog .prompt-dialog-body {
+    gap: 1.5rem;
+  }
+}
+
+/* Layout responsive */
+@media (max-width: 1080px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 720px) {
+  .metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .project-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .prompts-container {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .prompt-card {
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* Presentation responsive */
+@media (max-width: 1024px) {
+  .presentation-slide {
+    padding: 1.5rem;
+    gap: 1rem;
+  }
+
+  .slide-image-container {
+    min-height: 250px;
+  }
+
+  #presentation-image {
+    max-height: 300px;
+  }
+
+  .presentation-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 900px) {
+  #presentation-traditional-fields {
+    grid-template-columns: 1fr;
+  }
+  
+  #presentation-traditional-fields .slide-text:last-child {
+    grid-column: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  #presentation-dialog {
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+  }
+
+  .presentation-form {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .presentation-header {
+    padding: 1rem;
+  }
+
+  .presentation-title h3 {
+    font-size: 1rem;
+  }
+
+  .presentation-slide {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .slide-image-container {
+    min-height: 200px;
+  }
+
+  #presentation-image {
+    max-height: 250px;
+  }
+
+  .presentation-footer {
+    gap: 0.5rem;
+    padding: 1rem;
+  }
+
+  #presentation-prev,
+  #presentation-next {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .presentation-progress {
+    height: 3px;
+  }
+}
+
+/* Fullscreen editor responsive */
+@media (max-height: 900px) {
+  .editor-preview-section {
+    max-height: 20vh;
+    min-height: 150px;
+  }
+  
+  .timeline-waveform-container {
+    max-height: 120px;
+  }
+  
+  .waveform-wrapper {
+    min-height: 60px;
+    max-height: 80px;
+  }
+}
+
+@media (max-height: 800px) {
+  .editor-preview-section {
+    max-height: 25vh;
+  }
+  
+  .timeline-waveform-container {
+    max-height: 120px;
+  }
+  
+  .waveform-wrapper {
+    min-height: 60px;
+    max-height: 80px;
+  }
+  
+  .editor-header {
+    padding: 0.75rem 1.5rem;
+  }
+  
+  .editor-title h2 {
+    font-size: 1.25rem;
+  }
+  
+  .editor-subtitle {
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 1200px) {
+  .editor-preview-section {
+    flex-direction: column;
+    height: auto;
+    min-height: 400px;
+  }
+  
+  .scene-info-panel {
+    min-width: 100%;
+  }
+}

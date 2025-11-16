@@ -1,0 +1,193 @@
+/* Media upload componenten (image en video) */
+.image-uploader {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.image-preview {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg-panel);
+  position: relative;
+}
+
+.image-preview img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  display: none;
+}
+
+.image-preview .placeholder {
+  color: var(--muted);
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.image-uploader[data-has-image="true"] .placeholder {
+  display: none;
+}
+
+.image-uploader[data-has-image="true"] img {
+  display: block;
+}
+
+.image-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.upload-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.upload-button input {
+  display: none;
+}
+
+.remove-image {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  color: var(--muted);
+}
+
+.remove-image:hover {
+  color: #d9534f;
+}
+
+/* Video uploader styling */
+.video-uploader {
+  gap: 0.75rem;
+}
+
+.video-uploader.drag-over,
+.image-uploader.drag-over {
+  border-color: var(--primary);
+  border-style: solid;
+  background-color: rgba(34, 81, 255, 0.05);
+}
+
+.video-preview {
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--bg-panel);
+  position: relative;
+}
+
+.video-preview video {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  display: none;
+}
+
+.video-preview .placeholder {
+  color: var(--muted);
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.video-uploader[data-has-video="true"] .placeholder {
+  display: none;
+}
+
+.video-uploader[data-has-video="true"] video {
+  display: block;
+}
+
+.video-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.remove-video {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  color: var(--muted);
+}
+
+.remove-video:hover {
+  color: #d9534f;
+}
+
+/* Media toggle (image/video keuze) */
+.media-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.5rem;
+}
+
+.media-toggle button {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.media-toggle button.active {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+
+.media-toggle button:hover:not(.active) {
+  background: var(--border);
+}
+
+/* Media sections (image en video uploader) */
+.media-section {
+  display: none;
+}
+
+.media-section[data-active="true"] {
+  display: grid;
+  gap: 0.75rem;
+}
+
+/* Media view modes */
+.prompts-container.media-view-images .prompt-card .image-uploader {
+  display: grid !important;
+  gap: 0.75rem;
+}
+
+.prompts-container.media-view-images .prompt-card .video-uploader {
+  display: none !important;
+}
+
+.prompts-container.media-view-videos .prompt-card .video-uploader {
+  display: grid !important;
+  gap: 0.75rem;
+}
+
+.prompts-container.media-view-videos .prompt-card .image-uploader {
+  display: none !important;
+}
+
+/* Media toggle group */
+.media-toggle-group {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}

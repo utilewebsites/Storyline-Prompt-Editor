@@ -1,0 +1,249 @@
+/* Transitions styling tussen scenes */
+.transition-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.transition-button {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg-panel);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.transition-button:hover {
+  border-color: var(--primary);
+  background: var(--bg);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+}
+
+.transition-button:active {
+  transform: scale(1.05);
+}
+
+.transition-icon {
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.transition-button:hover .transition-icon {
+  color: var(--primary);
+}
+
+.transition-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.transition-indicator.empty {
+  background-color: #5a5a66;
+}
+
+.transition-indicator.filled {
+  background-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.transition-button:hover .transition-indicator.filled {
+  transform: scale(1.2);
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+/* Transition Dialog */
+.transition-dialog {
+  max-width: 650px;
+  width: 90vw;
+  max-height: 85vh;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  background: var(--bg-panel);
+  color: var(--text);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.transition-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7) !important;
+}
+
+.transition-dialog .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.transition-dialog .dialog-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text);
+}
+
+.transition-dialog .close-dialog {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.transition-dialog .close-dialog:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+.transition-dialog .dialog-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  max-height: calc(85vh - 160px);
+}
+
+.transition-help {
+  margin: 0 0 1.5rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 1rem;
+  background: rgba(58, 109, 240, 0.1);
+  border-left: 3px solid var(--primary);
+  border-radius: 4px;
+}
+
+.transition-dialog label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.label-hint {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: normal;
+  margin-top: 0.25rem;
+}
+
+.transition-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  transition: border-color 0.2s ease;
+}
+
+.transition-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(58, 109, 240, 0.1);
+}
+
+.transition-textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.transition-examples {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.transition-examples strong {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.transition-examples ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
+.transition-examples li {
+  margin-bottom: 0.5rem;
+}
+
+.transition-examples li strong {
+  display: inline;
+  color: var(--primary);
+  font-size: inherit;
+  margin: 0;
+}
+
+.transition-dialog .dialog-footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.transition-dialog .dialog-footer button {
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.transition-dialog .btn-cancel,
+.transition-dialog .btn-clear {
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.transition-dialog .btn-cancel:hover,
+.transition-dialog .btn-clear:hover {
+  background: var(--border);
+}
+
+.transition-dialog .btn-save {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.transition-dialog .btn-save:hover {
+  background: #4e7ef8;
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+}
