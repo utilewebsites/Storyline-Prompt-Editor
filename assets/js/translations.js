@@ -76,6 +76,16 @@ const translations = {
       markers: "Markers / Scenes",
       generateScenes: "✨ Genereer Scenes",
       close: "✕ Sluit Audio Timeline",
+      noAudio: "Geen audio",
+      noSceneSelected: "Geen scene geselecteerd",
+      infoDialog: {
+        title: "ℹ️ Audio Timeline - Volgorde van Scenes",
+        importantInfo: "Belangrijke informatie:",
+        description: "Wanneer je de Audio Timeline gebruikt, wordt de volgorde van scenes automatisch bepaald door de tijdstempel van de markers op de audio waveform.",
+        howToReorder: "Hoe pas je de volgorde aan?",
+        reorderInstructions: "Sleep markers op de waveform naar een andere tijdspositie. De scenes zullen automatisch opnieuw worden gesorteerd op basis van de nieuwe marker tijden.",
+        understood: "Begrepen",
+      },
     },
     prompt: {
       open: "🔍",
@@ -322,6 +332,16 @@ const translations = {
       markers: "Markers / Scenes",
       generateScenes: "✨ Generate Scenes",
       close: "✕ Close Audio Timeline",
+      noAudio: "No audio",
+      noSceneSelected: "No scene selected",
+      infoDialog: {
+        title: "ℹ️ Audio Timeline - Scene Order",
+        importantInfo: "Important information:",
+        description: "When you use the Audio Timeline, the order of scenes is automatically determined by the timestamp of the markers on the audio waveform.",
+        howToReorder: "How to reorder scenes?",
+        reorderInstructions: "Drag markers on the waveform to a different time position. The scenes will automatically be re-sorted based on the new marker times.",
+        understood: "Got it",
+      },
     },
     prompt: {
       open: "🔍",

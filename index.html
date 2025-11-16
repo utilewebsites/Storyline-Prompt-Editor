@@ -151,6 +151,10 @@
             <header class="prompts-header">
               <h3 data-i18n="prompts.title">Prompts</h3>
               <div class="prompts-header-actions">
+                <div class="media-toggle-group">
+                  <button id="show-all-images" class="media-toggle active" title="Toon alle afbeeldingen">🖼️ Afbeeldingen</button>
+                  <button id="show-all-videos" class="media-toggle" title="Toon alle video's">🎬 Video's</button>
+                </div>
                 <button id="toggle-audio-timeline" class="secondary" data-i18n="prompts.audioTimeline" data-help="help.audioTimeline" style="position: relative;">
                   🎵 Audio Timeline
                   <span id="audio-timeline-info-badge">!</span>
@@ -160,40 +164,9 @@
             </header>
             
             <!-- Audio Timeline Container (verborgen by default) -->
-            <div id="audio-timeline-container" class="audio-timeline-container hidden">
-              <div class="audio-timeline-header">
-                <h4 data-i18n="audioTimeline.title">🎵 Audio Timeline Mode</h4>
-                <p class="muted" data-i18n="audioTimeline.help">
-                  Upload een audiobestand en klik op punten in de waveform om automatisch scenes toe te voegen.
-                </p>
-              </div>
-              
-              <div class="audio-upload-section">
-                <button id="upload-audio-timeline" class="primary" data-i18n="audioTimeline.upload">
-                  📁 Upload Audio
-                </button>
-                <input type="file" id="audio-timeline-input" accept="audio/*" style="display: none;" />
-              </div>
-              
-              <div id="audio-player-container" class="audio-player-container"></div>
-              
-              <div class="audio-waveform-container">
-                <canvas id="audio-waveform" width="800" height="150"></canvas>
-              </div>
-              
-              <div class="audio-markers-section">
-                <div class="audio-markers-header">
-                  <h5 data-i18n="audioTimeline.markers">Markers / Scenes</h5>
-                  <!-- Generate Scenes button verwijderd - scenes worden automatisch aangemaakt -->
-                </div>
-                <div id="audio-markers-list" class="audio-markers-list"></div>
-              </div>
-              
-              <div class="audio-timeline-actions">
-                <button id="close-audio-timeline" class="secondary" data-i18n="audioTimeline.close">
-                  ✕ Sluit Audio Timeline
-                </button>
-              </div>
+            <!-- Audio Timeline Button - opent fullscreen dialog -->
+            <div class="audio-timeline-trigger">
+              <!-- Bestaande button blijft, opent nu dialog -->
             </div>
             
             <p class="muted" id="prompts-help" data-i18n="prompts.help">
@@ -240,6 +213,7 @@
         <div class="media-toggle">
           <button type="button" class="toggle-image active" data-media-type="image">🖼️ Afbeelding</button>
           <button type="button" class="toggle-video" data-media-type="video">🎬 Video</button>
+          <button type="button" class="attachment-button" title="Bijlagen (max 8)">📎</button>
         </div>
         <div class="image-uploader media-section" data-has-image="false" data-active="true">
           <div class="image-preview">
@@ -333,6 +307,25 @@
             <div class="rating" aria-label="Rating" role="group"></div>
           </label>
         </div>
+        
+        <!-- Attachments Dialog -->
+        <dialog class="attachments-dialog">
+          <div class="dialog-header">
+            <h3>📎 Bijlagen (max 8)</h3>
+            <button type="button" class="close-attachments" title="Sluiten">×</button>
+          </div>
+          <div class="attachment-dropzone">
+            <p>Sleep bestanden hierheen of klik op "Kies bestanden"</p>
+            <p class="dropzone-hint">Ondersteund: afbeeldingen, video's, audio, .txt bestanden</p>
+            <label class="upload-button">
+              📁 Kies bestanden
+              <input type="file" class="attachment-input" multiple accept="image/*,video/*,audio/*,.txt,.wav,.mp3,text/plain" />
+            </label>
+          </div>
+          <div class="attachments-gallery-wrapper">
+            <div class="attachments-grid"></div>
+          </div>
+        </dialog>
       </article>
     </template>
 
@@ -439,19 +432,123 @@
 
     <dialog id="audio-timeline-info-dialog">
       <form method="dialog" class="export-dialog">
-        <h3>ℹ️ Audio Timeline - Volgorde van Scenes</h3>
+        <h3 data-i18n="audioTimeline.infoDialog.title">ℹ️ Audio Timeline - Volgorde van Scenes</h3>
         <p style="line-height: 1.6; margin: 15px 0;">
-          <strong>Belangrijke informatie:</strong><br><br>
-          Wanneer je de Audio Timeline gebruikt, wordt de <strong>volgorde van scenes automatisch bepaald door de tijdstempel van de markers</strong> op de audio waveform.
+          <strong data-i18n="audioTimeline.infoDialog.importantInfo">Belangrijke informatie:</strong><br><br>
+          <span data-i18n="audioTimeline.infoDialog.description">Wanneer je de Audio Timeline gebruikt, wordt de volgorde van scenes automatisch bepaald door de tijdstempel van de markers op de audio waveform.</span>
         </p>
         <p style="line-height: 1.6; margin: 15px 0;">
-          <strong>Hoe pas je de volgorde aan?</strong><br>
-          Sleep markers op de waveform naar een andere tijdspositie. De scenes zullen automatisch opnieuw worden gesorteerd op basis van de nieuwe marker tijden.
+          <strong data-i18n="audioTimeline.infoDialog.howToReorder">Hoe pas je de volgorde aan?</strong><br>
+          <span data-i18n="audioTimeline.infoDialog.reorderInstructions">Sleep markers op de waveform naar een andere tijdspositie. De scenes zullen automatisch opnieuw worden gesorteerd op basis van de nieuwe marker tijden.</span>
         </p>
         <menu>
-          <button value="ok" class="primary">Begrepen</button>
+          <button value="ok" class="primary" data-i18n="audioTimeline.infoDialog.understood">Begrepen</button>
         </menu>
       </form>
+    </dialog>
+
+    <!-- ============================================================================
+         FULLSCREEN AUDIO/VIDEO TIMELINE EDITOR
+         ============================================================================ -->
+    <dialog id="audio-timeline-editor-dialog" class="fullscreen-editor-dialog">
+      <div class="editor-container">
+        <!-- Header met close button -->
+        <div class="editor-header">
+          <div class="editor-title">
+            <h2>🎬 Audio Timeline Editor</h2>
+            <p class="editor-subtitle">Video editor interface voor scene timing en preview</p>
+          </div>
+          <button id="close-audio-editor" class="close-editor-btn" type="button" title="Sluit editor">✕</button>
+        </div>
+
+        <!-- Main content: Preview boven, Timeline onder -->
+        <div class="editor-main">
+          <!-- Preview venster (zoals Final Cut Pro) -->
+          <div class="editor-preview-section">
+            <div class="preview-window">
+              <div id="editor-preview-canvas" class="preview-canvas">
+                <!-- Hier komt de preview van image/video per scene -->
+                <div class="preview-placeholder">
+                  <span class="preview-icon">🎬</span>
+                  <p>Preview venster</p>
+                  <p class="preview-hint">Upload audio en plaats markers om te beginnen</p>
+                </div>
+              </div>
+              
+              <!-- Preview controls -->
+              <div class="preview-controls">
+                <button id="preview-play-pause" class="preview-btn" disabled>
+                  <span class="play-icon">▶</span>
+                </button>
+                <div class="preview-time-display">
+                  <span id="preview-current-time">00:00.000</span>
+                  <span class="time-separator">/</span>
+                  <span id="preview-total-time">00:00.000</span>
+                </div>
+                <div class="preview-volume">
+                  <button id="preview-mute" class="preview-btn-small">🔊</button>
+                  <input type="range" id="preview-volume-slider" min="0" max="100" value="100" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Scene info panel -->
+            <div class="scene-info-panel">
+              <h4>Huidige Scene</h4>
+              <div id="current-scene-info" class="scene-info-content">
+                <p class="muted">Geen scene geselecteerd</p>
+              </div>
+              <div class="scene-media-toggle" id="scene-media-toggle" style="display: none;">
+                <label>
+                  <strong>Toon tijdens scene:</strong>
+                </label>
+                <div class="media-type-buttons">
+                  <button class="media-type-btn active" data-type="image">🖼️ Image</button>
+                  <button class="media-type-btn" data-type="video">🎬 Video</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Timeline sectie -->
+          <div class="editor-timeline-section">
+            <!-- Timeline controls -->
+            <div class="timeline-toolbar">
+              <div class="toolbar-group">
+                <button id="editor-upload-audio" class="toolbar-btn primary">
+                  📁 Upload Audio
+                </button>
+                <input type="file" id="editor-audio-input" accept="audio/*" style="display: none;" />
+                <span id="editor-audio-filename" class="audio-filename"></span>
+              </div>
+              
+              <div class="toolbar-group">
+                <button id="editor-zoom-in" class="toolbar-btn-icon" title="Zoom in">🔍+</button>
+                <button id="editor-zoom-out" class="toolbar-btn-icon" title="Zoom out">🔍−</button>
+                <button id="editor-zoom-fit" class="toolbar-btn-icon" title="Fit to window">⬌</button>
+              </div>
+            </div>
+
+            <!-- Waveform met playhead -->
+            <div class="timeline-waveform-container">
+              <div class="timeline-ruler" id="timeline-ruler"></div>
+              <div class="waveform-wrapper">
+                <canvas id="editor-waveform" class="editor-waveform"></canvas>
+                <div id="editor-playhead" class="timeline-playhead"></div>
+              </div>
+            </div>
+
+            <!-- Markers lijst -->
+            <div class="timeline-markers-section">
+              <div class="markers-header">
+                <h4>Markers / Scenes</h4>
+                <span id="markers-count" class="markers-count">0 markers</span>
+              </div>
+              <div id="editor-markers-list" class="editor-markers-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </dialog>
 
     <dialog id="edit-marker-time-dialog">
@@ -629,6 +726,7 @@
                 <option value="video">🎬 Video (auto-play)</option>
                 <option value="audio-image">🔊🖼️ Audio + Afbeelding</option>
                 <option value="audio-video">🔊🎬 Audio + Video</option>
+                <option value="audio-mixed">🔊✨ Audio + Editor keuze</option>
               </select>
             </label>
             <button type="button" id="presentation-close" value="cancel" data-i18n="actions.cancel">Sluiten</button>

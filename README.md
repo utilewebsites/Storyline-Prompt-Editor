@@ -7,9 +7,31 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
+## update — 16 November 2025
+
+**Professional Audio/Video Timeline Editor:**
+- **Fullscreen editor**: new Final Cut Pro–like interface with a large waveform, preview canvas, and timeline scrubbing for professional audio/video editing.
+- **GPU-accelerated playhead**: smooth audio scrubbing with instant visual feedback. Music pauses during scrubbing and resumes at the new position on release.
+- **Per-scene media type**: choose between image (🖼️) or video (🎬) for each scene with a real-time preview canvas. Videos play automatically synchronized with the audio.
+- **Draggable markers**: drag markers on the waveform to new positions—scenes are automatically re-sorted by timestamp.
+- **Link inactive scenes**: scenes without a marker are shown as "Inactive scenes" with a 🔗 button. Click, place a marker on the waveform, and the scene becomes active and linked.
+- **Confirmation dialog**: when placing a new marker, a popup asks whether you want to automatically create a new scene.
+
+**Scene Transition Editor:**
+- **Transition descriptions**: ➕ buttons between scenes open a dialog to describe transition effects (cross-fade, cut, pan, zoom, etc.).
+- **Save per project**: transition data is stored in the project JSON and exported with prompts.
+- **Visual indicators**: transition buttons show a green indicator (●) when a description is set.
+
+**Bilingual interface**: all new features fully translated (Dutch/English) using data-i18n attributes.
+
+**Attachments**: You can now add up to 8 attachments per scene, including images, videos, audio files, and text files.
+
+> **Note:** Many thanks to **Jan Brosens** for the valuable feedback during development and testing of the storyline editor.
+
+![Audio Timeline Editor](docs/images/editor-audio-preview.png) ![Audio Presentation Mode](docs/images/transitie.png) ![Scene Dialog](docs/images/attachements.png)
 
 
-## update — 15 November 2025
+## 15 November 2025
 
 This release adds audio timeline functionality and a context-sensitive help system:
 

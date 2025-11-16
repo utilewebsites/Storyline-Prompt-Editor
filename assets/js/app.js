@@ -17,7 +17,10 @@ import { uuid, slugify, formatDateTime, readJsonFile, writeJsonFile, writeTextFi
 import { addPrompt, deletePrompt, movePrompt, assignImageToPrompt, assignVideoToPrompt, removeImageFromPrompt, removeVideoFromPrompt } from "./modules/scenes.js";
 import { updatePresentationSlide, updateVideoPresentationSlide, nextSlide, prevSlide, setPresentationLanguage, setPresentationWorkflowMode, closePresentationMode, initializeCombinedVideoPresentation, updateCombinedVideoPresentation, seekCombinedVideoTimeline, renderPresentationWaveform, renderPresentationMarkers, renderMarkerButtons, setupPresentationAudioPlayer, initializeAudioPresentation } from "./modules/presentation.js";
 import { initializeHelpSystem, setHelpLanguage, toggleHelpMode, handleWorkflowModeChange, applyWorkflowModeToDialog, getWorkflowMode, updateHelpTexts } from "./modules/help.js";
-import { initializeAudioTimeline, generateScenesFromAudio, resetAudioTimeline, getAudioTimelineData, restoreAudioTimelineData, setAudioProjectHandle, loadAudioFromProject, hasAudioTimeline, setSceneCallbacks, redrawWaveform, refreshMarkersDisplay, waitAndShowMarkers, removeMarkerByIndex } from "./modules/audio-timeline.js";
+import { initializeAudioTimeline, generateScenesFromAudio, resetAudioTimeline, getAudioTimelineData, restoreAudioTimelineData, setAudioProjectHandle, loadAudioFromProject, hasAudioTimeline, setSceneCallbacks, redrawWaveform, refreshMarkersDisplay, waitAndShowMarkers, removeMarkerByIndex, updateAudioMarkerTime } from "./modules/audio-timeline.js";
+import { initializeAttachments, clearAttachmentCache } from "./modules/attachments.js";
+import { renderTransitionButton, showTransitionDialog, cleanupTransitions, reindexTransitions } from "./modules/transitions.js";
+import { initializeAudioVideoEditor, openEditor as openAudioVideoEditor, resetAudioVideoEditor } from "./modules/audio-video-editor.js";
 // import { initLogger, log, logSection } from "./modules/logger.js"; // DEBUG: Uncomment om logging aan te zetten
 
 /**
@@ -67,6 +70,8 @@ const elements = {
   editGenerator: document.querySelector("#edit-generator"),
   editNotes: document.querySelector("#edit-notes"),
   addPrompt: document.querySelector("#add-prompt"),
+  showAllImages: document.querySelector("#show-all-images"),
+  showAllVideos: document.querySelector("#show-all-videos"),
   promptsContainer: document.querySelector("#prompts-container"),
   promptsHelp: document.querySelector("#prompts-help"),
   saveProject: document.querySelector("#save-project"),
@@ -169,6 +174,7 @@ const state = {
   projectDirHandle: null, // ⭐ NIEUW: handle naar project directory (niet file)
   projectImagesHandle: null,
   projectVideosHandle: null, // ⭐ NIEUW: handle naar videos/ folder in project
+  projectAttachmentsHandle: null, // ⭐ NIEUW: handle naar attachments/ folder
   projectData: null,
   isDirty: false,
   sortOrder: "updated",
@@ -176,6 +182,7 @@ const state = {
   draggedPromptId: null,
   dialogImageUrl: null,
   pendingExportText: null,
+  currentMediaViewMode: null, // ⭐ NIEUW: track huidige media view mode ('images', 'videos', of null)
   pendingExportCount: 0,
   copyingPromptId: null,
   presentationMode: {
@@ -635,10 +642,53 @@ function renderProjectEditor() {
   refreshProjectMetaDisplay();
 
   elements.promptsContainer.innerHTML = "";
+  
   prompts.forEach((prompt, index) => {
     const card = createPromptCard(prompt, index);
     elements.promptsContainer.appendChild(card);
+    
+    // Voeg transitie button toe tussen scenes (behalve na laatste scene)
+    if (index < prompts.length - 1) {
+      const transitionBtn = renderTransitionButton(index, state.projectData, (sceneIndex) => {
+        showTransitionDialog(sceneIndex, state.projectData, () => {
+          state.isDirty = true;
+          renderProjectEditor(); // Re-render om status indicator te updaten
+        });
+      });
+      elements.promptsContainer.appendChild(transitionBtn);
+    }
   });
+  
+  // Herstel de media view mode als die bestaat
+  if (state.currentMediaViewMode === "images") {
+    elements.promptsContainer.classList.add("media-view-images");
+    elements.promptsContainer.classList.remove("media-view-videos");
+    elements.showAllImages.classList.add("active");
+    elements.showAllVideos.classList.remove("active");
+    elements.showAllImages.innerHTML = "✓ 🖼️ Afbeeldingen";
+    elements.showAllVideos.innerHTML = "🎬 Video's";
+    
+    // Update alle scene toggles
+    updateAllSceneToggles("images");
+  } else if (state.currentMediaViewMode === "videos") {
+    elements.promptsContainer.classList.add("media-view-videos");
+    elements.promptsContainer.classList.remove("media-view-images");
+    elements.showAllVideos.classList.add("active");
+    elements.showAllImages.classList.remove("active");
+    elements.showAllVideos.innerHTML = "✓ 🎬 Video's";
+    elements.showAllImages.innerHTML = "🖼️ Afbeeldingen";
+    
+    // Update alle scene toggles
+    updateAllSceneToggles("videos");
+  } else {
+    // Normale mode (geen globale view)
+    elements.promptsContainer.classList.remove("media-view-images", "media-view-videos");
+    elements.showAllImages.classList.add("active");
+    elements.showAllVideos.classList.remove("active");
+    elements.showAllImages.innerHTML = "🖼️ Afbeeldingen";
+    elements.showAllVideos.innerHTML = "🎬 Video's";
+  }
+
   
   // Update help texts once after all cards are rendered
   updateHelpTexts();
@@ -647,6 +697,33 @@ function renderProjectEditor() {
   elements.projectEditor.classList.remove("hidden");
   updateRootUi();
   applyTranslations(elements.projectEditor);
+}
+
+/**
+ * Update alle scene toggles naar een specifieke media mode
+ */
+function updateAllSceneToggles(mode) {
+  const allSceneCards = elements.promptsContainer.querySelectorAll(".prompt-card");
+  allSceneCards.forEach(card => {
+    const toggleImage = card.querySelector(".toggle-image");
+    const toggleVideo = card.querySelector(".toggle-video");
+    const imageSection = card.querySelector(".image-uploader");
+    const videoSection = card.querySelector(".video-uploader");
+    
+    if (toggleImage && toggleVideo && imageSection && videoSection) {
+      if (mode === "images") {
+        toggleImage.classList.add("active");
+        toggleVideo.classList.remove("active");
+        imageSection.dataset.active = "true";
+        videoSection.dataset.active = "false";
+      } else if (mode === "videos") {
+        toggleVideo.classList.add("active");
+        toggleImage.classList.remove("active");
+        videoSection.dataset.active = "true";
+        imageSection.dataset.active = "false";
+      }
+    }
+  });
 }
 
 function refreshProjectMetaDisplay() {
@@ -860,6 +937,22 @@ function createPromptCard(prompt, index) {
   const imageSection = card.querySelector(".image-uploader");
   const videoSection = card.querySelector(".video-uploader");
 
+  // Bepaal standaard media type op basis van globale view mode
+  const isVideoMode = elements.promptsContainer.classList.contains("media-view-videos");
+  if (isVideoMode) {
+    // Start met video actief als globale mode op video staat
+    toggleVideo.classList.add("active");
+    toggleImage.classList.remove("active");
+    videoSection.dataset.active = "true";
+    imageSection.dataset.active = "false";
+  } else {
+    // Start met image actief (standaard of als media-view-images actief is)
+    toggleImage.classList.add("active");
+    toggleVideo.classList.remove("active");
+    imageSection.dataset.active = "true";
+    videoSection.dataset.active = "false";
+  }
+
   toggleImage.addEventListener("click", () => {
     toggleImage.classList.add("active");
     toggleVideo.classList.remove("active");
@@ -873,6 +966,18 @@ function createPromptCard(prompt, index) {
     videoSection.dataset.active = "true";
     imageSection.dataset.active = "false";
   });
+
+  // Attachments
+  if (state.projectAttachmentsHandle) {
+    initializeAttachments(card, prompt, state.projectAttachmentsHandle, {
+      onUpdate: (promptId, field, value) => {
+        updatePromptField(promptId, field, value);
+      },
+      onError: (message, error) => {
+        showError(message, error);
+      }
+    });
+  }
 
   // Rating widget
   const ratingContainer = card.querySelector(".rating");
@@ -972,6 +1077,12 @@ async function deletePromptWrapper(promptId) {
   await deletePrompt(promptId, state, elements);
   imageMap.delete(promptId);
   videoMap.delete(promptId);
+  clearAttachmentCache(promptId); // ⭐ NIEUW: clear attachment cache
+  
+  // Cleanup transitions voor verwijderde scene
+  if (state.projectData) {
+    cleanupTransitions(state.projectData, state.projectData.prompts.length);
+  }
   
   // Als de scene een marker had, verwijder die ook
   if (hasMarker && markerIndex !== null && hasAudioTimeline()) {
@@ -985,7 +1096,20 @@ async function deletePromptWrapper(promptId) {
  * Wrapper: roept modules/scenes.js movePrompt aan
  */
 function movePromptWrapper(promptId, direction) {
+  if (!state.projectData) return;
+  const prompts = state.projectData.prompts;
+  const currentIndex = prompts.findIndex(p => p.id === promptId);
+  if (currentIndex === -1) return;
+  
+  const newIndex = currentIndex + direction;
+  if (newIndex < 0 || newIndex >= prompts.length) return;
+  
+  // Move scene
   movePrompt(promptId, direction, state);
+  
+  // Reindex transitions
+  reindexTransitions(state.projectData, currentIndex, newIndex);
+  
   flagProjectDirty();
 }
 
@@ -997,6 +1121,10 @@ function movePromptToIndex(promptId, targetIndex) {
   const [moved] = prompts.splice(currentIndex, 1);
   const boundedIndex = Math.max(0, Math.min(targetIndex, prompts.length));
   prompts.splice(boundedIndex, 0, moved);
+  
+  // Reindex transitions
+  reindexTransitions(state.projectData, currentIndex, boundedIndex);
+  
   flagProjectDirty();
 }
 
@@ -1267,7 +1395,7 @@ async function openPresentation() {
   
   // Gebruik altijd de saved mode - laat gebruiker zelf kiezen
   state.presentationMode.videoMode = (savedMode === "video");
-  state.presentationMode.audioMode = (savedMode === "audio-image" || savedMode === "audio-video");
+  state.presentationMode.audioMode = (savedMode === "audio-image" || savedMode === "audio-video" || savedMode === "audio-mixed");
 
   // Initialiseer video timeline als video mode actief is
   if (state.presentationMode.videoMode) {
@@ -1331,9 +1459,26 @@ async function openPresentation() {
         footer.classList.remove("audio-mode");
         if (form) form.classList.remove("has-audio-timeline");
       } else if (state.presentationMode.audioMode) {
-        const showVideo = (elements.presentationMode.value === "audio-video");
-        imageContainer.dataset.active = showVideo ? "false" : "true";
-        videoContainer.dataset.active = showVideo ? "true" : "false";
+        const mode = elements.presentationMode.value;
+        const showVideo = (mode === "audio-video");
+        const mixedMode = (mode === "audio-mixed");
+        
+        // In mixed mode, bepaal per scene of we video of image tonen
+        if (mixedMode) {
+          const currentSlideIndex = state.presentationMode.currentSlide;
+          const currentPrompt = state.projectData.prompts.find(p => 
+            p.isAudioLinked && p.audioMarkerIndex === currentSlideIndex
+          ) || state.projectData.prompts[currentSlideIndex];
+          
+          const useVideo = currentPrompt && currentPrompt.preferredMediaType === 'video';
+          
+          imageContainer.dataset.active = useVideo ? "false" : "true";
+          videoContainer.dataset.active = useVideo ? "true" : "false";
+        } else {
+          imageContainer.dataset.active = showVideo ? "false" : "true";
+          videoContainer.dataset.active = showVideo ? "true" : "false";
+        }
+        
         footer.classList.add("audio-mode");
         footer.classList.remove("video-mode");
         if (form) form.classList.add("has-audio-timeline");
@@ -1430,16 +1575,113 @@ function getSceneIndexAtTime(state, time) {
  * afhankelijk van de geselecteerde modus
  */
 async function updatePresentationSlideWrapper() {
+  
   if (state.presentationMode.videoMode && state.presentationMode.videoTimeline) {
     // Video modus: gebruik combined video presentation
     await updateCombinedVideoPresentation(state, elements, t);
   } else if (state.presentationMode.audioMode) {
     // Audio modus: gebruik standaard image/video slide update
     const mode = elements.presentationMode ? elements.presentationMode.value : 'audio-image';
+    const currentSlideIndex = state.presentationMode.currentSlide;
+    const prompt = state.projectData.prompts[currentSlideIndex];
+    
+    // Voor audio-mixed: zoek de juiste scene op basis van audioMarkerIndex
+    const actualScene = (mode === 'audio-mixed') 
+      ? (state.projectData.prompts.find(p => p.isAudioLinked && p.audioMarkerIndex === currentSlideIndex) || prompt)
+      : prompt;
     
     if (mode === 'audio-video') {
-      // Audio + video: update video slide
-      updateVideoPresentationSlide(state, elements, t, null);
+      // Audio + video of mixed mode met video preference: laad video EN toon prompts
+      
+      // Update video als scene video heeft
+      if (prompt && prompt.videoPath && state.projectVideosHandle) {
+        (async () => {
+          try {
+            const fileHandle = await state.projectVideosHandle.getFileHandle(prompt.videoPath);
+            const file = await fileHandle.getFile();
+            const blobUrl = URL.createObjectURL(file);
+
+            if (elements.presentationVideo) {
+              elements.presentationVideo.pause();
+              elements.presentationVideo.src = blobUrl;
+              elements.presentationVideo.load();
+              
+              // Auto-play video
+              elements.presentationVideo.play().catch(err => {
+                console.log('Auto-play geblokkeerd door browser, gebruiker moet handmatig starten:', err);
+              });
+            }
+            if (elements.presentationNoVideo) {
+              elements.presentationNoVideo.style.display = "none";
+            }
+          } catch (error) {
+            console.warn("Video laden mislukt in audio mode", error);
+            if (elements.presentationVideo) elements.presentationVideo.style.display = "none";
+            if (elements.presentationNoVideo) elements.presentationNoVideo.style.display = "block";
+          }
+        })();
+      } else {
+        // Geen video: toon placeholder
+        if (elements.presentationVideo) {
+          elements.presentationVideo.pause();
+          elements.presentationVideo.removeAttribute("src");
+        }
+        if (elements.presentationNoVideo) {
+          elements.presentationNoVideo.style.display = "block";
+        }
+      }
+      
+      // Update prompts/translations (hergebruik standaard slide update logica)
+      updatePresentationSlide(state, elements, t);
+    } else if (mode === 'audio-mixed') {
+      // Audio + mixed: laad image OF video afhankelijk van preferredMediaType
+      
+      if (actualScene && actualScene.preferredMediaType === 'video') {
+        // Deze scene gebruikt video
+        if (actualScene.videoPath && state.projectVideosHandle) {
+          (async () => {
+            try {
+              const fileHandle = await state.projectVideosHandle.getFileHandle(actualScene.videoPath);
+              const file = await fileHandle.getFile();
+              const blobUrl = URL.createObjectURL(file);
+
+              if (elements.presentationVideo) {
+                elements.presentationVideo.pause();
+                elements.presentationVideo.src = blobUrl;
+                elements.presentationVideo.load();
+                
+                // Auto-play video
+                elements.presentationVideo.play().catch(err => {
+                  console.log('Auto-play geblokkeerd door browser, gebruiker moet handmatig starten:', err);
+                });
+              }
+              if (elements.presentationNoVideo) {
+                elements.presentationNoVideo.style.display = "none";
+              }
+            } catch (error) {
+              console.warn("Video laden mislukt in audio-mixed mode", error);
+              if (elements.presentationVideo) elements.presentationVideo.style.display = "none";
+              if (elements.presentationNoVideo) elements.presentationNoVideo.style.display = "block";
+            }
+          })();
+        } else {
+          // Geen video: toon placeholder
+          if (elements.presentationVideo) {
+            elements.presentationVideo.pause();
+            elements.presentationVideo.removeAttribute("src");
+          }
+          if (elements.presentationNoVideo) {
+            elements.presentationNoVideo.style.display = "block";
+          }
+        }
+      }
+      // Anders wordt image geladen door updatePresentationSlide hieronder
+      
+      // Update prompts/translations en image (als preferredMediaType = 'image')
+      updatePresentationSlide(state, elements, t);
+      
+      // Update container visibility voor mixed mode
+      updateMixedModeContainers();
     } else {
       // Audio + image: update image slide
       updatePresentationSlide(state, elements, t);
@@ -1466,6 +1708,8 @@ function nextSlideWrapper() {
     const moved = nextSlide(state);
     if (moved) {
       updatePresentationSlideWrapper();
+      // Update container visibility in mixed mode
+      updateMixedModeContainers();
     }
   }
 }
@@ -1486,8 +1730,36 @@ function prevSlideWrapper() {
     const moved = prevSlide(state);
     if (moved) {
       updatePresentationSlideWrapper();
+      // Update container visibility in mixed mode
+      updateMixedModeContainers();
     }
   }
+}
+
+/**
+ * Update image/video container visibility in mixed mode
+ */
+function updateMixedModeContainers() {
+  if (!state.presentationMode.audioMode) return;
+  
+  const mode = elements.presentationMode ? elements.presentationMode.value : 'audio-image';
+  if (mode !== 'audio-mixed') return;
+  
+  const imageContainer = document.querySelector('.slide-image-container');
+  const videoContainer = document.querySelector('.slide-video-container');
+  
+  if (!imageContainer || !videoContainer) return;
+  
+  // Zoek de juiste scene op basis van audioMarkerIndex
+  const currentSlideIndex = state.presentationMode.currentSlide;
+  const currentPrompt = state.projectData.prompts.find(p => 
+    p.isAudioLinked && p.audioMarkerIndex === currentSlideIndex
+  ) || state.projectData.prompts[currentSlideIndex];
+  
+  const useVideo = currentPrompt && currentPrompt.preferredMediaType === 'video';
+  
+  imageContainer.dataset.active = useVideo ? "false" : "true";
+  videoContainer.dataset.active = useVideo ? "true" : "false";
 }
 
 /**
@@ -1844,17 +2116,21 @@ async function openProject(projectId) {
   const projectDir = await state.projectenHandle.getDirectoryHandle(projectMeta.slug, { create: false });
   const imagesDir = await projectDir.getDirectoryHandle("images", { create: true });
   const videosDir = await projectDir.getDirectoryHandle("videos", { create: true }); // ⭐ NIEUW: videos folder
+  const attachmentsDir = await projectDir.getDirectoryHandle("attachments", { create: true }); // ⭐ NIEUW: attachments folder
   const projectFile = await projectDir.getFileHandle("project.json", { create: false });
 
   const projectData = await readJsonFile(projectFile);
   // Zorg dat verplichte velden bestaan voor oudere versies
   projectData.prompts ??= [];
+  projectData.transitions ??= []; // ⭐ NIEUW: transitions field
   // Backwards compatibility: oudere projecten kunnen geen rating hebben
   projectData.prompts.forEach((p) => {
     if (p.rating === undefined) p.rating = null;
     if (p.videoPath === undefined) p.videoPath = null; // ⭐ NIEUW: video fields
     if (p.videoOriginalName === undefined) p.videoOriginalName = null;
     if (p.videoType === undefined) p.videoType = null;
+    if (p.attachments === undefined) p.attachments = []; // ⭐ NIEUW: attachments field
+    if (p.preferredMediaType === undefined) p.preferredMediaType = 'image'; // ⭐ NIEUW: audio timeline media type
   });
   projectData.createdAt ??= projectMeta.createdAt;
   projectData.updatedAt ??= projectMeta.updatedAt;
@@ -1866,8 +2142,10 @@ async function openProject(projectId) {
   state.projectDirHandle = projectDir; // ⭐ NIEUW: bewaar project directory handle
   state.projectImagesHandle = imagesDir;
   state.projectVideosHandle = videosDir; // ⭐ NIEUW: stel videos handle in
+  state.projectAttachmentsHandle = attachmentsDir; // ⭐ NIEUW: stel attachments handle in
   state.projectData = projectData;
   state.isDirty = false;
+  state.currentMediaViewMode = null; // ⭐ RESET: media view mode bij nieuw project
 
   imageMap.clear();
   videoMap.clear(); // ⭐ NIEUW: clear video cache
@@ -1885,23 +2163,28 @@ async function openProject(projectId) {
   // Reset audio timeline eerst
   resetAudioTimeline();
   
+  // Reset audio video editor ook
+  resetAudioVideoEditor();
+  
+  // Set project handle altijd (ook als er nog geen audio timeline is)
+  setAudioProjectHandle(projectDir);
+  
+  // Registreer callbacks altijd (ook als er nog geen audio timeline is)
+  setSceneCallbacks(
+    handleSceneCreateFromMarker,
+    handleSceneDeleteFromMarker,
+    handleSceneReorderFromMarkers,
+    getUnlinkedScenes,
+    handleEditSceneFromMarker,
+    getAllScenes
+  );
+  
   // Laad audio timeline data indien aanwezig
   if (projectData.audioTimeline) {
     console.log("Audio timeline gevonden, verwerk data...");
-    setAudioProjectHandle(projectDir);
     
     // FIX: Valideer en repareer duplicate marker assignments
     fixDuplicateMarkerAssignments(projectData);
-    
-    // BELANGRIJK: Registreer callbacks VOOR het restoren van audio data
-    setSceneCallbacks(
-      handleSceneCreateFromMarker,
-      handleSceneDeleteFromMarker,
-      handleSceneReorderFromMarkers,
-      getUnlinkedScenes,
-      handleEditSceneFromMarker,
-      getAllScenes
-    );
     
     await restoreAudioTimelineData(projectData.audioTimeline, projectDir);
     
@@ -2232,6 +2515,105 @@ function getAllScenes() {
 /**
  * Callback: Bewerk scene vanuit audio timeline marker
  */
+/**
+ * Maak scene aan vanuit audio editor marker
+ */
+function handleCreateSceneFromEditor(sceneData, markerIndex) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  console.log('🎬 Creating scene from editor marker:', markerIndex, sceneData);
+  
+  // Check of er al een scene is voor deze marker
+  const existingScene = state.projectData.prompts.find(p => 
+    p.isAudioLinked && p.audioMarkerIndex === markerIndex
+  );
+  
+  if (existingScene) {
+    console.warn('Scene already exists for marker', markerIndex);
+    return;
+  }
+  
+  // Voeg scene toe via wrapper (met sceneData)
+  const newPrompt = addPromptWrapper(sceneData);
+  
+  if (newPrompt) {
+    console.log('✅ Scene created successfully:', newPrompt.id);
+    
+    // Update alle scenes na deze marker (hun index kan verschoven zijn)
+    updateInactiveScenesAfterMarkers();
+  }
+}
+
+/**
+ * Update inactieve scenes (zonder marker) - voeg ze toe achteraan
+ */
+function updateInactiveScenesAfterMarkers() {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  // Sorteer scenes: eerst audio-linked (op volgorde), dan inactieve
+  const activeScenes = state.projectData.prompts.filter(p => p.isAudioLinked);
+  const inactiveScenes = state.projectData.prompts.filter(p => !p.isAudioLinked);
+  
+  // Sorteer active scenes op audioMarkerIndex
+  activeScenes.sort((a, b) => (a.audioMarkerIndex || 0) - (b.audioMarkerIndex || 0));
+  
+  // Combineer: active eerst, daarna inactive
+  state.projectData.prompts = [...activeScenes, ...inactiveScenes];
+  
+  // Re-render
+  renderProjectEditor();
+  
+  console.log('📋 Scenes reordered: active scenes first, inactive scenes last');
+}
+
+/**
+ * Link bestaande scene aan nieuwe marker vanuit audio editor
+ */
+function handleLinkSceneToMarkerFromEditor(sceneId, markerIndex, time) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  const scene = state.projectData.prompts.find(p => p.id === sceneId);
+  
+  if (!scene) {
+    console.warn('Scene not found:', sceneId);
+    return;
+  }
+  
+  // Update scene met marker info
+  scene.audioMarkerIndex = markerIndex;
+  scene.audioMarkerTime = time;
+  scene.isAudioLinked = true;
+  
+  // Update timeline van scene
+  const nextMarkerTime = getNextMarkerTime(markerIndex);
+  scene.timeline = `${formatTime(time)} - ${formatTime(nextMarkerTime)}`;
+  scene.duration = (nextMarkerTime - time).toFixed(2);
+  
+  state.isDirty = true;
+  
+  // Re-render
+  updateInactiveScenesAfterMarkers();
+  
+  console.log('✅ Scene linked to marker:', sceneId, markerIndex);
+}
+
+/**
+ * Haal de tijd van de volgende marker op (of audio duration)
+ */
+function getNextMarkerTime(markerIndex) {
+  if (!state.projectData?.audioTimeline?.audioBuffer) return 0;
+  
+  const markers = state.projectData.audioTimeline.markers || [];
+  const nextMarker = markers[markerIndex + 1];
+  
+  return nextMarker !== undefined 
+    ? nextMarker 
+    : state.projectData.audioTimeline.audioBuffer.duration;
+}
+
+/**
+ * Edit scene vanuit audio editor marker
+ */
 function handleEditSceneFromMarker(markerIndex) {
   if (!state.projectData || !state.projectData.prompts) return;
   
@@ -2249,6 +2631,151 @@ function handleEditSceneFromMarker(markerIndex) {
   openPromptDialog(scene.id).catch((error) => {
     showError(t("errors.openPrompt"), error);
   });
+}
+
+/**
+ * Update scene media type vanuit audio editor
+ */
+function updateSceneMediaTypeFromEditor(markerIndex, mediaType) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  // Zoek de scene met deze audioMarkerIndex
+  const scene = state.projectData.prompts.find(p => 
+    p.isAudioLinked && p.audioMarkerIndex === markerIndex
+  );
+  
+  if (scene) {
+    scene.preferredMediaType = mediaType;
+    state.isDirty = true;
+  }
+}
+
+/**
+ * Haal scene media type op
+ */
+function getSceneMediaType(markerIndex) {
+  if (!state.projectData || !state.projectData.prompts) return 'image';
+  
+  // Zoek de scene met deze audioMarkerIndex
+  const scene = state.projectData.prompts.find(p => 
+    p.isAudioLinked && p.audioMarkerIndex === markerIndex
+  );
+  
+  return scene ? (scene.preferredMediaType || 'image') : 'image';
+}
+
+/**
+ * Verstuur scene preview data naar audio editor
+ */
+async function sendScenePreviewToEditor(markerIndex, mediaType) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  // Zoek de scene met deze audioMarkerIndex
+  const scene = state.projectData.prompts.find(p => 
+    p.isAudioLinked && p.audioMarkerIndex === markerIndex
+  );
+  
+  let imageUrl = null;
+  let videoUrl = null;
+  
+  if (scene) {
+    // Laad image/video URLs
+    if (mediaType === 'image' && scene.imagePath && state.projectImagesHandle) {
+      try {
+        const fileHandle = await state.projectImagesHandle.getFileHandle(scene.imagePath);
+        const file = await fileHandle.getFile();
+        imageUrl = URL.createObjectURL(file);
+      } catch (error) {
+        console.warn('Could not load image:', error);
+      }
+    } else if (mediaType === 'video' && scene.videoPath && state.projectVideosHandle) {
+      try {
+        const fileHandle = await state.projectVideosHandle.getFileHandle(scene.videoPath);
+        const file = await fileHandle.getFile();
+        videoUrl = URL.createObjectURL(file);
+      } catch (error) {
+        console.warn('Could not load video:', error);
+      }
+    }
+  }
+  
+  // Verstuur response
+  const event = new CustomEvent('scenePreviewResponse', {
+    detail: {
+      markerIndex,
+      mediaType,
+      imageUrl,
+      videoUrl
+    }
+  });
+  document.dispatchEvent(event);
+}
+
+/**
+ * Update marker positie vanuit audio editor
+ */
+function updateMarkerPositionFromEditor(markerIndex, newTime) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  // Zoek de scene met deze audioMarkerIndex
+  const scene = state.projectData.prompts.find(p => 
+    p.isAudioLinked && p.audioMarkerIndex === markerIndex
+  );
+  
+  if (scene) {
+    console.log(`🎯 Updating marker ${markerIndex} position to ${newTime.toFixed(2)}s`);
+    
+    // Update marker tijd in audio timeline module
+    updateAudioMarkerTime(markerIndex, newTime);
+  }
+}
+
+/**
+ * Handle marker volgorde wijziging vanuit audio editor
+ */
+function handleMarkerReorderFromEditor(oldIndex, newIndex) {
+  if (!state.projectData || !state.projectData.prompts) return;
+  
+  console.log(`🔄 Reordering marker from ${oldIndex} to ${newIndex}`);
+  
+  // Vind de scene die verplaatst moet worden
+  const sceneToMove = state.projectData.prompts.find(p => 
+    p.isAudioLinked && p.audioMarkerIndex === oldIndex
+  );
+  
+  if (!sceneToMove) {
+    console.warn(`Scene niet gevonden voor oude marker index ${oldIndex}`);
+    return;
+  }
+  
+  console.log(`📌 Moving scene "${sceneToMove.prompt?.substring(0, 30)}..." from marker ${oldIndex} to ${newIndex}`);
+  
+  // Update audioMarkerIndex van de verplaatste scene
+  sceneToMove.audioMarkerIndex = newIndex;
+  
+  // Update alle andere scenes die tussen oldIndex en newIndex vallen
+  state.projectData.prompts.forEach(scene => {
+    if (!scene.isAudioLinked || scene === sceneToMove) return;
+    
+    if (oldIndex < newIndex) {
+      // Scene verschuift naar rechts, scenes ertussen schuiven naar links
+      if (scene.audioMarkerIndex > oldIndex && scene.audioMarkerIndex <= newIndex) {
+        console.log(`  ⬅️ Scene marker ${scene.audioMarkerIndex} → ${scene.audioMarkerIndex - 1}`);
+        scene.audioMarkerIndex--;
+      }
+    } else if (oldIndex > newIndex) {
+      // Scene verschuift naar links, scenes ertussen schuiven naar rechts
+      if (scene.audioMarkerIndex >= newIndex && scene.audioMarkerIndex < oldIndex) {
+        console.log(`  ➡️ Scene marker ${scene.audioMarkerIndex} → ${scene.audioMarkerIndex + 1}`);
+        scene.audioMarkerIndex++;
+      }
+    }
+  });
+  
+  // Sorteer scenes op basis van nieuwe audioMarkerIndex
+  sortScenesByAudioMarkers();
+  
+  console.log('✅ Marker reorder completed');
 }
 
 /**
@@ -2342,33 +2869,44 @@ function sortScenesByAudioMarkers() {
   
   const markers = audioData.markers; // Deze zijn al gesorteerd op tijd
   
+  console.log('🔄 Sorting scenes by audio markers...', { 
+    totalScenes: state.projectData.prompts.length,
+    markers: markers.length
+  });
+  
   // Splits scenes in gekoppeld en ongekoppeld
   const linkedScenes = [];
   const unlinkedScenes = [];
   
   state.projectData.prompts.forEach((prompt) => {
-    if (prompt.isAudioLinked && prompt.audioMarkerTime !== undefined) {
+    if (prompt.isAudioLinked && prompt.audioMarkerIndex !== undefined) {
       linkedScenes.push(prompt);
     } else {
       unlinkedScenes.push(prompt);
     }
   });
   
-  // Sorteer gekoppelde scenes op basis van hun marker tijd (audioMarkerTime)
-  linkedScenes.sort((a, b) => a.audioMarkerTime - b.audioMarkerTime);
+  console.log('📊 Linked scenes:', linkedScenes.length, 'Unlinked scenes:', unlinkedScenes.length);
   
-  // Update audioMarkerIndex naar de nieuwe positie in de gesorteerde markers array
+  // Sorteer gekoppelde scenes op basis van hun audioMarkerIndex
+  linkedScenes.sort((a, b) => {
+    const indexA = a.audioMarkerIndex ?? 999999;
+    const indexB = b.audioMarkerIndex ?? 999999;
+    return indexA - indexB;
+  });
+  
+  // Update audioMarkerTime naar de correcte tijd van hun marker (voor backwards compatibility)
   linkedScenes.forEach(scene => {
-    const markerTime = scene.audioMarkerTime;
-    // Vind de nieuwe index van deze marker tijd in de gesorteerde array
-    const newIndex = markers.findIndex(time => Math.abs(time - markerTime) < 0.01);
-    if (newIndex >= 0) {
-      scene.audioMarkerIndex = newIndex;
+    const markerIndex = scene.audioMarkerIndex;
+    if (markerIndex >= 0 && markerIndex < markers.length) {
+      scene.audioMarkerTime = markers[markerIndex];
     }
   });
   
-  // Combineer: eerst gekoppelde scenes (gesorteerd op tijd), dan ongekoppelde
+  // Combineer: eerst gekoppelde scenes (gesorteerd op marker index), dan ongekoppelde
   state.projectData.prompts = [...linkedScenes, ...unlinkedScenes];
+  
+  console.log('✅ Scenes sorted:', linkedScenes.map(s => `Scene ${s.audioMarkerIndex}`).join(', '));
   
   // Update UI (zowel storyboard als audio timeline markers)
   renderProjectEditor();
@@ -3043,12 +3581,50 @@ function init() {
   }
   elements.addPrompt.addEventListener("click", addPromptWrapper);
   
+  // Media toggle event listeners
+  if (elements.showAllImages) {
+    elements.showAllImages.addEventListener("click", () => {
+      elements.showAllImages.classList.add("active");
+      elements.showAllVideos.classList.remove("active");
+      elements.promptsContainer.classList.remove("media-view-videos");
+      elements.promptsContainer.classList.add("media-view-images");
+      
+      // Update button text om actieve status te tonen
+      elements.showAllImages.innerHTML = "✓ 🖼️ Afbeeldingen";
+      elements.showAllVideos.innerHTML = "🎬 Video's";
+      
+      // Sla mode op in state
+      state.currentMediaViewMode = "images";
+      
+      // Update alle scene toggles naar image mode
+      updateAllSceneToggles("images");
+    });
+  }
+  
+  if (elements.showAllVideos) {
+    elements.showAllVideos.addEventListener("click", () => {
+      elements.showAllVideos.classList.add("active");
+      elements.showAllImages.classList.remove("active");
+      elements.promptsContainer.classList.remove("media-view-images");
+      elements.promptsContainer.classList.add("media-view-videos");
+      
+      // Update button text om actieve status te tonen
+      elements.showAllVideos.innerHTML = "✓ 🎬 Video's";
+      elements.showAllImages.innerHTML = "🖼️ Afbeeldingen";
+      
+      // Sla mode op in state
+      state.currentMediaViewMode = "videos";
+      
+      // Update alle scene toggles naar video mode
+      updateAllSceneToggles("videos");
+    });
+  }
+  
   // Audio Timeline event listeners
   const toggleAudioBtn = document.querySelector("#toggle-audio-timeline");
   const closeAudioBtn = document.querySelector("#close-audio-timeline");
   const audioInfoBadge = document.querySelector("#audio-timeline-info-badge");
   const audioInfoDialog = document.querySelector("#audio-timeline-info-dialog");
-  // Generate Scenes button verwijderd - auto-create bij marker toevoegen
   
   // Info badge click handler - toon uitleg dialog
   if (audioInfoBadge) {
@@ -3060,58 +3636,79 @@ function init() {
     });
   }
   
+  // Audio Timeline button opent nu fullscreen editor
   if (toggleAudioBtn) {
     toggleAudioBtn.addEventListener("click", () => {
-      const container = document.querySelector("#audio-timeline-container");
-      
-      if (container) {
-        container.classList.toggle("hidden");
-        
-        if (!container.classList.contains("hidden")) {
-          // Container wordt zichtbaar
-          
-          // Set project handle voor audio opslag
-          if (state.projectDirHandle && state.projectData) {
-            setAudioProjectHandle(state.projectDirHandle);
-          }
-          
-          // Registreer callbacks VOOR initialisatie zodat ze beschikbaar zijn
-          setSceneCallbacks(
-            handleSceneCreateFromMarker,
-            handleSceneDeleteFromMarker,
-            handleSceneReorderFromMarkers,
-            getUnlinkedScenes,
-            handleEditSceneFromMarker,
-            getAllScenes  // Nieuwe callback voor alle scenes
-          );
-          
-          // Initialiseer timeline (event listeners worden alleen 1x toegevoegd)
-          initializeAudioTimeline();
-          
-          // ALTIJD waveform hertekenen bij zichtbaar maken (fix voor offsetWidth=0)
-          setTimeout(() => {
-            redrawWaveform();
-            refreshMarkersDisplay();
-            // Wacht op audioBuffer en toon dan markers
-            waitAndShowMarkers();
-          }, 100);
-        }
-      }
+      openAudioVideoEditor();
     });
   }
   
-  if (closeAudioBtn) {
-    closeAudioBtn.addEventListener("click", () => {
-      const container = document.querySelector("#audio-timeline-container");
-      if (container) {
-        container.classList.add("hidden");
-        resetAudioTimeline();
-      }
+  // Initialiseer oude audio timeline module (voor data compatibility)
+  initializeAudioTimeline();
+  
+  // Registreer callbacks voor audio timeline (ook als er nog geen audio is)
+  setSceneCallbacks(
+    handleSceneCreateFromMarker,
+    handleSceneDeleteFromMarker,
+    handleSceneReorderFromMarkers,
+    getUnlinkedScenes,
+    handleEditSceneFromMarker,
+    getAllScenes
+  );
+  
+  // Initialiseer audio video editor
+  initializeAudioVideoEditor();
+  
+  // Event listeners voor audio editor <-> scene synchronisatie
+  document.addEventListener('updateSceneMediaType', (e) => {
+    const { markerIndex, mediaType } = e.detail;
+    updateSceneMediaTypeFromEditor(markerIndex, mediaType);
+  });
+  
+  document.addEventListener('getInactiveScenes', (e) => {
+    e.detail.scenes = getUnlinkedScenes();
+  });
+  
+  document.addEventListener('linkSceneToMarker', (e) => {
+    const { sceneId, markerIndex, time } = e.detail;
+    handleLinkSceneToMarkerFromEditor(sceneId, markerIndex, time);
+  });
+  
+  document.addEventListener('getScenePreview', (e) => {
+    const { markerIndex, mediaType } = e.detail;
+    sendScenePreviewToEditor(markerIndex, mediaType);
+  });
+  
+  document.addEventListener('getSceneMediaType', (e) => {
+    const { markerIndex } = e.detail;
+    const mediaType = getSceneMediaType(markerIndex);
+    
+    const response = new CustomEvent('sceneMediaTypeResponse', {
+      detail: { markerIndex, mediaType }
     });
-  }
-  
-  // Generate Scenes button verwijderd - scenes worden nu automatisch aangemaakt bij marker toevoegen
-  
+    document.dispatchEvent(response);
+  });
+
+  document.addEventListener('updateMarkerPosition', (e) => {
+    const { markerIndex, newTime } = e.detail;
+    updateMarkerPositionFromEditor(markerIndex, newTime);
+  });
+
+  document.addEventListener('reorderMarker', (e) => {
+    const { oldIndex, newIndex } = e.detail;
+    handleMarkerReorderFromEditor(oldIndex, newIndex);
+  });
+
+  document.addEventListener('openSceneEditor', (e) => {
+    const { markerIndex } = e.detail;
+    handleEditSceneFromMarker(markerIndex);
+  });
+
+  document.addEventListener('createSceneFromEditor', (e) => {
+    const { sceneData, markerIndex } = e.detail;
+    handleCreateSceneFromEditor(sceneData, markerIndex);
+  });
+
   elements.saveProject.addEventListener("click", () => saveProject().catch((error) => showError(t("errors.saveProject"), error)));
   elements.exportPrompts.addEventListener("click", () =>
     exportPrompts().catch((error) => showError(t("errors.exportPrompts"), error))
@@ -3270,7 +3867,7 @@ function init() {
       }
       
       state.presentationMode.videoMode = (mode === "video");
-      state.presentationMode.audioMode = (mode === "audio-image" || mode === "audio-video");
+      state.presentationMode.audioMode = (mode === "audio-image" || mode === "audio-video" || mode === "audio-mixed");
       state.presentationMode.showVideoInAudio = (mode === "audio-video");
       
       // Toggle image/video/audio containers
@@ -3305,10 +3902,19 @@ function init() {
               return;
             }
           }
-        } else if (mode === "audio-image" || mode === "audio-video") {
-          // Audio modes
-          imageContainer.dataset.active = (mode === "audio-image") ? "true" : "false";
-          videoContainer.dataset.active = (mode === "audio-video") ? "true" : "false";
+        } else if (mode === "audio-image" || mode === "audio-video" || mode === "audio-mixed") {
+          // Audio modes (image, video, of mixed)
+          if (mode === "audio-mixed") {
+            // Mixed mode: bepaal per scene
+            const currentPrompt = state.projectData.prompts[state.presentationMode.currentSlide];
+            const useVideo = currentPrompt && currentPrompt.preferredMediaType === 'video';
+            imageContainer.dataset.active = useVideo ? "false" : "true";
+            videoContainer.dataset.active = useVideo ? "true" : "false";
+          } else {
+            imageContainer.dataset.active = (mode === "audio-image") ? "true" : "false";
+            videoContainer.dataset.active = (mode === "audio-video") ? "true" : "false";
+          }
+          
           if (footer) {
             footer.classList.remove("video-mode");
             footer.classList.add("audio-mode");

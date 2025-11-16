@@ -612,14 +612,609 @@ button.danger:disabled {
   background: var(--border);
 }
 
+/* Attachment button styling */
+.attachment-button {
+  flex: 0 0 auto !important;
+  min-width: auto !important;
+  padding: 0.5rem 0.75rem !important;
+  position: relative;
+}
+
+.attachment-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f44336;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-panel);
+}
+
+/* Attachments Dialog */
+.attachments-dialog {
+  max-width: 700px;
+  width: 90vw;
+  max-height: 80vh;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.attachments-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+.attachments-dialog .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ============================================================================
+   TRANSITIONS - Overgangen tussen scenes
+   ============================================================================ */
+
+/* Transitie wrapper tussen scenes */
+.transition-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+/* Transitie button met + icon en status indicator */
+.transition-button {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--bg-panel);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.transition-button:hover {
+  border-color: var(--primary);
+  background: var(--bg);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+}
+
+.transition-button:active {
+  transform: scale(1.05);
+}
+
+/* Plus icon */
+.transition-icon {
+  font-size: 24px;
+  font-weight: 300;
+  color: var(--muted);
+  transition: color 0.2s ease;
+}
+
+.transition-button:hover .transition-icon {
+  color: var(--primary);
+}
+
+/* Status indicator - bolletje rechtsbovenin */
+.transition-indicator {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--bg);
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+/* Grijs bolletje - geen transitie beschrijving */
+.transition-indicator.empty {
+  background-color: #5a5a66;
+}
+
+/* Groen bolletje - transitie beschrijving aanwezig */
+.transition-indicator.filled {
+  background-color: #4caf50;
+  box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+}
+
+.transition-button:hover .transition-indicator.filled {
+  transform: scale(1.2);
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+}
+
+/* Transitie Dialog */
+.transition-dialog {
+  max-width: 650px;
+  width: 90vw;
+  max-height: 85vh;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  background: var(--bg-panel);
+  color: var(--text);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.transition-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.7) !important;
+}
+
+.transition-dialog .dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.transition-dialog .dialog-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--text);
+}
+
+.transition-dialog .close-dialog {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.transition-dialog .close-dialog:hover {
+  color: var(--text);
+  background: var(--border);
+}
+
+.transition-dialog .dialog-content {
+  padding: 1.5rem;
+  overflow-y: auto;
+  max-height: calc(85vh - 160px);
+}
+
+.transition-help {
+  margin: 0 0 1.5rem 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding: 1rem;
+  background: rgba(58, 109, 240, 0.1);
+  border-left: 3px solid var(--primary);
+  border-radius: 4px;
+}
+
+.transition-dialog label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.label-hint {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: normal;
+  margin-top: 0.25rem;
+}
+
+.transition-textarea {
+  width: 100%;
+  min-height: 120px;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  resize: vertical;
+  font-family: inherit;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  transition: border-color 0.2s ease;
+}
+
+.transition-textarea:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(58, 109, 240, 0.1);
+}
+
+.transition-textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+/* Transitie voorbeelden */
+.transition-examples {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.transition-examples strong {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.transition-examples ul {
+  margin: 0;
+  padding-left: 1.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
+.transition-examples li {
+  margin-bottom: 0.5rem;
+}
+
+.transition-examples li strong {
+  display: inline;
+  color: var(--primary);
+  font-size: inherit;
+  margin: 0;
+}
+
+.transition-dialog .dialog-footer {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.transition-dialog .dialog-footer button {
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.transition-dialog .btn-cancel,
+.transition-dialog .btn-clear {
+  background: var(--bg-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.transition-dialog .btn-cancel:hover,
+.transition-dialog .btn-clear:hover {
+  background: var(--border);
+}
+
+.transition-dialog .btn-save {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.transition-dialog .btn-save:hover {
+  background: #4e7ef8;
+  box-shadow: 0 4px 12px rgba(58, 109, 240, 0.3);
+  background: var(--bg-secondary);
+  border-radius: 12px 12px 0 0;
+}
+
+.attachments-dialog h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.close-attachments {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.close-attachments:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.attachment-dropzone {
+  padding: 2rem;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  margin: 1.5rem;
+  text-align: center;
+  background: var(--bg-panel);
+  transition: all 0.2s;
+}
+
+.attachment-dropzone.drag-over {
+  border-color: var(--primary);
+  background: rgba(var(--primary-rgb), 0.05);
+}
+
+.attachment-dropzone p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.dropzone-hint {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.attachments-gallery-wrapper {
+  padding: 0 1.5rem 1.5rem;
+  min-height: 40px;
+}
+
+.attachments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.75rem;
+  max-height: 350px;
+  overflow-y: auto;
+  min-height: 20px; /* Zorg dat de grid altijd bestaat */
+}
+
+/* Verberg gallery wrapper als er geen items zijn */
+.attachments-gallery-wrapper:empty {
+  display: none;
+}
+
+.no-attachments {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--muted);
+  padding: 2rem;
+}
+
+.attachment-item {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: var(--bg-panel);
+}
+
+.attachment-item:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.attachment-preview {
+  width: 100%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.attachment-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment-preview.icon-preview {
+  font-size: 2rem;
+}
+
+.attachment-name {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.25rem;
+}
+
+.delete-attachment {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(244, 67, 54, 0.9);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.attachment-item:hover .delete-attachment {
+  opacity: 1;
+}
+
+.delete-attachment:hover {
+  background: rgba(211, 47, 47, 1);
+}
+
+/* Attachment Preview Dialog */
+.attachment-preview-dialog {
+  max-width: 90vw;
+  max-height: 90vh;
+  border: none;
+  border-radius: 12px;
+  padding: 0;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.attachment-preview-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+.attachment-preview-dialog .preview-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.2rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+  border-radius: 12px 12px 0 0;
+}
+
+.attachment-preview-dialog .preview-title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.attachment-preview-dialog .close-preview {
+  background: none;
+  border: none;
+  font-size: 1.8rem;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.attachment-preview-dialog .close-preview:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.attachment-preview-dialog .preview-content {
+  padding: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-body);
+  min-height: 200px;
+}
+
+.attachment-preview-dialog pre {
+  background: var(--bg-panel);
+  padding: 1.5rem;
+  border-radius: 8px;
+  margin: 0;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+/* Attachment Delete Confirmation Dialog */
+.attachment-delete-dialog {
+  max-width: 420px;
+  border: none;
+  border-radius: 12px;
+  padding: 1.8rem;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
+}
+
+.attachment-delete-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.6) !important;
+}
+
+.attachment-delete-dialog h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.attachment-delete-dialog p {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.attachment-delete-dialog .filename {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.attachment-delete-dialog menu {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
 /* Media sections (image en video uploader) */
 .media-section {
-  display: none !important; /* Force hide wanneer niet actief */
+  display: none; /* Hide by default */
 }
 
 .media-section[data-active="true"] {
-  display: grid !important; /* Force show wanneer actief */
+  display: grid; /* Show when active */
   gap: 0.75rem;
+}
+
+/* Globale view modes overschrijven de data-active state */
+.prompts-container.media-view-images .prompt-card .image-uploader {
+  display: grid !important;
+  gap: 0.75rem;
+}
+
+.prompts-container.media-view-images .prompt-card .video-uploader {
+  display: none !important;
+}
+
+.prompts-container.media-view-videos .prompt-card .video-uploader {
+  display: grid !important;
+  gap: 0.75rem;
+}
+
+.prompts-container.media-view-videos .prompt-card .image-uploader {
+  display: none !important;
 }
 
 /* Video uploader styling (maar display wordt gecontroleerd door .media-section) */
@@ -2102,8 +2697,64 @@ body[data-workflow-mode="both"] .scene-both-mode {
 
 .prompts-header-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: center;
+}
+
+/* Media toggle group */
+.media-toggle-group {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.media-toggle {
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  border-right: 1px solid var(--border-color);
+}
+
+.media-toggle:last-child {
+  border-right: none;
+}
+
+.media-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.media-toggle.active {
+  background: var(--primary-color);
+  color: white;
+  font-weight: 500;
+}
+
+/* Media view modes - control visibility of image/video uploaders */
+/* In images mode: toon image sections, verberg video sections */
+.prompts-container.media-view-images .prompt-card .video-uploader {
+  display: none !important;
+}
+
+.prompts-container.media-view-images .prompt-card .image-uploader {
+  display: grid !important;
+  gap: 0.75rem;
+}
+
+/* In videos mode: toon video sections, verberg image sections */
+.prompts-container.media-view-videos .prompt-card .image-uploader {
+  display: none !important;
+}
+
+.prompts-container.media-view-videos .prompt-card .video-uploader {
+  display: grid !important;
+  gap: 0.75rem;
 }
 
 .audio-timeline-container {
@@ -2461,4 +3112,516 @@ body[data-workflow-mode="both"] .scene-both-mode {
 #toggle-audio-timeline.has-audio:hover {
   box-shadow: 0 6px 16px rgba(58, 109, 240, 0.4);
   transform: translateY(-1px);
+}
+
+/* ============================================================================
+   FULLSCREEN AUDIO/VIDEO TIMELINE EDITOR
+   ============================================================================ */
+
+.fullscreen-editor-dialog {
+  max-width: 100vw;
+  max-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+}
+
+.fullscreen-editor-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.95) !important;
+}
+
+.editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Editor Header */
+.editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--bg-panel);
+  border-bottom: 2px solid var(--border);
+}
+
+.editor-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text);
+}
+
+.editor-subtitle {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+
+.close-editor-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.close-editor-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* Main editor area - split: preview boven, timeline onder */
+.editor-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  gap: 1px;
+  background: var(--border);
+}
+
+/* Preview sectie (40% van hoogte) */
+.editor-preview-section {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  height: 40%;
+  min-height: 300px;
+}
+
+.preview-window {
+  flex: 2;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.preview-canvas {
+  flex: 1;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-placeholder {
+  text-align: center;
+  color: var(--muted);
+}
+
+.preview-icon {
+  font-size: 4rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.preview-placeholder p {
+  margin: 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.preview-hint {
+  font-size: 0.9rem !important;
+  opacity: 0.7;
+}
+
+/* Preview controls onder het venster */
+.preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+
+.preview-btn {
+  background: var(--primary);
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.2rem;
+}
+
+.preview-btn:hover:not(:disabled) {
+  background: #4e7ef8;
+  transform: scale(1.05);
+}
+
+.preview-btn:disabled {
+  background: var(--border);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.play-icon {
+  margin-left: 3px; /* Center play triangle */
+}
+
+.preview-time-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Monaco', 'Courier New', monospace;
+  font-size: 1.1rem;
+  color: var(--text);
+}
+
+.time-separator {
+  color: var(--muted);
+}
+
+.preview-volume {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.preview-btn-small {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.preview-btn-small:hover {
+  background: var(--border);
+}
+
+#preview-volume-slider {
+  width: 100px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  -webkit-appearance: none;
+}
+
+#preview-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+}
+
+#preview-volume-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: pointer;
+  border: none;
+}
+
+/* Scene info panel rechts van preview */
+.scene-info-panel {
+  flex: 1;
+  background: var(--bg-panel);
+  padding: 1.5rem;
+  overflow-y: auto;
+  min-width: 300px;
+}
+
+.scene-info-panel h4 {
+  margin: 0 0 1rem 0;
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.scene-info-content {
+  background: var(--bg);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 1rem;
+}
+
+.scene-info-content p {
+  margin: 0.5rem 0;
+  line-height: 1.6;
+}
+
+/* Media type toggle per scene */
+.scene-media-toggle {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.scene-media-toggle label {
+  display: block;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.media-type-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.media-type-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.media-type-btn:hover {
+  background: var(--border);
+}
+
+.media-type-btn.active {
+  background: var(--primary);
+  color: var(--primary-text);
+  border-color: var(--primary);
+}
+
+/* Timeline sectie (60% van hoogte) */
+.editor-timeline-section {
+  flex: 1;
+  background: var(--bg-panel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 400px;
+}
+
+/* Timeline toolbar */
+.timeline-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toolbar-btn {
+  padding: 0.6rem 1.25rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  background: var(--primary);
+  color: var(--primary-text);
+}
+
+.toolbar-btn:hover {
+  background: #4e7ef8;
+}
+
+.toolbar-btn-icon {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1rem;
+}
+
+.toolbar-btn-icon:hover {
+  background: var(--border);
+}
+
+.audio-filename {
+  color: var(--muted);
+  font-size: 0.9rem;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Waveform container met ruler */
+.timeline-waveform-container {
+  flex: 0 0 200px; /* Fixed hoogte in plaats van flex: 2 */
+  max-height: 200px;
+  background: #1a1a1a;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.timeline-ruler {
+  height: 30px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+.waveform-wrapper {
+  position: relative;
+  height: calc(100% - 30px);
+  min-height: 120px; /* Lager gemaakt van 200px naar 120px */
+  max-height: 150px; /* Maximum hoogte voor meer ruimte */
+}
+
+.editor-waveform {
+  width: 100%; /* Volledige breedte binnen padding */
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+  margin: 0 !important; /* Expliciet geen margin */
+  padding: 0 !important; /* Expliciet geen padding */
+  border: none; /* Geen border */
+  box-sizing: border-box;
+}
+
+/* Playhead (rode lijn) */
+.timeline-playhead {
+  position: absolute;
+  top: 0;
+  left: -1.5px; /* -1.5px zodat 3px brede lijn gecentreerd is op positie */
+  width: 3px;
+  height: 100%;
+  background: #ff0000;
+  pointer-events: auto;
+  z-index: 10;
+  display: none;
+  cursor: grab;
+  will-change: transform; /* Hardware acceleratie voor smooth beweging met transform */
+  transform: translateZ(0); /* Force GPU rendering */
+}
+
+/* Grote ronde knop bovenaan playhead */
+.timeline-playhead::before {
+  content: '';
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 20px;
+  background: #ff0000;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  cursor: grab;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  transition: all 0.15s ease;
+}
+
+.timeline-playhead:hover::before {
+  width: 24px;
+  height: 24px;
+  top: -14px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Grotere klikbare area rondom playhead */
+.timeline-playhead::after {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: -12px;
+  width: 27px;
+  height: calc(100% + 15px);
+  background: transparent;
+}
+
+.timeline-playhead.active {
+  display: block;
+}
+
+.timeline-playhead:active::before,
+.timeline-playhead.dragging::before {
+  cursor: grabbing;
+  background: #cc0000;
+  width: 24px;
+  height: 24px;
+  top: -14px;
+}
+
+.timeline-playhead.dragging {
+  cursor: grabbing;
+}
+
+/* Markers lijst onder waveform */
+.timeline-markers-section {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+.markers-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.markers-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.markers-count {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  background: var(--bg-panel);
+  border-radius: 12px;
+}
+
+.editor-markers-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* Responsive aanpassingen */
+@media (max-width: 1200px) {
+  .editor-preview-section {
+    flex-direction: column;
+    height: auto;
+    min-height: 400px;
+  }
+  
+  .scene-info-panel {
+    min-width: 100%;
+  }
 }

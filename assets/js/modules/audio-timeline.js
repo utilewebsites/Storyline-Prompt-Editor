@@ -1389,6 +1389,68 @@ export function getAudioTimelineData() {
 }
 
 /**
+ * Export audio buffer voor gebruik in andere modules
+ */
+export function getAudioBuffer() {
+  return audioBuffer;
+}
+
+/**
+ * Export audio element voor gebruik in andere modules
+ */
+export function getAudioElement() {
+  return audioElement;
+}
+
+/**
+ * Export audio context voor gebruik in andere modules
+ */
+export function getAudioContext() {
+  return audioContext;
+}
+
+/**
+ * Export markers voor gebruik in andere modules
+ */
+export function getMarkers() {
+  return audioMarkers;
+}
+
+/**
+ * Export audio filename
+ */
+export function getAudioFileName() {
+  return currentAudioFileName;
+}
+
+/**
+ * Update marker tijd vanuit audio editor
+ */
+export function updateAudioMarkerTime(markerIndex, newTime) {
+  if (markerIndex >= 0 && markerIndex < audioMarkers.length) {
+    // In de oude audio-timeline zijn markers gewoon getallen (timestamps)
+    // Update de marker tijd direct
+    audioMarkers[markerIndex] = newTime;
+    
+    // Re-sort markers op tijd
+    audioMarkers.sort((a, b) => a - b);
+    
+    // Re-render waveform en markers
+    redrawWaveform();
+    refreshMarkersDisplay();
+    
+    console.log(`🔄 Updated marker ${markerIndex} to ${newTime.toFixed(2)}s`);
+  }
+}
+
+/**
+ * Check of er audio timeline mode actief is
+ */
+export function isAudioTimelineActive() {
+  return isAudioTimelineMode;
+}
+
+/**
  * Restore audio timeline data vanuit project.json
  */
 export async function restoreAudioTimelineData(audioData, projectHandle) {

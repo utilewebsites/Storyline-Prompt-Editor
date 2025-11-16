@@ -7,13 +7,37 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
+## update — 16 november 2025
 
-## update — 15 november 2025
+**Professionele Audio/Video Timeline Editor:**
+- **Fullscreen editor**: nieuwe Final Cut Pro-achtige interface met grote waveform, preview canvas en tijdlijn scrubbing voor professionele audio/video editing.
+- **GPU-versnelde playhead**: soepel slepen door audio met instant visuele feedback. Muziek pauzeert automatisch tijdens scrubbing en hervat op nieuw punt bij loslaten.
+- **Per-scène media type**: kies tussen afbeelding (🖼️) of video (🎬) voor elke scène met realtime preview canvas. Video's spelen automatisch af gesynchroniseerd met audio.
+- **Draggable markers**: sleep markers op de waveform naar nieuwe posities—scènes worden automatisch opnieuw gesorteerd op tijdstempel.
+- **Inactieve scènes koppelen**: scènes zonder marker worden getoond als "Inactieve scenes" met 🔗 knop. Klik, plaats marker op waveform, en de scène wordt actief gekoppeld.
+- **Bevestigingsdialoog**: bij nieuwe marker plaatsing vraagt popup of je automatisch een nieuwe scène wilt aanmaken.
+
+**Scène Transitie-editor:**
+- **Transitie beschrijvingen**: ➕ knoppen tussen scènes openen dialoog om transitie-effecten te beschrijven (cross-fade, cut, pan, zoom, etc.).
+- **Bewaar per project**: transitie-data wordt opgeslagen in project JSON en geëxporteerd met prompts.
+- **Visuele indicators**: transitie knoppen tonen groene indicator (●) wanneer er een beschrijving is ingesteld.
+
+**Tweetalige interface**: alle nieuwe functies volledig vertaald (Nederlands/Engels) met data-i18n attributen.
+
+**Attachements** : Je kunt nu maximaal 8 attachments toevoegen, waaronder afbeeldingen, video's, audiobestanden en tekstbestanden. Per scene
+
+> **Note:** Veel dank aan **Jan Brosens** voor de waardevolle feedback tijdens het werken en testen van de storyline-editor.
+>
+
+![Audio Timeline Editor](docs/images/editor-audio-preview.png) ![Audio Presentation Mode](docs/images/transitie.png) ![Scene Dialog](docs/images/attachements.png)
+
+
+##  15 november 2025
 
 Deze release voegt audio timeline functionaliteit en een contextgevoelig help-systeem toe:
 
 **Audio Timeline voor tijdgebaseerde productie:**
-- **Audio Timeline modus**: upload een audiobestand (MP3/WAV) en plaats markers op de waveform om scènes automatisch te koppelen aan specifieke tijdstippen. Ideaal voor muziekvideo's, voice-overs en geluidseffecten.
+- **Audio Timeline modus**: upload een audiobestand (MP3/WAV) en plaats markers op de waveform om scènes automatisch te koppelen aan specifieke tijdstippen. Ideaal voor muziekvideo's, voice-overs e## update — 16 november 2025n geluidseffecten.
 - **Automatische scène synchronisatie**: markers bepalen de volgorde en timing van scènes. Sleep een marker om de scène timing aan te passen—scènes worden automatisch opnieuw geordend op basis van hun positie in de audio.
 - **Audio presentatiemodus**: bekijk je project met gesynchroniseerde audio playback. Scènes wisselen automatisch op de juiste momenten terwijl de audio afspeelt.
 - **Visuele marker editing**: bewerk marker tijden met een gestylede dialoog (MM:SS.ms formaat), koppel bestaande scènes aan markers via een "➕" knop, en zie direct welke scènes al gekoppeld zijn.

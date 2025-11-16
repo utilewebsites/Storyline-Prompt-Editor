@@ -35,6 +35,7 @@ export function addPrompt(state, elements, flagProjectDirty) {
     videoPath: null,
     videoOriginalName: null,
     videoType: null,
+    attachments: [], // ⭐ NIEUW: attachments array
     rating: null,
     // Traditional video storyline fields
     whatDoWeSee: "",
@@ -79,6 +80,17 @@ export async function deletePrompt(promptId, state, elements) {
       await state.projectVideosHandle.removeEntry(prompt.videoPath);
     } catch (error) {
       console.warn("Video verwijderen mislukt", error);
+    }
+  }
+
+  // Verwijder attachments
+  if (prompt.attachments && prompt.attachments.length > 0 && state.projectAttachmentsHandle) {
+    for (const attachment of prompt.attachments) {
+      try {
+        await state.projectAttachmentsHandle.removeEntry(attachment.filename);
+      } catch (error) {
+        console.warn("Attachment verwijderen mislukt", error);
+      }
     }
   }
 
