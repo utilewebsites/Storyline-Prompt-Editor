@@ -20,7 +20,16 @@ Important:
 - For our tests and as the default configuration we use llava:7b for image analysis and mistral:7b-instruct-v0.3 for prompt generation — the workflow is specifically tuned for WAN 2.2 output formats.
 - Recommended alternatives (tested): vision: llava:13b, bakllava, moondream; text: qwen2.5:7b, qwen2.5:14b, llama3.2, llama3.1:8b. For production we recommend ollama pull mistral:7b-instruct due to better format accuracy.
 
-In short: quick input → analyze image → generate WAN 2.2‑formatted prompt → export or queue on the server. Choose the model that fits your workflow; the editor saves per project which models and instructions were used.
+- **LLM requires local Ollama installation**:  
+  Ollama must run on the same machine as the editor (`http://localhost:11434`).  
+  For remote use (e.g. `myeditor.nl`), you need Ollama on the server or a CORS-bypass extension for development/testing (not recommended for production).
+
+- **If running online**, start Chrome without CORS checks:
+
+  ```bash
+  open -na "Google Chrome" --args --disable-web-security --user-data-dir="/tmp/chrome-no-cors"
+
+In short: quick input → analyze the image → generate a WAN 2.2‑formatted prompt → export it or add it to the server queue. Choose the model that fits your workflow; the editor saves which models were used per project.
 
   ![Ai prompter](docs/images/aiprompter.png)
   ![Ollama koppelen](docs/images/llm-ollama-instellingen.png)

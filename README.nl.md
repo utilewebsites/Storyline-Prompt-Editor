@@ -17,8 +17,18 @@ Belangrijk:
 - Je kunt zelf kiezen welk Ollama‑model je wilt gebruiken via de instellingen; de editor test de connectie en toont beschikbare modellen.
 - Voor onze tests en als standaardconfiguratie gebruiken we llava:7b voor image‑analyse en mistral:7b‑instruct‑v0.3 voor promptgeneratie — de workflow is specifiek getuned op WAN 2.2 outputformaten.
 - Aanbevolen alternatieven (getest): vision: llava:13b, bakllava, moondream; text: qwen2.5:7b, qwen2.5:14b, llama3.2, llama3.1:8b. Voor productieadvies raden wij ollama pull mistral:7b-instruct aan vanwege betere format‑nauwkeurigheid.
+- 
+- **LLM vereist lokale Ollama‑installatie**:  
+   Ollama moet draaien op dezelfde machine als de editor (`http://localhost:11434`).  
+   Voor gebruik op afstand (bijv. `myeditor.nl`) moet Ollama op de server staan of je gebruikt een CORS‑bypass extensie voor ontwikkeling/testen (niet aanbevolen voor productie).
 
-Kort samengevat: snel invoeren → afbeelding analyseren → WAN 2.2‑geformatteerde prompt genereren → exporteren of in de server‑queue zetten. Kies het model dat bij jouw workflow past; de editor bewaart per project welke modellen en instructies zijn gebruikt.
+- **Als je online draait**, start Chrome zonder CORS‑controles:
+
+   ```bash
+   open -na "Google Chrome" --args --disable-web-security --user-data-dir="/tmp/chrome-no-cors"
+   ```
+
+Kort samengevat: snel invoeren → afbeelding analyseren → WAN 2.2‑geformatteerde prompt genereren → exporteren of in de server‑queue zetten. Kies het model dat bij jouw workflow past; de editor bewaart per project welke modellen er zijn gebruikt.
 
   ![Ai prompter](docs/images/aiprompter.png)
   ![Ollama koppelen](docs/images/llm-ollama-instellingen.png)
