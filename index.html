@@ -905,6 +905,14 @@
         
         <!-- Tab Content: LLM Config -->
         <div class="tab-content active" id="llm-config-tab">
+          <!-- Waarschuwing voor remote hosting -->
+          <div style="margin-bottom: 1.5rem; padding: 1rem; background: #fff3cd; border: 1px solid #ffc107; border-radius: var(--radius); color: #856404;">
+            <p style="margin: 0 0 0.5rem 0; font-weight: 600;" data-i18n="llm.setupWarning">⚠️ Belangrijk voor remote hosting</p>
+            <p style="margin: 0; font-size: 0.9rem; line-height: 1.5;" data-i18n="llm.setupDetails">
+              Ollama moet lokaal draaien (localhost:11434). Bij remote hosting (bijv. myeditor.nl) werkt dit NIET zonder CORS-bypass. Zie Info tab voor meer uitleg.
+            </p>
+          </div>
+          
           <div class="form-section">
             <label>
               <span data-i18n="llm.enabled">LLM Service Actief</span>
@@ -981,6 +989,17 @@
             <p>
               <a href="https://ollama.ai" target="_blank" data-i18n="llm.info.downloadLink">Download Ollama</a>
             </p>
+            
+            <div style="margin-top: 1.5rem; padding: 1rem; background: var(--surface); border-radius: var(--radius); border-left: 3px solid var(--primary);">
+              <p style="margin: 0 0 0.5rem 0;"><strong data-i18n="llm.info.localRequirement">LLM vereist lokale Ollama installatie:</strong></p>
+              <ul style="margin: 0.5rem 0; padding-left: 1.5rem; font-size: 0.9rem; line-height: 1.6;">
+                <li data-i18n="llm.info.localRequirementDetails">Ollama moet draaien op dezelfde machine als de editor (<code>http://localhost:11434</code>).</li>
+                <li data-i18n="llm.info.remoteRequirement">Voor gebruik op afstand (bijv. myeditor.nl), heb je Ollama nodig op de server of een CORS-bypass extensie voor ontwikkeling/testen (niet aanbevolen voor productie).</li>
+              </ul>
+              
+              <p style="margin: 1rem 0 0.5rem 0;"><strong data-i18n="llm.info.corsWarning">Bij online gebruik, start Chrome zonder CORS controle:</strong></p>
+              <pre style="background: var(--background); padding: 0.75rem; border-radius: var(--radius); overflow-x: auto; font-size: 0.85rem; margin: 0;"><code data-i18n="llm.info.corsCommand">open -na "Google Chrome" --args --disable-web-security --user-data-dir="/tmp/chrome-no-cors"</code></pre>
+            </div>
             
             <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border);" />
             
