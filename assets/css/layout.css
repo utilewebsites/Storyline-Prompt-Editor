@@ -20,13 +20,18 @@
 
 .app-header.minimized .title-group h1,
 .app-header.minimized .subtitle,
-.app-header.minimized .language-switch,
-.app-header.minimized .workflow-mode-switch {
+.app-header.minimized .header-controls {
   display: none;
 }
 
 .app-header.minimized .header-actions {
   margin-left: auto;
+}
+
+.title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .title-group h1 {
@@ -53,12 +58,18 @@
   display: inline-flex;
 }
 
+.header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .language-switch {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.9rem;
-  margin-top: 0.35rem;
 }
 
 .language-switch span {
@@ -66,6 +77,24 @@
 }
 
 .language-switch select {
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+}
+
+.workflow-mode-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.workflow-mode-switch span {
+  font-weight: 500;
+}
+
+.workflow-mode-switch select {
   padding: 0.35rem 0.5rem;
   border-radius: 6px;
   border: 1px solid var(--border);

@@ -7,7 +7,25 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## update — 16 November 2025
+
+
+## Update — 17 November, version 2.1
+
+You can now generate a video prompt even faster directly from the editor: we integrated Ollama so you can enter a short instruction, the editor analyzes the scene image, and automatically generates a WAN 2.2‑compatible video prompt (including image→image).
+
+This lets you quickly set up a storyline with multiple prompts and images. You can then export all generated prompts and their associated images and place them directly in your video server’s queue for execution.
+
+Important:
+- You can choose which Ollama model to use via the settings; the editor tests the connection and shows available models.
+- For our tests and as the default configuration we use llava:7b for image analysis and mistral:7b-instruct-v0.3 for prompt generation — the workflow is specifically tuned for WAN 2.2 output formats.
+- Recommended alternatives (tested): vision: llava:13b, bakllava, moondream; text: qwen2.5:7b, qwen2.5:14b, llama3.2, llama3.1:8b. For production we recommend qwen2.5:14b due to better format accuracy.
+
+In short: quick input → analyze image → generate WAN 2.2‑formatted prompt → export or queue on the server. Choose the model that fits your workflow; the editor saves per project which models and instructions were used.
+
+  ![Ai prompter](docs/images/aiprompter.png)
+  ![Ollama koppelen](docs/images/llm-ollama-instellingen.png)
+
+## 16 November 2025
 
 Given our workflows at playanote.nl, where videos are often built from an audio file, we've added a dedicated editor to quickly set up a storyline. You can load an audio file and link scenes to it, allowing you to easily create storyboards for both greenscreen shoots and prompts for an AI video server. This significantly speeds up production and is useful for teams and creators using an audio-based 4.0 video workflow.
 

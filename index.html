@@ -9,25 +9,34 @@
   <body>
     <header class="app-header">
       <div class="title-group">
-        <h1 id="header-title" data-i18n="header.title">Storyline Prompt Editor</h1>
+        <h1 id="header-title">
+          <span data-i18n="header.title">Storyline Prompt Editor</span>
+          <span style="font-size: 0.6em; color: var(--text-muted); margin-left: 0.5rem;">(V2.1)</span>
+        </h1>
         <p id="header-subtitle" class="subtitle" data-i18n="header.subtitle">
           Beheer storylineprojecten, prompts en scene-afbeeldingen in één overzicht.
         </p>
-        <label class="language-switch" for="language-switch">
-          <span data-i18n="header.languageLabel">Taal</span>
-          <select id="language-switch" data-help="help.languageSwitch">
-            <option value="nl">Nederlands</option>
-            <option value="en">English</option>
-          </select>
-        </label>
-        <label class="workflow-mode-switch" for="workflow-mode">
-          <span data-i18n="header.workflowMode">Werkwijze</span>
-          <select id="workflow-mode" data-help="help.workflowMode">
-            <option value="ai-prompt" data-i18n="header.aiPromptMode">AI Prompt Mode</option>
-            <option value="traditional-video" data-i18n="header.traditionalMode">Traditionele Video Storyline</option>
-            <option value="both" data-i18n="header.bothMode">Beide modi</option>
-          </select>
-        </label>
+        <div class="header-controls">
+          <label class="language-switch" for="language-switch">
+            <span data-i18n="header.languageLabel">Taal</span>
+            <select id="language-switch" data-help="help.languageSwitch">
+              <option value="nl">Nederlands</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+          <label class="workflow-mode-switch" for="workflow-mode">
+            <span data-i18n="header.workflowMode">Werkwijze</span>
+            <select id="workflow-mode" data-help="help.workflowMode">
+              <option value="ai-prompt" data-i18n="header.aiPromptMode">AI Prompt Mode</option>
+              <option value="traditional-video" data-i18n="header.traditionalMode">Traditionele Video Storyline</option>
+              <option value="both" data-i18n="header.bothMode">Beide modi</option>
+            </select>
+          </label>
+          <button id="llm-settings-btn" class="settings-icon-btn" title="LLM Instellingen" data-help="help.llmSettings">
+            <span class="settings-icon">⚙️</span>
+            <span class="status-indicator" id="llm-status-indicator"></span>
+          </button>
+        </div>
       </div>
       <div class="header-actions">
         <button id="header-save-project" class="primary" title="Opslaan">
@@ -865,6 +874,307 @@
           <button type="button" id="images-exported-copy" data-i18n="actions.copyPath">Kopieer pad</button>
           <button id="images-exported-close" value="close" class="primary" data-i18n="actions.cancel">Sluiten</button>
         </menu>
+      </form>
+    </dialog>
+
+    <!-- LLM Settings Dialog -->
+    <dialog id="llm-settings-dialog">
+      <form method="dialog" class="llm-settings-form">
+        <div class="dialog-header">
+          <h2 data-i18n="llm.settingsTitle">Instellingen</h2>
+          <button type="button" class="close-btn" id="llm-settings-close">✕</button>
+        </div>
+        
+        <!-- Tabs -->
+        <div class="settings-tabs">
+          <button type="button" class="tab-btn active" data-tab="llm-config">
+            <div class="tab-with-icon">
+              <div class="llm-tab-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                  <path d="M2 17l10 5 10-5"/>
+                  <path d="M2 12l10 5 10-5"/>
+                </svg>
+                <span class="llm-tab-status-indicator" id="llm-dialog-status"></span>
+              </div>
+              <span data-i18n="llm.tabs.settings">LLM-instellingen</span>
+            </div>
+          </button>
+          <button type="button" class="tab-btn" data-tab="llm-info" data-i18n="llm.tabs.info">Info</button>
+        </div>
+        
+        <!-- Tab Content: LLM Config -->
+        <div class="tab-content active" id="llm-config-tab">
+          <div class="form-section">
+            <label>
+              <span data-i18n="llm.enabled">LLM Service Actief</span>
+              <input type="checkbox" id="llm-enabled" />
+            </label>
+          </div>
+          
+          <div class="form-section">
+            <label>
+              <span data-i18n="llm.ollamaUrl">Ollama API URL</span>
+              <input type="text" id="llm-ollama-url" placeholder="http://localhost:11434" />
+            </label>
+            <button type="button" id="llm-test-connection" class="secondary" data-i18n="llm.testConnection">Test Verbinding</button>
+            <span id="llm-connection-status" class="status-text"></span>
+          </div>
+          
+          <div class="form-section">
+            <label>
+              <span data-i18n="llm.imageAnalysisModel">Model voor Image Analyse</span>
+              <small style="color: var(--text-muted); display: block; margin-top: 0.25rem; font-size: 0.85rem;">
+                ℹ️ Vision model (llava:7b, llava:13b, bakllava) - analyseert afbeeldingen
+              </small>
+              <select id="llm-image-model">
+                <option value="llava:latest">llava:latest</option>
+              </select>
+            </label>
+            <button type="button" id="llm-refresh-models" class="secondary icon-btn" title="Ververs models">🔄</button>
+          </div>
+          
+          <div class="form-section">
+            <label>
+              <span data-i18n="llm.promptGenerationModel">Model voor Prompt Generatie</span>
+              <small style="color: var(--text-muted); display: block; margin-top: 0.25rem; font-size: 0.85rem;">
+                ℹ️ Text model (qwen2.5:7b, llama3.2, mistral:7b) - schrijft video prompts
+              </small>
+              <select id="llm-prompt-model">
+                <option value="llama3.2:latest">llama3.2:latest</option>
+              </select>
+            </label>
+          </div>
+          
+          <div class="form-actions">
+            <button type="button" id="llm-save-settings" class="primary" data-i18n="llm.saveSettings">Instellingen Opslaan</button>
+          </div>
+        </div>
+        
+        <!-- Tab Content: Info -->
+        <div class="tab-content" id="llm-info-tab">
+          <div class="info-content">
+            <h3 data-i18n="llm.info.projectTitle">Storyline Prompt Editor</h3>
+            <p data-i18n="llm.info.projectDescription">
+              Een open source project ontwikkeld door <strong>utilewebsites.nl</strong> voor <strong>playanote.nl</strong>. 
+              Deze tool is speciaal ontworpen voor diverse moderne video-workflows: op audio gebaseerde video productie, 
+              LLM image-to-video generatie, én traditionele storyboards in combinatie met AI prompts.
+            </p>
+            
+            <h3 data-i18n="llm.info.title">Over LLM Integratie</h3>
+            <p data-i18n="llm.info.whyLLM">
+              Gezien onze workflows bij playanote.nl, waarin veelal vanuit een audiobestand een video wordt opgebouwd, 
+              hebben we LLM-ondersteuning toegevoegd om het creatieve proces te versnellen. Met AI-analyse kun je:
+            </p>
+            <ul>
+              <li data-i18n="llm.info.feature1">Automatische analyse van scene afbeeldingen</li>
+              <li data-i18n="llm.info.feature2">Genereren van video prompts op basis van image analyse</li>
+              <li data-i18n="llm.info.feature3">Sneller storyboards maken voor greenscreen-opnamen én AI-video-servers</li>
+            </ul>
+            <p data-i18n="llm.info.benefits">
+              Dit versnelt de productie aanzienlijk en is nuttig voor teams en makers die een op audio gebaseerde video-workflow hanteren.
+            </p>
+            
+            <p data-i18n="llm.info.requirements">
+              <strong>Vereisten:</strong> Ollama moet lokaal geïnstalleerd zijn en draaien.
+            </p>
+            <p>
+              <a href="https://ollama.ai" target="_blank" data-i18n="llm.info.downloadLink">Download Ollama</a>
+            </p>
+            
+            <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid var(--border);" />
+            
+            <p data-i18n="llm.info.tryOnline" style="font-size: 0.9rem; color: var(--text-muted);">
+              Wil je de tool direct proberen zonder installatie? Stuur ons een e-mail via een van onze platformen; 
+              we sturen je dan een URL (en inlog) zodat je meteen aan de slag kunt.
+            </p>
+          </div>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Transition Edit Dialog -->
+    <dialog id="edit-transition-dialog" class="transition-dialog">
+      <form method="dialog" class="transition-form">
+        <div class="transition-header">
+          <h2 id="transition-dialog-title">Transitie: Scene 1 → Scene 2</h2>
+          <button type="button" class="close-btn" id="close-transition-dialog">✕</button>
+        </div>
+        <div class="transition-content">
+          <p data-i18n="transition.description" style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+            Beschrijf hoe de overgang van scene 1 naar scene 2 verloopt. Dit helpt bij het maken van een vloeiende storyline.
+          </p>
+          
+          <div class="form-section">
+            <label>
+              <span data-i18n="transition.label" style="font-weight: 500; margin-bottom: 0.5rem; display: block;">Transitie beschrijving</span>
+              <textarea 
+                id="transition-text" 
+                rows="4" 
+                placeholder="Bijvoorbeeld: fade to black, cross-fade, cut, etc."
+                data-i18n-attr-placeholder="transition.placeholder"
+                style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); color: var(--text); font-family: inherit; font-size: 0.95rem; resize: vertical;"
+              ></textarea>
+            </label>
+          </div>
+          
+          <!-- Voorbeelden van professionele transities -->
+          <div style="margin-top: 1rem; padding: 1rem; background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border);">
+            <p style="font-weight: 500; margin-bottom: 0.5rem; font-size: 0.9rem;" data-i18n="transition.examples">Voorbeelden van professionele transities:</p>
+            <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-muted); font-size: 0.85rem; line-height: 1.6;">
+              <li><strong>Cut:</strong> Directe overgang zonder effect</li>
+              <li><strong>Fade to black:</strong> Beeld verdwijnt langzaam naar zwart</li>
+              <li><strong>Cross-fade:</strong> Geleidelijke overgang tussen scenes</li>
+              <li><strong>Wipe:</strong> Nieuwe scene veegt de oude weg</li>
+              <li><strong>Match cut:</strong> Visueel vergelijkbare elementen verbinden scenes</li>
+            </ul>
+          </div>
+        </div>
+        <div class="transition-actions">
+          <button type="button" class="secondary" id="cancel-transition" data-i18n="actions.cancel">Annuleren</button>
+          <button type="button" class="secondary" id="delete-transition" data-i18n="transition.delete" style="margin-left: auto;">Wissen</button>
+          <button type="submit" class="primary" id="save-transition" data-i18n="actions.save">Opslaan</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- AI Prompt Generator Dialog -->
+    <dialog id="ai-prompt-generator-dialog">
+      <form method="dialog" class="ai-prompt-form">
+        <div class="dialog-header">
+          <h2 data-i18n="aiPrompt.title">AI Prompt Generator</h2>
+          <button type="button" class="close-btn" id="ai-prompt-close">✕</button>
+        </div>
+        
+        <div class="dialog-content">
+          <!-- LINKER KOLOM: Input sectie -->
+          <div class="ai-input-section">
+            <!-- Mode selectie -->
+            <div class="form-section">
+              <label>
+                <span data-i18n="aiPrompt.mode">Generatie Modus</span>
+                <div class="mode-toggle-buttons">
+                  <button type="button" class="mode-toggle-btn active" data-mode="single" id="ai-mode-single">
+                    <span data-i18n="aiPrompt.modeSingle">Enkele Scene</span>
+                  </button>
+                  <button type="button" class="mode-toggle-btn" data-mode="sequence" id="ai-mode-sequence">
+                    <span data-i18n="aiPrompt.modeSequence">Scene naar Scene</span>
+                  </button>
+                </div>
+              </label>
+            </div>
+            
+            <!-- Taal selectie voor vertaling -->
+            <div class="form-section">
+              <label>
+                <span data-i18n="aiPrompt.translationLanguage">Vertaal resultaat naar</span>
+                <select id="ai-prompt-translation-lang">
+                  <option value="">Geen vertaling</option>
+                  <option value="nl" selected>Nederlands</option>
+                  <option value="de">Deutsch</option>
+                  <option value="fr">Français</option>
+                  <option value="es">Español</option>
+                  <option value="it">Italiano</option>
+                  <option value="pt">Português</option>
+                  <option value="pl">Polski</option>
+                  <option value="sv">Svenska</option>
+                  <option value="da">Dansk</option>
+                  <option value="fi">Suomi</option>
+                  <option value="el">Ελληνικά</option>
+                  <option value="cs">Čeština</option>
+                  <option value="ro">Română</option>
+                  <option value="hu">Magyar</option>
+                </select>
+              </label>
+            </div>
+            
+            <!-- Image preview gebied -->
+            <div class="ai-prompt-images">
+              <div class="image-preview-container">
+                <p class="scene-label"><span data-i18n="aiPrompt.scene">Scene</span> <span id="ai-prompt-scene-1-number">1</span></p>
+                <div id="ai-prompt-image-1" class="image-preview">
+                  <!-- Image wordt hier geladen -->
+                </div>
+              </div>
+              <div class="image-preview-container" style="display: none;">
+                <p class="scene-label"><span data-i18n="aiPrompt.scene">Scene</span> <span id="ai-prompt-scene-2-number">2</span></p>
+                <div id="ai-prompt-image-2" class="image-preview">
+                  <!-- Image wordt hier geladen -->
+                </div>
+              </div>
+            </div>
+            
+            <!-- Extra instructies -->
+            <div class="form-section">
+              <label>
+                <span data-i18n="aiPrompt.extraInstructions">Extra instructies (optioneel)</span>
+                <textarea id="ai-prompt-extra-instructions" rows="4" placeholder="Beschrijf WAT er moet gebeuren in de video. Bijv: 'de maan beweegt langzaam over de sterrenhemel', 'camera zoomt in op het gebouw', 'persoon loopt naar de deur'"></textarea>
+              </label>
+            </div>
+            
+            <!-- Generate button met inline status -->
+            <div class="form-actions" style="display: flex; align-items: center; gap: 1rem; justify-content: flex-start;">
+              <button type="button" id="ai-prompt-generate" class="primary" data-i18n="aiPrompt.generate">
+                ✨ Genereer Prompt
+              </button>
+              <div id="ai-prompt-status" class="ai-prompt-status" style="display: none;">
+                <div class="status-spinner"></div>
+                <span id="ai-prompt-status-text">Bezig...</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RECHTER KOLOM: Output sectie -->
+          <div class="ai-output-section">
+            <!-- Placeholder (toon alleen als geen resultaten) -->
+            <div class="result-placeholder" id="ai-result-placeholder">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="ai-result-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              <p id="ai-result-text"><strong>Resultaten verschijnen hier</strong></p>
+              <p id="ai-result-subtext" style="font-size: 0.85rem; margin-top: 0.5rem;">Klik op "Genereer Prompt" om te beginnen</p>
+            </div>
+            
+            <!-- Resultaat sectie -->
+            <div id="ai-prompt-result" class="ai-prompt-result" style="display: none;">
+              <h3 data-i18n="aiPrompt.resultTitle">Gegenereerde Prompts</h3>
+              
+              <div class="result-section">
+                <label>
+                  <span data-i18n="aiPrompt.promptEnglish">Engels (voor AI video generator)</span>
+                  <textarea id="ai-prompt-result-en" rows="5" readonly></textarea>
+                </label>
+              </div>
+              
+              <div class="result-section">
+                <label>
+                  <span data-i18n="aiPrompt.promptTranslation">Vertaling</span>
+                  <textarea id="ai-prompt-result-translation" rows="5" readonly></textarea>
+                </label>
+              </div>
+              
+              <!-- Redenatie sectie (collapsible) -->
+              <div class="result-section">
+                <button type="button" id="ai-prompt-toggle-reasoning" class="reasoning-toggle">
+                  <span class="toggle-icon">▶</span>
+                  <span data-i18n="aiPrompt.showReasoning">Toon redenatie & analyse</span>
+                </button>
+                <div id="ai-prompt-reasoning" class="reasoning-content" style="display: none;">
+                  <textarea id="ai-prompt-reasoning-text" rows="10" readonly></textarea>
+                </div>
+              </div>
+              
+              <div class="form-actions">
+                <button type="button" id="ai-prompt-use" class="primary" data-i18n="aiPrompt.usePrompts">
+                  ✓ Gebruiken (Toevoegen aan Scene)
+                </button>
+                <button type="button" id="ai-prompt-regenerate" class="secondary" data-i18n="aiPrompt.regenerate">
+                  🔄 Opnieuw Genereren
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </form>
     </dialog>
 

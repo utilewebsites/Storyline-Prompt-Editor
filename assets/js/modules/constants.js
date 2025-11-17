@@ -218,6 +218,22 @@ export const PROJECT_DEFAULTS = {
   notes: "",
   prompts: [],
   transitions: [],
+  llmSettings: {
+    enabled: false,
+    ollamaUrl: "http://localhost:11434",
+    imageAnalysisModel: "llava:latest",
+    promptGenerationModel: "llama3.2:latest",
+    imageAnalysisInstruction: `Je bent een expert in het analyseren van beelden voor video productie.
+Beschrijf het beeld in detail: onderwerp, setting, sfeer, kleuren, compositie.
+Focus op visuele elementen die relevant zijn voor video storytelling.
+Geef een heldere, beknopte analyse in 2-3 zinnen.`,
+    promptGenerationInstruction: `Je bent een expert in het schrijven van AI video prompts.
+Genereer op basis van de image analyse een gedetailleerde video prompt die:
+- De visuele stijl en sfeer behoudt
+- Camera beweging en timing specificeert
+- Geschikt is voor AI video generatie (Sora, Veo, etc.)
+- Maximaal 200 woorden, helder en actionable.`
+  },
 };
 
 /**

@@ -7,7 +7,23 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## update — 16 november 2025
+## update 17 november versie 2.1
+
+Je kunt nu nog sneller een video-prompt genereren direct vanuit de editor: we hebben Ollama geïntegreerd zodat je een korte instructie kunt invoeren, de editor de scène-afbeelding analyseert en automatisch een WAN 2.2‑compatibele video‑prompt genereert (ook image→image ). 
+
+Zo kun je snel een storyline opzetten met verschillende prompts en afbeeldingen. Vervolgens kun je alle gegenereerde prompts en bijbehorende afbeeldingen exporteren en direct in de wachtrij van je video‑server plaatsen voor uitvoering.
+
+Belangrijk:
+- Je kunt zelf kiezen welk Ollama‑model je wilt gebruiken via de instellingen; de editor test de connectie en toont beschikbare modellen.
+- Voor onze tests en als standaardconfiguratie gebruiken we llava:7b voor image‑analyse en mistral:7b‑instruct‑v0.3 voor promptgeneratie — de workflow is specifiek getuned op WAN 2.2 outputformaten.
+- Aanbevolen alternatieven (getest): vision: llava:13b, bakllava, moondream; text: qwen2.5:7b, qwen2.5:14b, llama3.2, llama3.1:8b. Voor productieadvies raden wij qwen2.5:14b aan vanwege betere format‑nauwkeurigheid.
+
+Kort samengevat: snel invoeren → afbeelding analyseren → WAN 2.2‑geformatteerde prompt genereren → exporteren of in de server‑queue zetten. Kies het model dat bij jouw workflow past; de editor bewaart per project welke modellen en instructies zijn gebruikt.
+
+  ![Ai prompter](docs/images/aiprompter.png)
+  ![Ollama koppelen](docs/images/llm-ollama-instellingen.png)
+
+##  16 november 2025
 
 Gezien onze workflows bij playanote.nl, waarin veelal vanuit een audiobestand een video wordt opgebouwd, hebben we een speciale editor toegevoegd om snel een storyline op te zetten. Je kunt een audiobestand inladen en scènes eraan koppelen, waardoor je eenvoudig storyboards maakt voor zowel greenscreen-opnamen als prompts voor een AI-video-server. Dit versnelt de productie aanzienlijk en is nuttig voor teams en makers die een op audio gebaseerde 4.0 video-workflow hanteren.
 

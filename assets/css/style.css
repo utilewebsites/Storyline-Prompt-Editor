@@ -39,6 +39,8 @@
 
 /* Dialogs & Modals */
 @import url('dialogs.css');
+@import url('settings.css');
+@import url('ai-prompt-generator.css');
 
 /* Features */
 @import url('transitions.css');

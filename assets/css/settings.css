@@ -1,0 +1,349 @@
+/**
+ * LLM Settings Styling
+ * 
+ * Styling voor LLM configuratie dialoog, instellingen icoon en status indicator.
+ */
+
+/* Settings Icon Button in Header */
+.settings-icon-btn {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.settings-icon-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--primary);
+}
+
+.settings-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+/* Status Indicator (groen/rood) */
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--error, #dc3545);
+  display: inline-block;
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  border: 2px solid var(--background);
+  transition: background 0.3s ease;
+}
+
+.status-indicator.active {
+  background: var(--success, #28a745);
+  box-shadow: 0 0 4px var(--success, #28a745);
+}
+
+/* LLM Settings Dialog */
+#llm-settings-dialog {
+  max-width: 700px;
+  width: 90vw;
+  max-height: 90vh;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  background: var(--bg-panel);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+#llm-settings-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: none;
+}
+
+.llm-settings-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 85vh;
+}
+
+/* Dialog Header */
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.dialog-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: var(--text);
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 0.25rem 0.5rem;
+  line-height: 1;
+  transition: color 0.2s ease;
+}
+
+.close-btn:hover {
+  color: var(--error);
+}
+
+/* Tabs */
+.settings-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  background: var(--surface);
+  padding: 0 1.5rem;
+}
+
+.tab-btn {
+  background: transparent;
+  border: none;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tab-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.llm-tab-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-radius: 6px;
+  color: white;
+  flex-shrink: 0;
+}
+
+.llm-tab-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.llm-tab-status-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+
+.llm-tab-status-indicator.active {
+  background-color: #22c55e;
+  box-shadow: 0 0 4px rgba(34, 197, 94, 0.6);
+}
+
+.llm-tab-status-indicator.inactive {
+  background-color: #ef4444;
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
+}
+
+.tab-btn:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.tab-btn.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Tab Content */
+.tab-content {
+  display: none;
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Form Sections */
+.form-section {
+  margin-bottom: 1.5rem;
+}
+
+.form-section label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.form-section input[type="text"],
+.form-section textarea,
+.form-section select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-section input[type="text"]:focus,
+.form-section textarea:focus,
+.form-section select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.1);
+}
+
+.form-section textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  line-height: 1.5;
+}
+
+.form-section input[type="checkbox"] {
+  width: auto;
+  margin-left: 0.5rem;
+  cursor: pointer;
+}
+
+/* Status Text */
+.status-text {
+  display: inline-block;
+  margin-left: 1rem;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius);
+}
+
+.status-text.success {
+  color: var(--success);
+  background: rgba(40, 167, 69, 0.1);
+}
+
+.status-text.error {
+  color: var(--error);
+  background: rgba(220, 53, 69, 0.1);
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  margin-top: 1.5rem;
+}
+
+/* Info Content */
+.info-content {
+  line-height: 1.6;
+}
+
+.info-content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+.info-content p {
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+}
+
+.info-content ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.info-content li {
+  margin-bottom: 0.5rem;
+  color: var(--text-muted);
+}
+
+.info-content a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.info-content a:hover {
+  text-decoration: underline;
+}
+
+/* Inline button next to select */
+.form-section {
+  position: relative;
+}
+
+.form-section #llm-refresh-models {
+  position: absolute;
+  right: 0;
+  top: 0;
+  padding: 0.5rem;
+  min-width: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  #llm-settings-dialog {
+    max-width: 95vw;
+    max-height: 90vh;
+  }
+  
+  .dialog-header {
+    padding: 1rem;
+  }
+  
+  .settings-tabs {
+    padding: 0 1rem;
+  }
+  
+  .tab-btn {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .tab-content {
+    padding: 1rem;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+  
+  .form-actions button {
+    width: 100%;
+  }
+}

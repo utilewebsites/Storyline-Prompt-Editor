@@ -20,7 +20,7 @@ let settingsDbPromise = null;
  * 
  * @returns {Promise<IDBDatabase>} - Database instance
  */
-function openSettingsDB() {
+export function openDB() {
   if (!("indexedDB" in window)) {
     return Promise.reject(new Error("indexedDB niet beschikbaar"));
   }
@@ -53,7 +53,7 @@ function openSettingsDB() {
  */
 export async function saveLastRootHandle(handle) {
   try {
-    const db = await openSettingsDB();
+    const db = await openDB();
     await new Promise((resolve, reject) => {
       const tx = db.transaction(SETTINGS_STORE_NAME, "readwrite");
       tx.oncomplete = resolve;
@@ -72,7 +72,7 @@ export async function saveLastRootHandle(handle) {
  */
 export async function loadLastRootHandle() {
   try {
-    const db = await openSettingsDB();
+    const db = await openDB();
     return await new Promise((resolve, reject) => {
       const tx = db.transaction(SETTINGS_STORE_NAME, "readonly");
       tx.oncomplete = () => {};
@@ -95,7 +95,7 @@ export async function loadLastRootHandle() {
  */
 export async function clearLastRootHandle() {
   try {
-    const db = await openSettingsDB();
+    const db = await openDB();
     await new Promise((resolve, reject) => {
       const tx = db.transaction(SETTINGS_STORE_NAME, "readwrite");
       tx.oncomplete = resolve;

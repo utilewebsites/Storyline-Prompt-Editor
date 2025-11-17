@@ -43,6 +43,7 @@ import { createProjectListItem, updateProjectListItem, renderProjectMeta, render
 import { addNewScene, duplicateScene, deleteScene, moveScene, updateSceneText, updateSceneMedia, updateSceneTransition, findSceneById, findSceneIndexById, validateScene } from "./modules/scene-actions.js";
 import { createNewProject, openProjectById, saveProjectData, deleteProject as deleteProjectOp, duplicateProject as duplicateProjectOp } from "./modules/project-operations.js";
 import { handleImageUpload as handleImageUploadOp, handleImageRemove as handleImageRemoveOp, handleVideoUpload as handleVideoUploadOp, handleVideoRemove as handleVideoRemoveOp } from "./modules/upload-handlers.js";
+import { testOllamaConnection, getAvailableModels, isLLMServiceActive, generateAIPromptWithStatus } from "./modules/llm-service.js";
 
 /**
  * Storyline Prompt Editor
@@ -229,6 +230,40 @@ const elements = {
   imagesExportedPath: document.querySelector("#images-exported-path"),
   imagesExportedCopy: document.querySelector("#images-exported-copy"),
   imagesExportedClose: document.querySelector("#images-exported-close"),
+  // LLM Settings elements
+  llmSettingsBtn: document.querySelector("#llm-settings-btn"),
+  llmStatusIndicator: document.querySelector("#llm-status-indicator"),
+  llmSettingsDialog: document.querySelector("#llm-settings-dialog"),
+  llmSettingsClose: document.querySelector("#llm-settings-close"),
+  llmEnabled: document.querySelector("#llm-enabled"),
+  llmOllamaUrl: document.querySelector("#llm-ollama-url"),
+  llmTestConnection: document.querySelector("#llm-test-connection"),
+  llmConnectionStatus: document.querySelector("#llm-connection-status"),
+  llmImageModel: document.querySelector("#llm-image-model"),
+  llmPromptModel: document.querySelector("#llm-prompt-model"),
+  llmRefreshModels: document.querySelector("#llm-refresh-models"),
+  llmSaveSettings: document.querySelector("#llm-save-settings"),
+  // AI Prompt Generator elements
+  aiPromptDialog: document.querySelector("#ai-prompt-generator-dialog"),
+  aiPromptClose: document.querySelector("#ai-prompt-close"),
+  aiModeSingle: document.querySelector("#ai-mode-single"),
+  aiModeSequence: document.querySelector("#ai-mode-sequence"),
+  aiPromptTranslationLang: document.querySelector("#ai-prompt-translation-lang"),
+  aiPromptImage1: document.querySelector("#ai-prompt-image-1"),
+  aiPromptImage2: document.querySelector("#ai-prompt-image-2"),
+  aiPromptExtraInstructions: document.querySelector("#ai-prompt-extra-instructions"),
+  aiPromptGenerate: document.querySelector("#ai-prompt-generate"),
+  aiPromptStatus: document.querySelector("#ai-prompt-status"),
+  aiPromptStatusText: document.querySelector("#ai-prompt-status-text"),
+  aiResultPlaceholder: document.querySelector("#ai-result-placeholder"),
+  aiPromptResult: document.querySelector("#ai-prompt-result"),
+  aiPromptResultEn: document.querySelector("#ai-prompt-result-en"),
+  aiPromptResultTranslation: document.querySelector("#ai-prompt-result-translation"),
+  aiPromptToggleReasoning: document.querySelector("#ai-prompt-toggle-reasoning"),
+  aiPromptReasoning: document.querySelector("#ai-prompt-reasoning"),
+  aiPromptReasoningText: document.querySelector("#ai-prompt-reasoning-text"),
+  aiPromptUse: document.querySelector("#ai-prompt-use"),
+  aiPromptRegenerate: document.querySelector("#ai-prompt-regenerate"),
 };
 
 // State is nu centraal beheerd in modules/state.js
@@ -247,6 +282,7 @@ const localState = {
   sidebarCollapsed: false,
   projectHeaderMinimized: false,
   allMinimized: false,
+  aiPromptContext: null, // { sceneIndex, mode: 'single' | 'sequence' }
   presentationMode: {
     currentSlide: 0,
     languageMode: "both",
@@ -408,21 +444,35 @@ function renderProjectEditor() {
   elements.editNotes.value = notes ?? "";
   refreshProjectMetaDisplay();
 
+  // Update LLM status indicator bij laden van project
+  updateLLMStatusIndicator();
+
   elements.promptsContainer.innerHTML = "";
   
   prompts.forEach((prompt, index) => {
     const card = createPromptCard(prompt, index);
     elements.promptsContainer.appendChild(card);
     
-    // Voeg transitie button toe tussen scenes (behalve na laatste scene)
+    // Voeg transitie button en AI button toe tussen scenes (behalve na laatste scene)
     if (index < prompts.length - 1) {
+      // Maak container voor beide buttons (verticaal)
+      const buttonContainer = document.createElement('div');
+      buttonContainer.className = 'transition-ai-container';
+      
+      // Transitie button
       const transitionBtn = renderTransitionButton(index, state.projectData, (sceneIndex) => {
         showTransitionDialog(sceneIndex, state.projectData, () => {
           state.isDirty = true;
           renderProjectEditor(); // Re-render om status indicator te updaten
         });
       });
-      elements.promptsContainer.appendChild(transitionBtn);
+      buttonContainer.appendChild(transitionBtn);
+      
+      // AI Prompt Generator button
+      const aiPromptBtn = renderAIPromptButton(index);
+      buttonContainer.appendChild(aiPromptBtn);
+      
+      elements.promptsContainer.appendChild(buttonContainer);
     }
   });
   
@@ -1992,6 +2042,9 @@ async function openProject(projectId) {
   renderProjectList();
   renderProjectEditor();
   updateRootUi();
+  
+  // Initialiseer LLM settings (test connectie en laad models)
+  await initializeLLMForProject();
   
   // Update audio timeline button NADAT renderProjectEditor() is aangeroepen
   // (renderProjectEditor roept applyTranslations aan die de button innerHTML overschrijft)
@@ -3693,6 +3746,295 @@ function handleSortChange(event) {
   renderProjectList();
 }
 
+// ============================================================================
+// LLM SETTINGS HANDLERS
+// ============================================================================
+
+/**
+ * Update status indicator kleur op basis van LLM configuratie.
+ * Groen = actief, Rood = inactief.
+ */
+function updateLLMStatusIndicator() {
+  const indicator = elements.llmStatusIndicator;
+  if (!indicator) return;
+  
+  const config = state.projectData?.llmSettings;
+  if (isLLMServiceActive(config)) {
+    indicator.classList.add('active');
+  } else {
+    indicator.classList.remove('active');
+  }
+}
+
+/**
+ * Laad LLM configuratie vanuit project.json en vul formulier.
+ */
+function loadLLMSettings() {
+  if (!state.projectData) return;
+  
+  // Zorg ervoor dat llmSettings bestaat (voor oude projecten)
+  if (!state.projectData.llmSettings) {
+    state.projectData.llmSettings = { ...PROJECT_DEFAULTS.llmSettings };
+  }
+  
+  const config = state.projectData.llmSettings;
+  
+  // Vul formulier met opgeslagen waarden
+  if (elements.llmEnabled) elements.llmEnabled.checked = config.enabled || false;
+  if (elements.llmOllamaUrl) elements.llmOllamaUrl.value = config.ollamaUrl || 'http://localhost:11434';
+  if (elements.llmImageModel) elements.llmImageModel.value = config.imageAnalysisModel || 'llava:latest';
+  if (elements.llmPromptModel) elements.llmPromptModel.value = config.promptGenerationModel || 'llama3.2:latest';
+  // OPMERKING: instructies worden NIET meer geladen - altijd DEFAULT_CONFIG gebruiken
+  
+  // Update status indicator
+  updateLLMStatusIndicator();
+}
+
+/**
+ * Sla LLM configuratie op in project.json.
+ */
+function saveLLMSettings() {
+  if (!state.projectData) {
+    showError("Geen project geopend");
+    return;
+  }
+  
+  // Sla alleen model selectie en URL op - instructies komen altijd uit DEFAULT_CONFIG
+  const config = {
+    enabled: elements.llmEnabled?.checked || false,
+    ollamaUrl: elements.llmOllamaUrl?.value || 'http://localhost:11434',
+    imageAnalysisModel: elements.llmImageModel?.value || 'llava:latest',
+    promptGenerationModel: elements.llmPromptModel?.value || 'llama3.2:latest',
+    // OPMERKING: imageAnalysisInstruction en promptGenerationInstruction
+    // worden NIET opgeslagen - altijd DEFAULT_CONFIG uit llm-service.js gebruiken
+  };
+  
+  state.projectData.llmSettings = config;
+  
+  // Mark project als dirty en sla op
+  flagProjectDirty();
+  
+  // Update status indicator
+  updateLLMStatusIndicator();
+  
+  // Sluit dialoog
+  if (elements.llmSettingsDialog) {
+    elements.llmSettingsDialog.close();
+  }
+  
+  showSuccess(t("llm.settingsSaved"));
+}
+
+/**
+ * Test Ollama connectie en haal beschikbare models op.
+ */
+async function testLLMConnection() {
+  const statusEl = elements.llmConnectionStatus;
+  if (!statusEl) return;
+  
+  const url = elements.llmOllamaUrl?.value || 'http://localhost:11434';
+  
+  try {
+    statusEl.textContent = 'Testen en modellen ophalen...';
+    statusEl.className = 'status-text';
+    
+    // Test connectie EN haal models op
+    const models = await testOllamaConnection(url);
+    
+    statusEl.textContent = t("llm.connectionSuccess") + ` (${models.length} models)`;
+    statusEl.className = 'status-text success';
+    
+    // Vul direct de dropdowns met gefilterde models
+    await refreshLLMModels();
+  } catch (error) {
+    statusEl.textContent = t("llm.connectionFailed");
+    statusEl.className = 'status-text error';
+    console.error('Ollama connectie test mislukt:', error);
+  }
+}
+
+/**
+ * Ververs beschikbare models in dropdowns.
+ */
+async function refreshLLMModels() {
+  const url = elements.llmOllamaUrl?.value || 'http://localhost:11434';
+  
+  try {
+    // Haal vision models op voor image analysis
+    const visionModels = await getAvailableModels(url, 'vision');
+    
+    // Haal text models op voor prompt generation
+    const textModels = await getAvailableModels(url, 'text');
+    
+    // Update image model dropdown (vision models)
+    if (elements.llmImageModel) {
+      const currentValue = elements.llmImageModel.value;
+      elements.llmImageModel.innerHTML = '';
+      
+      if (visionModels.length === 0) {
+        const option = document.createElement('option');
+        option.value = 'llava:latest';
+        option.textContent = 'llava:latest (niet geïnstalleerd)';
+        elements.llmImageModel.appendChild(option);
+      } else {
+        visionModels.forEach(model => {
+          const option = document.createElement('option');
+          option.value = model.name;
+          option.textContent = model.name;
+          elements.llmImageModel.appendChild(option);
+        });
+        
+        // Herstel vorige selectie als mogelijk
+        if (visionModels.find(m => m.name === currentValue)) {
+          elements.llmImageModel.value = currentValue;
+        }
+      }
+    }
+    
+    // Update prompt model dropdown (text models)
+    if (elements.llmPromptModel) {
+      const currentValue = elements.llmPromptModel.value;
+      elements.llmPromptModel.innerHTML = '';
+      
+      if (textModels.length === 0) {
+        const option = document.createElement('option');
+        option.value = 'llama3.2:latest';
+        option.textContent = 'llama3.2:latest (niet geïnstalleerd)';
+        elements.llmPromptModel.appendChild(option);
+      } else {
+        textModels.forEach(model => {
+          const option = document.createElement('option');
+          option.value = model.name;
+          option.textContent = model.name;
+          elements.llmPromptModel.appendChild(option);
+        });
+        
+        // Herstel vorige selectie als mogelijk
+        if (textModels.find(m => m.name === currentValue)) {
+          elements.llmPromptModel.value = currentValue;
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Models ophalen mislukt:', error);
+  }
+}
+
+/**
+ * Initialiseer LLM voor nieuw geopend project.
+ * Test connectie en laad beschikbare models in achtergrond.
+ */
+async function initializeLLMForProject() {
+  if (!state.projectData?.llmSettings) {
+    return;
+  }
+  
+  const config = state.projectData.llmSettings;
+  
+  // Skip als LLM niet enabled is
+  if (!config.enabled) {
+    return;
+  }
+  
+  // Test connectie in achtergrond (geen await - non-blocking)
+  testLLMConnection().catch(err => {
+    console.warn('LLM connectie test bij project open mislukt:', err);
+  });
+  
+  // Laad models in achtergrond (geen await - non-blocking)
+  refreshLLMModels().then(() => {
+    // Na models laden: herstel geselecteerde models uit project config
+    if (config.imageAnalysisModel && elements.llmImageModel) {
+      // Check of model bestaat in dropdown
+      const options = Array.from(elements.llmImageModel.options);
+      if (options.find(opt => opt.value === config.imageAnalysisModel)) {
+        elements.llmImageModel.value = config.imageAnalysisModel;
+      }
+    }
+    
+    if (config.promptGenerationModel && elements.llmPromptModel) {
+      // Check of model bestaat in dropdown
+      const options = Array.from(elements.llmPromptModel.options);
+      if (options.find(opt => opt.value === config.promptGenerationModel)) {
+        elements.llmPromptModel.value = config.promptGenerationModel;
+      }
+    }
+  }).catch(err => {
+    console.warn('LLM models laden bij project open mislukt:', err);
+  });
+}
+
+/**
+ * Reset LLM configuratie naar defaults.
+ */
+function resetLLMSettings() {
+  if (!state.projectData) {
+    showError("Geen project geopend");
+    return;
+  }
+  
+  state.projectData.llmSettings = { ...PROJECT_DEFAULTS.llmSettings };
+  loadLLMSettings();
+  flagProjectDirty();
+  showSuccess("LLM instellingen gereset naar standaard");
+}
+
+/**
+ * Open LLM settings dialoog.
+ */
+function openLLMSettings() {
+  if (!state.projectData) {
+    showError("Open eerst een project om LLM instellingen te wijzigen");
+    return;
+  }
+  
+  if (elements.llmSettingsDialog) {
+    // Laad huidige settings
+    loadLLMSettings();
+    
+    // Update status indicator in dialog header
+    const dialogStatus = document.getElementById('llm-dialog-status');
+    if (dialogStatus) {
+      const isActive = isLLMServiceActive(state.projectData.llmSettings);
+      dialogStatus.className = `llm-dialog-status-indicator ${isActive ? 'active' : 'inactive'}`;
+    }
+    
+    elements.llmSettingsDialog.showModal();
+  }
+}
+
+/**
+ * Sluit LLM settings dialoog.
+ */
+function closeLLMSettings() {
+  if (elements.llmSettingsDialog) {
+    elements.llmSettingsDialog.close();
+  }
+}
+
+/**
+ * Wissel tussen tabs in LLM settings dialoog.
+ */
+function switchLLMTab(tabName) {
+  // Update tab buttons
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    if (btn.dataset.tab === tabName) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+  
+  // Update tab content
+  document.querySelectorAll('.tab-content').forEach(content => {
+    if (content.id === `${tabName}-tab`) {
+      content.classList.add('active');
+    } else {
+      content.classList.remove('active');
+    }
+  });
+}
+
 /**
  * Wijzigingen aan meta direct in state zetten.
  */
@@ -3739,6 +4081,54 @@ function init() {
   // Help mode toggle
   if (elements.toggleHelp) {
     elements.toggleHelp.addEventListener("click", toggleHelpMode);
+  }
+
+  // LLM Settings event listeners
+  if (elements.llmSettingsBtn) {
+    elements.llmSettingsBtn.addEventListener("click", openLLMSettings);
+  }
+  if (elements.llmSettingsClose) {
+    elements.llmSettingsClose.addEventListener("click", closeLLMSettings);
+  }
+  if (elements.llmSaveSettings) {
+    elements.llmSaveSettings.addEventListener("click", saveLLMSettings);
+  }
+  if (elements.llmTestConnection) {
+    elements.llmTestConnection.addEventListener("click", testLLMConnection);
+  }
+  if (elements.llmRefreshModels) {
+    elements.llmRefreshModels.addEventListener("click", refreshLLMModels);
+  }
+  
+  // Tab switching in LLM dialog
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const tabName = e.currentTarget.dataset.tab;
+      if (tabName) switchLLMTab(tabName);
+    });
+  });
+  
+  // AI Prompt Generator event listeners
+  if (elements.aiPromptClose) {
+    elements.aiPromptClose.addEventListener('click', closeAIPromptDialog);
+  }
+  if (elements.aiModeSingle) {
+    elements.aiModeSingle.addEventListener('click', () => handleAIPromptModeChange('single'));
+  }
+  if (elements.aiModeSequence) {
+    elements.aiModeSequence.addEventListener('click', () => handleAIPromptModeChange('sequence'));
+  }
+  if (elements.aiPromptGenerate) {
+    elements.aiPromptGenerate.addEventListener('click', generateAIPrompt);
+  }
+  if (elements.aiPromptToggleReasoning) {
+    elements.aiPromptToggleReasoning.addEventListener('click', toggleReasoningDisplay);
+  }
+  if (elements.aiPromptUse) {
+    elements.aiPromptUse.addEventListener('click', useGeneratedPrompts);
+  }
+  if (elements.aiPromptRegenerate) {
+    elements.aiPromptRegenerate.addEventListener('click', generateAIPrompt);
   }
 
   elements.chooseRoot.addEventListener("click", handleChooseRoot);
@@ -4552,6 +4942,375 @@ if (masterToggleBtn) {
     // Bewaar master state
     localStorage.setItem("allMinimized", targetState);
   });
+}
+
+// =====================================================
+// AI Prompt Generator Functies
+// =====================================================
+
+/**
+ * Render AI Prompt Generator button tussen twee scenes.
+ * Simpele button met alleen AI icoon, onder de transitie button.
+ * 
+ * @param {number} sceneIndex - Index van de scene (button verschijnt na deze scene)
+ * @returns {HTMLElement} Button element
+ */
+function renderAIPromptButton(sceneIndex) {
+  const button = document.createElement("button");
+  button.className = "ai-prompt-button";
+  button.title = `AI Prompt voor Scene ${sceneIndex + 1} → Scene ${sceneIndex + 2}`;
+  
+  // Check of LLM actief is voor status indicator
+  const isActive = isLLMServiceActive(state.projectData?.llmSettings);
+  const statusClass = isActive ? 'active' : 'inactive';
+  
+  button.innerHTML = `
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+      <path d="M2 17l10 5 10-5"/>
+      <path d="M2 12l10 5 10-5"/>
+    </svg>
+    <span class="ai-status-indicator ${statusClass}"></span>
+  `;
+  
+  button.addEventListener("click", () => {
+    openAIPromptDialog(sceneIndex);
+  });
+  
+  return button;
+}
+
+/**
+ * Open AI Prompt Generator dialog voor een specifieke scene.
+ * Laad de benodigde scene afbeeldingen en toont de dialog.
+ * 
+ * @param {number} sceneIndex - Index van de scene
+ */
+async function openAIPromptDialog(sceneIndex) {
+  if (!state.projectData) return;
+  
+  // Check of LLM service actief is
+  if (!isLLMServiceActive(state.projectData.llmSettings)) {
+    showError(t("aiPrompt.errorNoLLMService") || "LLM service is niet actief. Configureer eerst de Ollama instellingen.");
+    return;
+  }
+  
+  const prompts = state.projectData.prompts;
+  if (sceneIndex < 0 || sceneIndex >= prompts.length) return;
+  
+  // Bewaar context
+  localState.aiPromptContext = {
+    sceneIndex,
+    mode: 'single'
+  };
+  
+  // Reset dialog
+  handleAIPromptModeChange('single');
+  elements.aiPromptTranslationLang.value = 'nl';
+  elements.aiPromptExtraInstructions.value = '';
+  elements.aiPromptResult.style.display = 'none';
+  elements.aiResultPlaceholder.style.display = 'block';
+  elements.aiResultPlaceholder.classList.remove('generating');
+  
+  // Laad afbeeldingen
+  await loadAIPromptImages(sceneIndex);
+  
+  // Toon dialog
+  elements.aiPromptDialog.showModal();
+}
+
+/**
+ * Sluit AI Prompt Generator dialog.
+ */
+function closeAIPromptDialog() {
+  elements.aiPromptDialog.close();
+  localState.aiPromptContext = null;
+  
+  // Clear image previews
+  elements.aiPromptImage1.innerHTML = '';
+  elements.aiPromptImage2.innerHTML = '';
+}
+
+/**
+ * Laad afbeeldingen voor AI prompt generator.
+ * Voor single mode: huidige scene afbeelding
+ * Voor sequence mode: huidige + volgende scene afbeelding
+ * 
+ * @param {number} sceneIndex - Index van de scene
+ */
+async function loadAIPromptImages(sceneIndex) {
+  const prompts = state.projectData.prompts;
+  if (!prompts || sceneIndex >= prompts.length) return;
+  
+  // Update scene nummers
+  const scene1Number = document.getElementById('ai-prompt-scene-1-number');
+  const scene2Number = document.getElementById('ai-prompt-scene-2-number');
+  if (scene1Number) scene1Number.textContent = sceneIndex + 1;
+  if (scene2Number) scene2Number.textContent = sceneIndex + 2;
+  
+  // Laad image 1 (huidige scene)
+  const prompt1 = prompts[sceneIndex];
+  elements.aiPromptImage1.innerHTML = '';
+  
+  if (prompt1.imagePath) {
+    try {
+      const file = await state.projectImagesHandle.getFileHandle(prompt1.imagePath);
+      const blob = await file.getFile();
+      const url = URL.createObjectURL(blob);
+      
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = `Scene ${sceneIndex + 1}`;
+      elements.aiPromptImage1.appendChild(img);
+    } catch (error) {
+      console.error('Error loading image 1:', error);
+      elements.aiPromptImage1.innerHTML = `<div class="no-image">📷<br>${t("aiPrompt.noImage") || "Afbeelding niet gevonden"}</div>`;
+    }
+  } else {
+    elements.aiPromptImage1.innerHTML = `<div class="no-image">📷<br>${t("aiPrompt.noImage") || "Afbeelding niet gevonden"}</div>`;
+  }
+  
+  // Laad image 2 (volgende scene) - alleen voor sequence mode
+  if (sceneIndex < prompts.length - 1) {
+    const prompt2 = prompts[sceneIndex + 1];
+    elements.aiPromptImage2.innerHTML = '';
+    
+    if (prompt2.imagePath) {
+      try {
+        const file = await state.projectImagesHandle.getFileHandle(prompt2.imagePath);
+        const blob = await file.getFile();
+        const url = URL.createObjectURL(blob);
+        
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = `Scene ${sceneIndex + 2}`;
+        elements.aiPromptImage2.appendChild(img);
+      } catch (error) {
+        console.error('Error loading image 2:', error);
+        elements.aiPromptImage2.innerHTML = `<div class="no-image">${t("aiPrompt.noImage")}</div>`;
+      }
+    } else {
+      elements.aiPromptImage2.innerHTML = `<div class="no-image">${t("aiPrompt.noImage")}</div>`;
+    }
+  }
+}
+
+/**
+ * Handle mode wijziging in AI Prompt Generator.
+ * Toont/verbergt de tweede afbeelding op basis van single vs sequence mode.
+ */
+function handleAIPromptModeChange(mode) {
+  const image2Container = elements.aiPromptImage2.closest('.image-preview-container');
+  
+  if (localState.aiPromptContext) {
+    localState.aiPromptContext.mode = mode;
+  }
+  
+  // Toggle active class op buttons
+  if (mode === 'single') {
+    elements.aiModeSingle.classList.add('active');
+    elements.aiModeSequence.classList.remove('active');
+    image2Container.style.display = 'none';
+  } else {
+    elements.aiModeSingle.classList.remove('active');
+    elements.aiModeSequence.classList.add('active');
+    image2Container.style.display = 'block';
+  }
+}
+
+/**
+ * Toggle redenatie & analyse weergave in AI Prompt Generator.
+ */
+function toggleReasoningDisplay() {
+  const isExpanded = elements.aiPromptToggleReasoning.classList.contains('expanded');
+  
+  if (isExpanded) {
+    // Verberg redenatie
+    elements.aiPromptReasoning.style.display = 'none';
+    elements.aiPromptToggleReasoning.classList.remove('expanded');
+    elements.aiPromptToggleReasoning.querySelector('.toggle-icon').textContent = '▶';
+    elements.aiPromptToggleReasoning.querySelector('[data-i18n]').textContent = t("aiPrompt.showReasoning");
+  } else {
+    // Toon redenatie
+    elements.aiPromptReasoning.style.display = 'block';
+    elements.aiPromptToggleReasoning.classList.add('expanded');
+    elements.aiPromptToggleReasoning.querySelector('.toggle-icon').textContent = '▼';
+    elements.aiPromptToggleReasoning.querySelector('[data-i18n]').textContent = t("aiPrompt.hideReasoning");
+  }
+}
+
+/**
+ * Genereer AI prompts op basis van geselecteerde mode.
+ * Minimale wrapper - alle LLM logica zit in llm-service.js
+ */
+async function generateAIPrompt() {
+  if (!localState.aiPromptContext || !state.projectData) return;
+  
+  const { sceneIndex, mode } = localState.aiPromptContext;
+  const llmSettings = state.projectData.llmSettings;
+  
+  if (!isLLMServiceActive(llmSettings)) {
+    showError(t("aiPrompt.errorNoLLMService"));
+    return;
+  }
+  
+  // Valideer dat extra instructies zijn ingevuld
+  const extraInstructions = elements.aiPromptExtraInstructions.value.trim();
+  if (!extraInstructions) {
+    showError(t("aiPrompt.errorNoInstructions") || "Vul eerst instructies in voor de AI (bijvoorbeeld: 'de maan moet bewegen')");
+    return;
+  }
+  
+  // UI feedback: disable button tijdens processing
+  elements.aiPromptGenerate.disabled = true;
+  elements.aiPromptGenerate.textContent = t("aiPrompt.generating") || "Genereren...";
+  elements.aiPromptStatus.style.display = 'flex';
+  elements.aiPromptResult.style.display = 'none';
+  // Toon placeholder met draaiend icoon (geen tekst)
+  elements.aiResultPlaceholder.style.display = 'block';
+  elements.aiResultPlaceholder.classList.add('generating');
+  
+  try {
+    // Roep llm-service aan met callback voor status updates
+    const result = await generateAIPromptWithStatus({
+      mode,
+      sceneIndex,
+      prompts: state.projectData.prompts,
+      llmSettings,
+      imagesHandle: state.projectImagesHandle,
+      extraInstructions,
+      translationLang: elements.aiPromptTranslationLang.value,
+      onStatus: (statusText) => {
+        elements.aiPromptStatusText.textContent = statusText;
+      }
+    });
+    
+    // Toon "Klaar!" status
+    elements.aiPromptStatusText.textContent = `✅ Klaar!`;
+    await new Promise(resolve => setTimeout(resolve, 500));
+    elements.aiPromptStatus.style.display = 'none';
+    
+    // Update UI met resultaat
+    elements.aiPromptResultEn.textContent = result.prompt;
+    
+    // Sla reasoning op in localState voor toggle functie
+    localState.aiPromptContext.reasoning = result.reasoning;
+    if (result.imageAnalysis) {
+      localState.aiPromptContext.imageAnalysis = result.imageAnalysis;
+    } else if (result.imageAnalysis1 && result.imageAnalysis2) {
+      localState.aiPromptContext.imageAnalysis1 = result.imageAnalysis1;
+      localState.aiPromptContext.imageAnalysis2 = result.imageAnalysis2;
+    }
+    
+    // Update reasoning textarea (maar toon het nog niet)
+    const reasoningText = mode === 'single'
+      ? `=== IMAGE ANALYSE ===\n${result.imageAnalysis}\n\n=== VOLLEDIGE LLM RESPONSE ===\n${result.reasoning}`
+      : `=== IMAGE ANALYSE 1 ===\n${result.imageAnalysis1}\n\n=== IMAGE ANALYSE 2 ===\n${result.imageAnalysis2}\n\n=== VOLLEDIGE LLM RESPONSE ===\n${result.reasoning}`;
+    
+    elements.aiPromptReasoningText.textContent = reasoningText;
+    
+    // Reset reasoning toggle naar collapsed state
+    elements.aiPromptReasoning.style.display = 'none';
+    elements.aiPromptToggleReasoning.classList.remove('expanded');
+    elements.aiPromptToggleReasoning.querySelector('.toggle-icon').textContent = '▶';
+    elements.aiPromptToggleReasoning.querySelector('[data-i18n]').textContent = t("aiPrompt.showReasoning");
+    
+    // Toon vertaling indien beschikbaar
+    if (result.translation) {
+      elements.aiPromptResultTranslation.parentElement.style.display = 'block';
+      elements.aiPromptResultTranslation.textContent = result.translation;
+    } else {
+      elements.aiPromptResultTranslation.parentElement.style.display = 'none';
+    }
+    
+    elements.aiPromptResult.style.display = 'block';
+    elements.aiResultPlaceholder.style.display = 'none';
+    elements.aiResultPlaceholder.classList.remove('generating');
+    
+  } catch (error) {
+    console.error('AI prompt generation error:', error);
+    
+    // Verwijder generating state bij error
+    elements.aiResultPlaceholder.classList.remove('generating');
+    
+    // Error handling: toon gebruiksvriendelijke foutmelding
+    if (error === 'NO_IMAGE') {
+      showError(t("aiPrompt.errorNoImage") || "Geen afbeelding beschikbaar voor deze scene.");
+    } else if (error === 'NO_IMAGES') {
+      showError(t("aiPrompt.errorNoImages") || "Beide scenes moeten een afbeelding hebben.");
+    } else {
+      showError(t("aiPrompt.errorGeneration") || "Fout bij genereren van prompts", error);
+    }
+    
+    elements.aiPromptStatus.style.display = 'none';
+    // Toon placeholder terug bij error (zonder generating state)
+    elements.aiResultPlaceholder.style.display = 'block';
+  } finally {
+    // UI cleanup: reset button state
+    elements.aiPromptGenerate.disabled = false;
+    elements.aiPromptGenerate.textContent = t("aiPrompt.generate");
+  }
+}
+
+/**
+ * Pas gegenereerde prompts toe op de scene(s).
+ * Voor single mode: update huidige scene
+ * Voor sequence mode: update huidige en volgende scene
+ */
+function useGeneratedPrompts() {
+  if (!localState.aiPromptContext || !state.projectData) return;
+  
+  const { sceneIndex, mode } = localState.aiPromptContext;
+  const prompts = state.projectData.prompts;
+  
+  // Haal BEIDE teksten op (Engels en vertaling)
+  const englishPrompt = elements.aiPromptResultEn.textContent;
+  const translationText = elements.aiPromptResultTranslation.textContent;
+  const translationLang = elements.aiPromptTranslationLang.value;
+  
+  if (!englishPrompt) return;
+  
+  if (mode === 'single') {
+    // Update huidige scene met BEIDE: Engels in text, vertaling in translation
+    prompts[sceneIndex].text = englishPrompt;
+    
+    if (translationLang && translationText) {
+      prompts[sceneIndex].translation = translationText;
+    }
+  } else {
+    // Sequence mode: probeer te splitsen op markers of nummering
+    
+    // Split Engels prompt
+    const englishParts = englishPrompt.split(/Scene \d+:|Prompt \d+:|\d+\./i).filter(p => p.trim());
+    
+    if (englishParts.length >= 2) {
+      prompts[sceneIndex].text = englishParts[0].trim();
+      prompts[sceneIndex + 1].text = englishParts[1].trim();
+    } else {
+      prompts[sceneIndex].text = englishPrompt;
+    }
+    
+    // Split vertaling (indien beschikbaar)
+    if (translationLang && translationText) {
+      const translationParts = translationText.split(/Scene \d+:|Prompt \d+:|\d+\./i).filter(p => p.trim());
+      
+      if (translationParts.length >= 2) {
+        prompts[sceneIndex].translation = translationParts[0].trim();
+        prompts[sceneIndex + 1].translation = translationParts[1].trim();
+      } else {
+        prompts[sceneIndex].translation = translationText;
+      }
+    }
+  }
+  
+  // Mark project as dirty en re-render
+  state.isDirty = true;
+  renderProjectEditor();
+  
+  // Sluit dialog
+  closeAIPromptDialog();
+  
+  showSuccess(t("aiPrompt.successApplied") || "Prompts succesvol toegepast!");
 }
 
 // Start applicatie, verdere logica verloopt via eventlisteners hierboven.
