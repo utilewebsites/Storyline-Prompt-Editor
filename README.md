@@ -18,7 +18,7 @@ This lets you quickly set up a storyline with multiple prompts and images. You c
 Important:
 - You can choose which Ollama model to use via the settings; the editor tests the connection and shows available models.
 - For our tests and as the default configuration we use llava:7b for image analysis and mistral:7b-instruct-v0.3 for prompt generation — the workflow is specifically tuned for WAN 2.2 output formats.
-- Recommended alternatives (tested): vision: llava:13b, bakllava, moondream; text: qwen2.5:7b, qwen2.5:14b, llama3.2, llama3.1:8b. For production we recommend qwen2.5:14b due to better format accuracy.
+- Recommended alternatives (tested): vision: llava:13b, bakllava, moondream; text: qwen2.5:7b, qwen2.5:14b, llama3.2, llama3.1:8b. For production we recommend ollama pull mistral:7b-instruct due to better format accuracy.
 
 In short: quick input → analyze image → generate WAN 2.2‑formatted prompt → export or queue on the server. Choose the model that fits your workflow; the editor saves per project which models and instructions were used.
 
