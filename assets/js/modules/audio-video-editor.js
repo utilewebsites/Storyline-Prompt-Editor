@@ -53,6 +53,7 @@ let isDraggingMarker = false;
 let draggedMarkerIndex = null;
 let dragStartX = 0;
 let dragStartTime = 0;
+let hasDragged = false; // Track of er werkelijk gesleept is
 
 // Playhead drag state
 let isDraggingPlayhead = false;
@@ -157,20 +158,39 @@ export function initializeAudioVideoEditor() {
   }
 
   if (elements.uploadBtn && elements.audioInput) {
-    // Debug: Check accept attribute
+    console.log('Audio upload button en input gevonden');
+    console.log('Accept attribute:', elements.audioInput.accept);
     
-    elements.uploadBtn.addEventListener('click', () => {
-      elements.audioInput.click();
+    elements.uploadBtn.addEventListener('click', (e) => {
+      console.log('Upload button geklikt, open file picker');
+      
+      // Tijdelijk visible maken (macOS Chrome bugfix)
+      elements.audioInput.style.display = 'block';
+      elements.audioInput.style.position = 'absolute';
+      elements.audioInput.style.opacity = '0';
+      elements.audioInput.style.pointerEvents = 'none';
+      
+      // Trigger click
+      setTimeout(() => {
+        elements.audioInput.click();
+        
+        // Na 100ms weer verbergen
+        setTimeout(() => {
+          elements.audioInput.style.display = 'none';
+        }, 100);
+      }, 0);
     });
 
     elements.audioInput.addEventListener('change', async (event) => {
       const file = event.target.files[0];
+      console.log('File geselecteerd:', file);
       
       if (file) {
         // Accepteer alle bestanden met audio extensie of audio MIME type
         const isAudio = file.type.startsWith('audio/') || 
                        file.name.match(/\.(wav|mp3|ogg|m4a|aac|flac)$/i);
         
+        console.log('Is audio?', isAudio, 'Type:', file.type, 'Name:', file.name);
         
         if (isAudio) {
           await loadAudioFile(file);
@@ -180,6 +200,11 @@ export function initializeAudioVideoEditor() {
         }
         event.target.value = ''; // Reset voor hergebruik
       }
+    });
+  } else {
+    console.error('Upload button of audio input niet gevonden!', {
+      uploadBtn: elements.uploadBtn,
+      audioInput: elements.audioInput
     });
   }
 
@@ -294,20 +319,20 @@ export function initializeAudioVideoEditor() {
   // Canvas interactions
   if (elements.waveformCanvas) {
     elements.waveformCanvas.addEventListener('mousedown', handleWaveformMouseDown);
-    elements.waveformCanvas.addEventListener('mousemove', handleWaveformMouseMove);
-    elements.waveformCanvas.addEventListener('mouseup', handleWaveformMouseUp);
-    elements.waveformCanvas.addEventListener('mouseleave', handleWaveformMouseUp);
+    elements.waveformCanvas.addEventListener('mousemove', handleCanvasMouseMove);
+    elements.waveformCanvas.style.cursor = 'crosshair';
+    // Mouseup is op document level voor betere drag handling
   }
 
+  // Global mouse events voor marker EN playhead drag (op document niveau)
+  document.addEventListener('mousemove', handleGlobalMouseMove);
+  document.addEventListener('mouseup', handleGlobalMouseUp);
+  
   // Playhead dragging (alleen op playhead element zelf)
   if (elements.playhead) {
     elements.playhead.addEventListener('mousedown', handlePlayheadMouseDown);
     elements.playhead.style.cursor = 'grab';
   }
-  
-  // Global mouse events voor playhead drag (geregistreerd op document niveau)
-  document.addEventListener('mousemove', handlePlayheadMouseMove);
-  document.addEventListener('mouseup', handlePlayheadMouseUp);
   
   // Scene media toggle buttons in side panel
   if (elements.sceneMediaToggle) {
@@ -440,6 +465,10 @@ export function initializeAudioVideoEditor() {
       
       // Update markers count
       updateMarkersDisplay();
+      
+      // Trigger UI update in prompts editor (voor realtime reorder feedback)
+      const renderEvent = new CustomEvent('renderProjectEditorRequest');
+      document.dispatchEvent(renderEvent);
     }
   });
 }
@@ -841,10 +870,47 @@ function drawMarkers(ctx, width, height) {
     ctx.lineTo(x + 1, height);
     ctx.stroke();
 
-    // Marker number
+    // Draggable handle (rond bolletje onderaan)
+    const handleRadius = 8;
+    const handleY = height - handleRadius - 2;
+    
+    // Shadow voor diepte effect
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetY = 2;
+    
+    // Witte rand
+    ctx.beginPath();
+    ctx.arc(x + 1, handleY, handleRadius, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Gele binnenkant
+    ctx.beginPath();
+    ctx.arc(x + 1, handleY, handleRadius - 2, 0, Math.PI * 2);
     ctx.fillStyle = '#ffc107';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText(`${index + 1}`, x + 5, 16);
+    ctx.fill();
+    
+    // Grijze border voor contrast
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Marker number in het bolletje
+    ctx.fillStyle = '#333';
+    ctx.font = 'bold 10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${index + 1}`, x + 1, handleY);
+    
+    // Reset text alignment
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
   });
 }
 
@@ -967,75 +1033,215 @@ function handleWaveformMouseDown(event) {
   const canvas = elements.waveformCanvas;
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
-  const clickTime = (x / canvas.width) * editorAudioBuffer.duration;
+  const y = event.clientY - rect.top;
 
-  // Check of we op een marker klikken (binnen 10px)
-  const markerThreshold = 10;
+  // Check of we op een marker handle klikken (rond bolletje onderaan)
+  const handleRadius = 8;
+  const handleY = canvas.height - handleRadius - 2;
   draggedMarkerIndex = null;
 
   for (let i = 0; i < editorMarkers.length; i++) {
     const marker = editorMarkers[i];
-    const markerX = (marker.time / editorAudioBuffer.duration) * canvas.width + 1; // +1 voor centrering (sync met drawMarkers)
+    const markerX = (marker.time / editorAudioBuffer.duration) * canvas.width + 1;
     
-    if (Math.abs(x - markerX) < markerThreshold) {
+    // Check of cursor binnen de ronde handle is
+    const dx = x - markerX;
+    const dy = y - handleY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance <= handleRadius + 2) {
       // Start marker drag
       isDraggingMarker = true;
       draggedMarkerIndex = i;
       dragStartX = x;
       dragStartTime = marker.time;
+      hasDragged = false; // Reset drag flag
       canvas.style.cursor = 'grabbing';
       
       return;
     }
   }
+  
+  // Als we niet op een marker klikken, check of er een pending scene linkage is
+  if (pendingSceneLinkage) {
+    // Bereken tijd op basis van klik positie
+    const time = (x / canvas.width) * editorAudioBuffer.duration;
+    
+    // Link de scene aan deze nieuwe marker
+    linkSceneToNewMarker(pendingSceneLinkage, time);
+    
+    // Reset pending linkage
+    cancelSceneLinkage();
+    return;
+  }
+  
+  // Anders: voeg nieuwe marker + scene toe op klik positie
+  const time = (x / canvas.width) * editorAudioBuffer.duration;
+  
+  // Check of er al een marker heel dichtbij is (binnen 0.5 seconde)
+  const existingMarker = editorMarkers.find(m => Math.abs(m.time - time) < 0.5);
+  if (existingMarker) {
+    console.log('Marker bestaat al op deze positie');
+    return;
+  }
+  
+  // Toon confirmation dialog
+  showMarkerSceneConfirmDialog(time);
 }
 
 /**
- * Handle waveform mouse move - drag marker
+ * Handle canvas mouse move - alleen voor cursor hover effect
  */
-function handleWaveformMouseMove(event) {
-  if (!editorAudioBuffer) return;
+function handleCanvasMouseMove(event) {
+  // Skip als we aan het slepen zijn (global handler regelt dit)
+  if (isDraggingMarker || isDraggingPlayhead) return;
+  if (!editorAudioBuffer || !elements.waveformCanvas) return;
+
+  const canvas = elements.waveformCanvas;
+  const rect = canvas.getBoundingClientRect();
+  const x = event.clientX - rect.left;
+  const y = event.clientY - rect.top;
+  
+  const handleRadius = 8;
+  const handleY = canvas.height - handleRadius - 2;
+  let overHandle = false;
+
+  for (let i = 0; i < editorMarkers.length; i++) {
+    const marker = editorMarkers[i];
+    const markerX = (marker.time / editorAudioBuffer.duration) * canvas.width + 1;
+    
+    // Check of cursor binnen de ronde handle is
+    const dx = x - markerX;
+    const dy = y - handleY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance <= handleRadius + 2) {
+      canvas.style.cursor = 'grab';
+      overHandle = true;
+      break;
+    }
+  }
+
+  if (!overHandle) {
+    canvas.style.cursor = 'crosshair';
+  }
+}
+
+/**
+ * Global mousemove handler - afhandelt zowel marker als playhead drag
+ */
+function handleGlobalMouseMove(event) {
+  // Marker drag heeft prioriteit
+  if (isDraggingMarker && draggedMarkerIndex !== null) {
+    handleMarkerDrag(event);
+    return;
+  }
+  
+  // Playhead drag
+  if (isDraggingPlayhead) {
+    handlePlayheadMouseMove(event);
+    return;
+  }
+  
+  // Hover effect op waveform (alleen als niet aan het slepen)
+  if (!isDraggingMarker && !isDraggingPlayhead && editorAudioBuffer && elements.waveformCanvas) {
+    const canvas = elements.waveformCanvas;
+    const rect = canvas.getBoundingClientRect();
+    
+    // Check of cursor binnen canvas is
+    if (event.clientX >= rect.left && event.clientX <= rect.right &&
+        event.clientY >= rect.top && event.clientY <= rect.bottom) {
+      
+      const x = event.clientX - rect.left;
+      const y = event.clientY - rect.top;
+      const handleRadius = 8;
+      const handleY = canvas.height - handleRadius - 2;
+      let overHandle = false;
+
+      for (let i = 0; i < editorMarkers.length; i++) {
+        const marker = editorMarkers[i];
+        const markerX = (marker.time / editorAudioBuffer.duration) * canvas.width + 1;
+        
+        // Check of cursor binnen de ronde handle is
+        const dx = x - markerX;
+        const dy = y - handleY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance <= handleRadius + 2) {
+          canvas.style.cursor = 'grab';
+          overHandle = true;
+          break;
+        }
+      }
+
+      if (!overHandle) {
+        canvas.style.cursor = 'crosshair';
+      }
+    } else {
+      // Cursor buiten canvas - reset naar crosshair
+      if (canvas.style.cursor !== 'crosshair') {
+        canvas.style.cursor = 'crosshair';
+      }
+    }
+  }
+}
+
+/**
+ * Global mouseup handler - afhandelt zowel marker als playhead drag
+ */
+function handleGlobalMouseUp(event) {
+  // Marker drag heeft prioriteit
+  if (isDraggingMarker && draggedMarkerIndex !== null) {
+    handleWaveformMouseUp(event);
+    return;
+  }
+  
+  // Playhead drag
+  if (isDraggingPlayhead) {
+    handlePlayheadMouseUp(event);
+    return;
+  }
+  
+  // Alleen click handling als er NIET gesleept is
+  // (handleWaveformMouseUp handelt clicks zelf af via else-if)
+}
+
+/**
+ * Handle marker drag (tijdens mousemove)
+ */
+function handleMarkerDrag(event) {
+  if (!editorAudioBuffer || !elements.waveformCanvas) return;
+  if (!isDraggingMarker || draggedMarkerIndex === null) return;
 
   const canvas = elements.waveformCanvas;
   const rect = canvas.getBoundingClientRect();
   const x = event.clientX - rect.left;
   const currentTime = (x / canvas.width) * editorAudioBuffer.duration;
 
-  if (isDraggingMarker && draggedMarkerIndex !== null) {
-    // Update marker tijd tijdens slepen
-    const marker = editorMarkers[draggedMarkerIndex];
-    const newTime = Math.max(0, Math.min(editorAudioBuffer.duration, currentTime));
-    marker.time = newTime;
-
-    // Redraw waveform met nieuwe marker positie
-    drawWaveform();
-
-    // Toon tijd tooltip
-    showDragTimeTooltip(x, rect.top, newTime);
-  } else {
-    // Check of cursor over marker is voor hover effect
-    const markerThreshold = 10;
-    let overMarker = false;
-
-    for (let i = 0; i < editorMarkers.length; i++) {
-      const marker = editorMarkers[i];
-      const markerX = (marker.time / editorAudioBuffer.duration) * canvas.width + 1; // +1 voor centrering (sync met drawMarkers)
-      
-      if (Math.abs(x - markerX) < markerThreshold) {
-        canvas.style.cursor = 'grab';
-        overMarker = true;
-        
-        // Toon tijd tooltip bij hover
-        showMarkerTimeTooltip(markerX + rect.left, rect.top, marker.time, i);
-        break;
-      }
-    }
-
-    if (!overMarker) {
-      canvas.style.cursor = 'crosshair';
-      hideTimeTooltip();
-    }
+  // Detecteer of er werkelijk gesleept is (minimaal 5px beweging)
+  if (!hasDragged && Math.abs(x - dragStartX) > 5) {
+    hasDragged = true;
   }
+
+  // Behoud grabbing cursor
+  canvas.style.cursor = 'grabbing';
+  document.body.style.cursor = 'grabbing';
+  document.body.style.userSelect = 'none';
+  
+  // Update marker tijd tijdens slepen
+  const marker = editorMarkers[draggedMarkerIndex];
+  const newTime = Math.max(0, Math.min(editorAudioBuffer.duration, currentTime));
+  marker.time = newTime;
+
+  // Throttle redraw voor betere performance (max 60fps)
+  const now = Date.now();
+  if (!window._lastDragDraw || now - window._lastDragDraw > 16) {
+    window._lastDragDraw = now;
+    drawWaveform();
+  }
+
+  // Toon tijd tooltip
+  showDragTimeTooltip(event.clientX, rect.top, newTime);
 }
 
 /**
@@ -1043,37 +1249,49 @@ function handleWaveformMouseMove(event) {
  */
 function handleWaveformMouseUp(event) {
   if (isDraggingMarker && draggedMarkerIndex !== null) {
-    // Marker drag voltooid
-    const marker = editorMarkers[draggedMarkerIndex];
-    const oldIndex = draggedMarkerIndex;
-    
-    // Re-sort markers op tijd
-    editorMarkers.sort((a, b) => a.time - b.time);
-    
-    // Vind nieuwe index van verplaatste marker
-    const newIndex = editorMarkers.findIndex(m => m === marker);
-    
-    // Re-index alle markers
-    editorMarkers.forEach((m, idx) => {
-      m.sceneIndex = idx;
-    });
-    
-    // Sync volgorde wijziging met hoofdapp (als volgorde is veranderd)
-    if (oldIndex !== newIndex) {
-      syncMarkerReorder(oldIndex, newIndex);
+    // Check of er werkelijk gesleept is
+    if (hasDragged) {
+      // Marker drag voltooid
+      const marker = editorMarkers[draggedMarkerIndex];
+      const oldIndex = draggedMarkerIndex;
+      
+      // EERST: Update marker positie in scene (voordat we reorderen)
+      syncMarkerPositionToScene(oldIndex, marker.time);
+      
+      // Re-sort markers op tijd
+      editorMarkers.sort((a, b) => a.time - b.time);
+      
+      // Vind nieuwe index van verplaatste marker
+      const newIndex = editorMarkers.findIndex(m => m === marker);
+      
+      // Re-index alle markers
+      editorMarkers.forEach((m, idx) => {
+        m.sceneIndex = idx;
+      });
+      
+      // DAN: Sync volgorde wijziging met hoofdapp (als volgorde is veranderd)
+      if (oldIndex !== newIndex) {
+        syncMarkerReorder(oldIndex, newIndex);
+      }
+      
+      // BELANGRIJK: Redraw waveform VOOR updateMarkersDisplay
+      // Anders blijven markers op oude positie staan
+      drawWaveform();
+      
+      // Update display
+      updateMarkersDisplay();
     }
     
-    // Sync marker positie met hoofdapp
-    syncMarkerPositionToScene(newIndex, marker.time);
-    
-    // Update display
-    updateMarkersDisplay();
-    drawWaveform();
-    
+    // Reset drag state (altijd, ook bij click zonder drag)
     isDraggingMarker = false;
     draggedMarkerIndex = null;
+    hasDragged = false;
     hideTimeTooltip();
+    window._lastDragDraw = null;
     
+    // Reset cursor
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
     if (elements.waveformCanvas) {
       elements.waveformCanvas.style.cursor = 'crosshair';
     }
@@ -1557,25 +1775,58 @@ function linkSceneToNewMarker(scene, time) {
  */
 function createMarkerCard(marker, index) {
   const card = document.createElement('div');
-  card.className = 'audio-marker-item';
+  card.className = 'audio-marker-item marker-card';
+  card.setAttribute('data-marker-index', index);
+  
+  // Request scene data voor thumbnail
+  const sceneDataEvent = new CustomEvent('getSceneData', {
+    detail: { markerIndex: index, sceneData: null }
+  });
+  document.dispatchEvent(sceneDataEvent);
+  const sceneData = sceneDataEvent.detail.sceneData;
+  
   card.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <strong>${t('prompts.scene', {index: index + 1})}</strong>
-      <span style="font-family: monospace; color: var(--muted);">${formatTime(marker.time)}</span>
-    </div>
-    <div style="display: flex; gap: 0.5rem;">
-      <button class="media-type-btn ${marker.mediaType === 'image' ? 'active' : ''}" data-type="image">🖼️ Image</button>
-      <button class="media-type-btn ${marker.mediaType === 'video' ? 'active' : ''}" data-type="video">🎬 Video</button>
-    </div>
-    <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-      <button class="edit-scene-btn" style="padding: 0.5rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; flex: 1;">
-        🔍 Bewerk Scene
-      </button>
-      <button class="delete-marker-btn" style="padding: 0.5rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">
-        🗑️
-      </button>
+    <div style="display: flex; gap: 0.75rem; align-items: flex-start;">
+      <div class="marker-thumbnail" style="width: 60px; height: 45px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border);">
+        ${sceneData?.imagePath ? `<img src="" data-scene-id="${sceneData.id}" style="width: 100%; height: 100%; object-fit: cover;" alt="Scene preview" />` : '<span style="font-size: 1.5rem; opacity: 0.3;">🖼️</span>'}
+      </div>
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.3rem; gap: 0.5rem;">
+          <strong>${t('prompts.scene', {index: index + 1})}</strong>
+          <div class="marker-time-container" style="display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap;">
+            <span class="marker-time-display" style="font-family: monospace; color: var(--primary); font-size: 0.9rem; cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 3px; transition: background 0.2s;" title="Klik om tijd aan te passen">${formatTime(marker.time)}</span>
+            <input type="text" class="marker-time-input" style="display: none; font-family: monospace; font-size: 0.9rem; width: 90px; padding: 0.2rem 0.4rem; border: 1px solid var(--primary); border-radius: 3px;" placeholder="MM:SS.mmm" />
+            <input type="range" class="marker-time-slider" min="0" max="1000" step="1" style="display: none; flex: 1; min-width: 120px; margin: 0 0.5rem;" />
+            <button class="marker-time-save" style="display: none; background: #10b981; color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 3px; cursor: pointer; font-size: 0.9rem;" title="Opslaan">💾</button>
+            <button class="marker-time-cancel" style="display: none; background: var(--muted); color: white; border: none; padding: 0.2rem 0.5rem; border-radius: 3px; cursor: pointer; font-size: 0.9rem;" title="Annuleren">✕</button>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem;">
+          <button class="media-type-btn ${marker.mediaType === 'image' ? 'active' : ''}" data-type="image" style="font-size: 0.85rem; padding: 0.3rem 0.6rem;">🖼️</button>
+          <button class="media-type-btn ${marker.mediaType === 'video' ? 'active' : ''}" data-type="video" style="font-size: 0.85rem; padding: 0.3rem 0.6rem;">🎬</button>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="edit-scene-btn" style="padding: 0.4rem 0.6rem; background: #3b82f6; color: white; border: none; border-radius: 4px; cursor: pointer; flex: 1; font-size: 0.85rem;">
+            🔍 Bewerk
+          </button>
+          <button class="delete-marker-btn" style="padding: 0.4rem 0.6rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+            🗑️
+          </button>
+        </div>
+      </div>
     </div>
   `;
+  
+  // Laad thumbnail als er een imagePath is
+  if (sceneData?.imagePath) {
+    const thumbnailImg = card.querySelector('img[data-scene-id]');
+    if (thumbnailImg) {
+      const loadThumbnailEvent = new CustomEvent('loadSceneThumbnail', {
+        detail: { sceneId: sceneData.id, img: thumbnailImg }
+      });
+      document.dispatchEvent(loadThumbnailEvent);
+    }
+  }
 
   // Media type toggle
   const mediaTypeBtns = card.querySelectorAll('.media-type-btn');
@@ -1610,14 +1861,204 @@ function createMarkerCard(marker, index) {
     deleteMarker(index);
   });
 
+  // Inline tijd bewerken
+  const timeDisplay = card.querySelector('.marker-time-display');
+  const timeInput = card.querySelector('.marker-time-input');
+  const timeSlider = card.querySelector('.marker-time-slider');
+  const timeSave = card.querySelector('.marker-time-save');
+  const timeCancel = card.querySelector('.marker-time-cancel');
+  
+  // Bewaar originele tijd voor cancel
+  let originalTime = marker.time;
+  
+  // Klik op tijd om te bewerken
+  timeDisplay.addEventListener('mouseenter', () => {
+    timeDisplay.style.background = 'var(--bg-hover, rgba(59, 130, 246, 0.1))';
+  });
+  timeDisplay.addEventListener('mouseleave', () => {
+    timeDisplay.style.background = '';
+  });
+  timeDisplay.addEventListener('click', (e) => {
+    e.stopPropagation();
+    
+    // Bewaar originele tijd
+    originalTime = marker.time;
+    
+    // Converteer huidige tijd naar MM:SS.mmm formaat
+    const currentTime = marker.time;
+    const minutes = Math.floor(currentTime / 60);
+    const seconds = (currentTime % 60).toFixed(3);
+    
+    // Setup slider (0.1s resolutie voor soepele beweging)
+    if (editorAudioBuffer) {
+      timeSlider.max = Math.floor(editorAudioBuffer.duration * 10);
+      timeSlider.value = Math.floor(currentTime * 10);
+    }
+    
+    // Toon input velden
+    timeDisplay.style.display = 'none';
+    timeInput.style.display = 'inline-block';
+    timeSlider.style.display = 'block';
+    timeSave.style.display = 'inline-block';
+    timeCancel.style.display = 'inline-block';
+    timeInput.value = `${minutes}:${seconds}`;
+    timeInput.focus();
+    timeInput.select();
+  });
+  
+  // Slider update input field EN preview marker positie
+  timeSlider.addEventListener('input', (e) => {
+    const sliderTime = parseFloat(timeSlider.value) / 10;
+    const minutes = Math.floor(sliderTime / 60);
+    const seconds = (sliderTime % 60).toFixed(3);
+    timeInput.value = `${minutes}:${seconds}`;
+    
+    // Update marker positie tijdelijk voor preview
+    marker.time = sliderTime;
+    drawWaveform();
+  });
+  
+  // Input update slider
+  timeInput.addEventListener('input', (e) => {
+    const parts = timeInput.value.trim().split(':');
+    if (parts.length === 2) {
+      const mins = parseInt(parts[0]) || 0;
+      const secs = parseFloat(parts[1]) || 0;
+      const totalTime = mins * 60 + secs;
+      if (!isNaN(totalTime) && totalTime >= 0) {
+        timeSlider.value = Math.floor(totalTime * 10);
+      }
+    }
+  });
+  
+  // Cancel bewerken
+  timeCancel.addEventListener('click', (e) => {
+    e.stopPropagation();
+    
+    // Herstel originele tijd
+    marker.time = originalTime;
+    drawWaveform();
+    
+    timeDisplay.style.display = 'inline-block';
+    timeInput.style.display = 'none';
+    timeSlider.style.display = 'none';
+    timeSave.style.display = 'none';
+    timeCancel.style.display = 'none';
+  });
+  
+  // Save nieuwe tijd
+  timeSave.addEventListener('click', (e) => {
+    e.stopPropagation();
+    saveMarkerTime(marker, index, timeInput.value, timeDisplay, timeInput, timeSlider, timeSave, timeCancel);
+  });
+  
+  // Enter key om op te slaan
+  timeInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveMarkerTime(marker, index, timeInput.value, timeDisplay, timeInput, timeSlider, timeSave, timeCancel);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      
+      // Herstel originele tijd
+      marker.time = originalTime;
+      drawWaveform();
+      
+      timeDisplay.style.display = 'inline-block';
+      timeInput.style.display = 'none';
+      timeSlider.style.display = 'none';
+      timeSave.style.display = 'none';
+      timeCancel.style.display = 'none';
+    }
+  });
+
   // Click to seek
   card.addEventListener('click', (e) => {
-    if (e.target.tagName !== 'BUTTON') {
+    if (e.target.tagName !== 'BUTTON' && !e.target.classList.contains('marker-time-display')) {
       seekToTime(marker.time);
     }
   });
 
   return card;
+}
+
+/**
+ * Sla nieuwe marker tijd op
+ */
+function saveMarkerTime(marker, index, newTimeStr, timeDisplay, timeInput, timeSlider, timeSave, timeCancel) {
+  // Parse input
+  const parts = newTimeStr.trim().split(':');
+  if (parts.length !== 2) {
+    alert('Ongeldig formaat. Gebruik MM:SS.mmm (bijv. 1:23.500)');
+    timeInput.focus();
+    timeInput.select();
+    return;
+  }
+  
+  const mins = parseInt(parts[0]);
+  const secs = parseFloat(parts[1]);
+  
+  if (isNaN(mins) || isNaN(secs) || mins < 0 || secs < 0 || secs >= 60) {
+    alert('Ongeldige tijd. Minuten en seconden moeten getallen zijn.');
+    timeInput.focus();
+    timeInput.select();
+    return;
+  }
+  
+  const newTime = mins * 60 + secs;
+  
+  // Check of tijd binnen audio duration valt
+  if (editorAudioBuffer && newTime > editorAudioBuffer.duration) {
+    alert(`Tijd kan niet groter zijn dan audio duration (${formatTime(editorAudioBuffer.duration)})`);
+    timeInput.focus();
+    timeInput.select();
+    return;
+  }
+  
+  // Check voor overlappende markers
+  const otherMarkerAtTime = editorMarkers.find((m, i) => i !== index && Math.abs(m.time - newTime) < 0.1);
+  if (otherMarkerAtTime) {
+    alert('Er is al een marker op deze tijd. Kies een andere tijd.');
+    timeInput.focus();
+    timeInput.select();
+    return;
+  }
+  
+  // Bewaar oude index voor reorder check
+  const oldIndex = index;
+  
+  // EERST: Update marker tijd in scene (met oude index)
+  syncMarkerPositionToScene(oldIndex, newTime);
+  
+  // Update marker tijd lokaal
+  marker.time = newTime;
+  
+  // Re-sort markers op tijd
+  editorMarkers.sort((a, b) => a.time - b.time);
+  
+  // Vind nieuwe index van deze marker
+  const newIndex = editorMarkers.findIndex(m => m === marker);
+  
+  // Re-index alle markers
+  editorMarkers.forEach((m, idx) => {
+    m.sceneIndex = idx;
+  });
+  
+  // DAN: Sync volgorde wijziging als index is veranderd
+  if (oldIndex !== newIndex) {
+    syncMarkerReorder(oldIndex, newIndex);
+  }
+  
+  // Redraw
+  drawWaveform();
+  updateMarkersDisplay();
+  
+  // Verberg edit UI
+  timeDisplay.style.display = 'inline-block';
+  timeInput.style.display = 'none';
+  timeSlider.style.display = 'none';
+  timeSave.style.display = 'none';
+  timeCancel.style.display = 'none';
 }
 
 /**
@@ -1703,6 +2144,9 @@ function pausePlayback() {
   if (playbackAnimationFrame) {
     cancelAnimationFrame(playbackAnimationFrame);
   }
+  
+  // Reset alle marker tijd displays naar originele tijd
+  resetMarkerTimeDisplays();
 }
 
 /**
@@ -1723,6 +2167,21 @@ function stopPlayback() {
 }
 
 /**
+ * Reset alle marker tijd displays naar originele marker tijd
+ */
+function resetMarkerTimeDisplays() {
+  editorMarkers.forEach((marker, index) => {
+    const markerCard = document.querySelector(`.marker-card[data-marker-index="${index}"]`);
+    if (markerCard) {
+      const timeDisplay = markerCard.querySelector('.marker-time-display');
+      if (timeDisplay && timeDisplay.style.display !== 'none') {
+        timeDisplay.textContent = formatTime(marker.time);
+      }
+    }
+  });
+}
+
+/**
  * Update playback position (playhead en time display)
  */
 function updatePlaybackPosition() {
@@ -1740,6 +2199,31 @@ function updatePlaybackPosition() {
   if (elements.playhead && elements.waveformCanvas) {
     const x = (currentTime / duration) * elements.waveformCanvas.width;
     elements.playhead.style.left = `${x + 1.5}px`;
+  }
+
+  // Update slider in huidige marker card
+  if (currentPlayingSceneIndex !== null && currentPlayingSceneIndex >= 0) {
+    const markerCard = document.querySelector(`.marker-card[data-marker-index="${currentPlayingSceneIndex}"]`);
+    if (markerCard) {
+      const timeDisplay = markerCard.querySelector('.marker-time-display');
+      const timeSlider = markerCard.querySelector('.marker-time-slider');
+      
+      // Update slider positie (alleen als niet in edit mode)
+      if (timeSlider && timeSlider.style.display === 'none' && timeDisplay) {
+        // Bereken relatieve tijd binnen deze scene
+        const marker = editorMarkers[currentPlayingSceneIndex];
+        if (marker) {
+          const relativeTime = currentTime - marker.time;
+          
+          // Update tijd display met relatieve tijd
+          if (relativeTime >= 0) {
+            timeDisplay.textContent = `${formatTime(marker.time)} (+${relativeTime.toFixed(1)}s)`;
+          } else {
+            timeDisplay.textContent = formatTime(marker.time);
+          }
+        }
+      }
+    }
   }
 
   // Redraw waveform for progressive coloring

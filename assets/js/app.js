@@ -2679,8 +2679,15 @@ function handleLinkSceneToMarkerFromEditor(sceneId, markerIndex, time) {
   
   state.isDirty = true;
   
-  // Re-render
-  updateInactiveScenesAfterMarkers();
+  // Regenereer markers uit scenes (audio editor sync)
+  const regenerateEvent = new CustomEvent('regenerateMarkersFromScenes', {
+    detail: { projectData: state.projectData }
+  });
+  document.dispatchEvent(regenerateEvent);
+  
+  // renderProjectEditor() wordt automatisch getriggerd via renderProjectEditorRequest
+  // Re-render wordt nu gedaan in updateInactiveScenesAfterMarkers
+  // updateInactiveScenesAfterMarkers();
 }
 
 /**
@@ -2903,9 +2910,9 @@ function handleMarkerReorderFromEditor(oldIndex, newIndex) {
   });
   document.dispatchEvent(regenerateEvent);
   
-  // Re-render UI om nieuwe volgorde te tonen
+  // renderProjectEditor() wordt automatisch getriggerd via renderProjectEditorRequest event
+  // na regenerateMarkersFromScenes (zie event listener in audio-video-editor.js)
   state.isDirty = true;
-  renderProjectEditor();
 }
 
 /**
@@ -4242,6 +4249,13 @@ function init() {
     const { markerIndex } = e.detail;
     deleteMarkerFromProject(markerIndex);
   });
+  
+  // Event listener voor UI refresh na marker/scene reorganisatie
+  document.addEventListener('renderProjectEditorRequest', () => {
+    if (state.projectData) {
+      renderProjectEditor();
+    }
+  });
 
   document.addEventListener('deleteAudioFromProject', async () => {
     if (!state.projectData) return;
@@ -4277,6 +4291,33 @@ function init() {
     
     // Toon melding
     showSuccess('Audio timeline verwijderd. Project is nu een gewoon project.');
+  });
+
+  // Event voor scene data ophalen (voor thumbnails in audio editor)
+  document.addEventListener('getSceneData', (e) => {
+    if (!state.projectData || e.detail.markerIndex === undefined) return;
+    
+    const scene = state.projectData.prompts.find(p => 
+      p.isAudioLinked && p.audioMarkerIndex === e.detail.markerIndex
+    );
+    
+    e.detail.sceneData = scene || null;
+  });
+
+  // Event voor scene thumbnail laden
+  document.addEventListener('loadSceneThumbnail', async (e) => {
+    const { sceneId, img } = e.detail;
+    if (!sceneId || !img) return;
+    
+    const scene = state.projectData?.prompts.find(p => p.id === sceneId);
+    if (!scene || !scene.imagePath) return;
+    
+    try {
+      await loadImagePreview(scene.imagePath, img, state.projectImagesHandle);
+    } catch (error) {
+      console.warn('Thumbnail laden mislukt:', error);
+      img.style.display = 'none';
+    }
   });
 
   elements.saveProject.addEventListener("click", () => saveProject().catch((error) => showError(t("errors.saveProject"), error)));
