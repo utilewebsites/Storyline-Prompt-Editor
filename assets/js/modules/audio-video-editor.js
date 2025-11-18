@@ -2977,17 +2977,27 @@ export function restoreAudioTimelineFromData(audioTimelineData, projectData = nu
       }
     });
     
-    // Sorteer markers op tijd
-    generatedMarkers.sort((a, b) => a.time - b.time);
-    
-    // Update editorMarkers met gegenereerde markers
-    editorMarkers = generatedMarkers.map((marker, index) => ({
-      time: marker.time,
-      sceneIndex: index,  // Marker index (0, 1, 2...)
-      sceneId: marker.sceneId,
-      originalSceneIndex: marker.originalSceneIndex,
-      mediaType: marker.mediaType
-    }));
+// Sorteer markers op tijd
+generatedMarkers.sort((a, b) => a.time - b.time);
+
+// Update editorMarkers met gegenereerde markers
+editorMarkers = generatedMarkers.map((marker, index) => ({
+  time: marker.time,
+  sceneIndex: index,  // Marker index (0, 1, 2...)
+  sceneId: marker.sceneId,
+  originalSceneIndex: marker.originalSceneIndex,
+  mediaType: marker.mediaType
+}));
+
+// BELANGRIJK: Update audioMarkerIndex in scenes om te matchen met gesorteerde markers
+if (projectData && projectData.prompts) {
+  editorMarkers.forEach((marker, markerIndex) => {
+    const scene = projectData.prompts.find(p => p.id === marker.sceneId);
+    if (scene && scene.isAudioLinked) {
+      scene.audioMarkerIndex = markerIndex;
+    }
+  });
+}
   } else {
     // Fallback: als er oude markers in audioTimelineData zitten (backward compatibility)
     if (audioTimelineData.markers && Array.isArray(audioTimelineData.markers)) {
