@@ -42,6 +42,11 @@ export function addPrompt(state, elements, flagProjectDirty) {
     howDoWeMake: "",
     timeline: "",
     duration: "",
+    // Audio timeline fields (⭐ BELANGRIJK: gebruik null, niet undefined voor JSON serialization)
+    isAudioLinked: false,
+    audioMarkerIndex: null,
+    audioMarkerTime: null,
+    preferredMediaType: "image"
   };
   state.projectData.prompts.push(prompt);
   flagProjectDirty();
@@ -94,7 +99,18 @@ export async function deletePrompt(promptId, state, elements) {
     }
   }
 
+  // Verwijder de scene uit prompts array
   state.projectData.prompts.splice(idx, 1);
+
+  // Als scene gekoppeld was aan audio marker, regenereer markers uit scenes
+  if (prompt.isAudioLinked && state.projectData.audioTimeline) {
+    // Dispatch event om audio timeline te regenereren vanuit scenes
+    const regenerateEvent = new CustomEvent('regenerateMarkersFromScenes', {
+      detail: { projectData: state.projectData }
+    });
+    document.dispatchEvent(regenerateEvent);
+  }
+
   state.isDirty = true;
 }
 

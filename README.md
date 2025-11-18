@@ -7,6 +7,30 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
+## Update — 18 November, version 2.2
+
+**Audio Timeline Workflow Improvements**
+
+After extensive testing of the audio timeline functionality in our daily Video 4.0 production, we implemented several important improvements:
+
+**Persistence & Reliability:**
+- Audio marker associations are now correctly preserved when saving and reloading projects
+- Scene and marker synchronization now works in real time — changes are immediately visible without reloading
+- Presentation mode now reliably plays back with the correct audio markers
+
+**Workflow Optimizations:**
+- In audio projects, you can now change scene order only via the audio timeline (move buttons are hidden)
+- Scene cards now show a 🎵 music note with the marker time instead of "Scene X"
+- New "Delete Audio" feature with a professional confirmation dialog — removes audio and resets the project to normal mode
+- Removing a marker immediately unlinks the scene (it becomes inactive)
+- Deleting a scene automatically removes its linked marker
+
+**Technical:**
+- Complete code cleanup — all debug logging removed for production
+- Improved event-driven architecture for better synchronization between UI components
+- Backwards compatible — existing projects continue to work
+
+Deze updates maken de audio timeline workflow productie-ready voor dagelijks gebruik in video 4.0 projecten.
 
 
 ## Update — 17 November, version 2.1

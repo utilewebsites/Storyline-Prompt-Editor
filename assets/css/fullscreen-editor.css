@@ -329,6 +329,15 @@
   background: #4e7ef8;
 }
 
+.toolbar-btn.danger {
+  background: var(--danger, #dc3545);
+  color: white;
+}
+
+.toolbar-btn.danger:hover {
+  background: #c82333;
+}
+
 .toolbar-btn-icon {
   padding: 0.5rem 0.75rem;
   border-radius: 6px;

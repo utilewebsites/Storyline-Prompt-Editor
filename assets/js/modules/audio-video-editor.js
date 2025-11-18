@@ -11,15 +11,6 @@
  * - Timeline scrubber en playhead
  */
 
-import { 
-  getAudioBuffer, 
-  getAudioElement, 
-  getAudioContext, 
-  getMarkers, 
-  getAudioFileName,
-  isAudioTimelineActive 
-} from './audio-timeline.js';
-
 import translations from '../translations.js';
 
 // Helper functie voor vertalingen
@@ -105,6 +96,9 @@ let waveformZoom = 1.0;
 const MIN_ZOOM = 0.5;
 const MAX_ZOOM = 5.0;
 
+// Track of audio nieuw is geupload (moet opgeslagen worden)
+let isNewlyUploadedAudio = false;
+
 /**
  * Initialiseer de audio/video editor
  */
@@ -121,6 +115,7 @@ export function initializeAudioVideoEditor() {
   elements.uploadBtn = editorDialog.querySelector('#editor-upload-audio');
   elements.audioInput = editorDialog.querySelector('#editor-audio-input');
   elements.audioFilename = editorDialog.querySelector('#editor-audio-filename');
+  elements.deleteAudioBtn = editorDialog.querySelector('#editor-delete-audio');
   elements.waveformCanvas = editorDialog.querySelector('#editor-waveform');
   elements.playhead = editorDialog.querySelector('#editor-playhead');
   elements.playPauseBtn = editorDialog.querySelector('#preview-play-pause');
@@ -162,16 +157,20 @@ export function initializeAudioVideoEditor() {
   }
 
   if (elements.uploadBtn && elements.audioInput) {
+    // Debug: Check accept attribute
+    
     elements.uploadBtn.addEventListener('click', () => {
       elements.audioInput.click();
     });
 
     elements.audioInput.addEventListener('change', async (event) => {
       const file = event.target.files[0];
+      
       if (file) {
         // Accepteer alle bestanden met audio extensie of audio MIME type
         const isAudio = file.type.startsWith('audio/') || 
                        file.name.match(/\.(wav|mp3|ogg|m4a|aac|flac)$/i);
+        
         
         if (isAudio) {
           await loadAudioFile(file);
@@ -181,6 +180,61 @@ export function initializeAudioVideoEditor() {
         }
         event.target.value = ''; // Reset voor hergebruik
       }
+    });
+  }
+
+  // Delete audio button
+  if (elements.deleteAudioBtn) {
+    elements.deleteAudioBtn.addEventListener('click', async () => {
+      // Toon confirmation dialog
+      const confirmDialog = document.getElementById('confirm-delete-audio-dialog');
+      if (!confirmDialog) {
+        console.error('Delete audio confirmation dialog not found');
+        return;
+      }
+      
+      confirmDialog.showModal();
+      
+      // Wacht op dialoog resultaat
+      const result = await new Promise(resolve => {
+        confirmDialog.addEventListener('close', function handler() {
+          confirmDialog.removeEventListener('close', handler);
+          resolve(confirmDialog.returnValue);
+        });
+      });
+      
+      if (result !== 'confirm') {
+        return; // Gebruiker heeft geannuleerd
+      }
+      
+      // Dispatch event naar app.js om audio uit project te verwijderen
+      const deleteEvent = new CustomEvent('deleteAudioFromProject');
+      document.dispatchEvent(deleteEvent);
+      
+      // Clear local audio state
+      editorAudioBuffer = null;
+      editorAudioContext = null;
+      currentAudioElement = null;
+      editorAudioFile = null;
+      editorAudioFileName = '';
+      editorMarkers = [];
+      isNewlyUploadedAudio = false;
+      
+      // Clear UI
+      if (elements.waveformCanvas) {
+        const ctx = elements.waveformCanvas.getContext('2d');
+        ctx.clearRect(0, 0, elements.waveformCanvas.width, elements.waveformCanvas.height);
+      }
+      if (elements.audioFilename) {
+        elements.audioFilename.textContent = '';
+      }
+      if (elements.markersCount) {
+        elements.markersCount.textContent = '0';
+      }
+      elements.deleteAudioBtn.style.display = 'none';
+      
+      // Sluit de editor
+      closeEditor();
     });
   }
 
@@ -328,6 +382,66 @@ export function initializeAudioVideoEditor() {
       elements.markersCount.textContent = '0 markers';
     }
   });
+
+  // Event listener voor regenereren van markers na scene delete
+  document.addEventListener('regenerateMarkersFromScenes', (event) => {
+    if (event.detail && event.detail.projectData) {
+      const projectData = event.detail.projectData;
+      
+      // Regenereer markers uit scenes
+      const roundTime = (t) => Math.round((Number(t) || 0) * 1000) / 1000;
+      const generatedMarkers = [];
+      
+      if (projectData.prompts) {
+        projectData.prompts.forEach((scene, sceneIndex) => {
+          if (scene.isAudioLinked && scene.audioMarkerTime !== undefined && scene.audioMarkerTime !== null) {
+            generatedMarkers.push({
+              time: roundTime(scene.audioMarkerTime),
+              sceneId: scene.id,
+              originalSceneIndex: sceneIndex,
+              mediaType: scene.preferredMediaType || 'image'
+            });
+          }
+        });
+        
+        // Sorteer markers op tijd
+        generatedMarkers.sort((a, b) => a.time - b.time);
+        
+        // Update editorMarkers met gegenereerde markers EN herindex scenes
+        editorMarkers = generatedMarkers.map((marker, index) => ({
+          time: marker.time,
+          sceneIndex: index,  // Marker index (0, 1, 2...)
+          sceneId: marker.sceneId,
+          originalSceneIndex: marker.originalSceneIndex,
+          mediaType: marker.mediaType
+        }));
+        
+        // Update audioMarkerIndex in alle scenes om consistent te blijven
+        projectData.prompts.forEach(scene => {
+          if (scene.isAudioLinked && scene.audioMarkerTime !== undefined) {
+            // Zoek de marker index voor deze scene
+            const markerIndex = editorMarkers.findIndex(m => m.sceneId === scene.id);
+            if (markerIndex !== -1) {
+              scene.audioMarkerIndex = markerIndex;
+            } else {
+              // Scene is niet meer gekoppeld
+              scene.isAudioLinked = false;
+              scene.audioMarkerIndex = null;
+              scene.audioMarkerTime = null;
+            }
+          }
+        });
+      }
+      
+      // Redraw waveform met nieuwe markers
+      if (editorAudioBuffer) {
+        drawWaveform();
+      }
+      
+      // Update markers count
+      updateMarkersDisplay();
+    }
+  });
 }
 
 /**
@@ -435,8 +549,7 @@ function handlePlayheadMouseUp(event) {
 export function openEditor() {
   if (!editorDialog) return;
   
-  // Laad bestaande audio timeline data
-  loadExistingAudioData();
+  // Audio is al geladen via loadAudioFromProjectDir() bij project open
   
   editorDialog.showModal();
   isEditorOpen = true;
@@ -444,74 +557,19 @@ export function openEditor() {
   // Resize waveform canvas
   resizeWaveformCanvas();
   
-  // Render current state if audio loaded
+  // Render current state
   if (editorAudioBuffer) {
     drawWaveform();
-    updateMarkersDisplay();
     
     // Preload alle scenes als preload enabled is
     if (preloadEnabled) {
       preloadAllScenes();
     }
   }
-}
-
-/**
- * Laad bestaande audio timeline data van oude module
- */
-function loadExistingAudioData() {
-  // Haal audio data op van oude audio-timeline module
-  const oldAudioBuffer = getAudioBuffer();
-  const oldMarkers = getMarkers();
-  const oldFileName = getAudioFileName();
-  const isActive = isAudioTimelineActive();
-
-  if (oldAudioBuffer) {
-    editorAudioBuffer = oldAudioBuffer;
-    
-    // Update filename display
-    if (elements.audioFilename && oldFileName) {
-      elements.audioFilename.textContent = oldFileName;
-    }
-
-    // Converteer markers naar editor formaat
-    if (oldMarkers && oldMarkers.length > 0) {
-      editorMarkers = oldMarkers.map((marker, index) => {
-        // Haal preferred media type op van de gelinkte scene
-        const sceneMediaType = getSceneMediaType(index);
-        
-        return {
-          time: marker.time !== undefined ? marker.time : marker,
-          sceneIndex: index,
-          mediaType: sceneMediaType || marker.mediaType || 'image'
-        };
-      });
-    }
-
-    // Maak audio element voor playback als die nog niet bestaat
-    if (!currentAudioElement) {
-      const oldAudioElement = getAudioElement();
-      if (oldAudioElement && oldAudioElement.src) {
-        currentAudioElement = oldAudioElement;
-      }
-    }
-
-    // Update total time display
-    if (elements.totalTimeDisplay) {
-      elements.totalTimeDisplay.textContent = formatTime(editorAudioBuffer.duration);
-    }
-
-    // Enable play button
-    if (elements.playPauseBtn) {
-      elements.playPauseBtn.disabled = false;
-    }
-
-    // Get audio context
-    const oldContext = getAudioContext();
-    if (oldContext) {
-      editorAudioContext = oldContext;
-    }
-  }
+  
+  // Update markers display altijd (ook zonder audio buffer)
+  // Dit zorgt ervoor dat orphaned markers worden gedetecteerd en getoond
+  updateMarkersDisplay();
 }
 
 /**
@@ -527,6 +585,41 @@ function closeEditor() {
 
   editorDialog.close();
   isEditorOpen = false;
+}
+
+/**
+ * Laad audio bestand vanuit project directory handle
+ * @param {FileSystemDirectoryHandle} projectDirHandle - Project directory handle
+ * @param {string} fileName - Naam van het audio bestand
+ */
+export async function loadAudioFromProjectDir(projectDirHandle, fileName) {
+  if (!projectDirHandle || !fileName) {
+    return;
+  }
+  
+  try {
+    
+    // Haal audio bestand op uit projectmap
+    const audioFileHandle = await projectDirHandle.getFileHandle(fileName);
+    const file = await audioFileHandle.getFile();
+    
+    
+    // Laad het bestand (restoreMarkers = 'FROM_PROJECT' om aan te geven dat dit vanuit project komt)
+    await loadAudioFile(file, 'FROM_PROJECT');
+    
+  } catch (err) {
+    console.warn('⚠️ Audio bestand niet gevonden in project:', fileName);
+    console.warn('   Audio editor blijft leeg - gebruiker kan opnieuw uploaden');
+    
+    // BELANGRIJK: Reset audio state zodat oude audio niet blijft hangen
+    editorAudioBuffer = null;
+    editorAudioContext = null;
+    currentAudioElement = null;
+    editorAudioFile = null;
+    isNewlyUploadedAudio = false;
+    
+    throw err; // Re-throw zodat openProject weet dat het mislukt is
+  }
 }
 
 /**
@@ -549,13 +642,27 @@ async function loadAudioFile(file, restoreMarkers = null) {
     const arrayBuffer = await file.arrayBuffer();
     editorAudioBuffer = await editorAudioContext.decodeAudioData(arrayBuffer);
 
-    // Sla File object op voor later opslaan
-    editorAudioFile = file;
+    // Check of dit vanuit project wordt geladen of een nieuwe upload is
+    const isFromProject = (restoreMarkers === 'FROM_PROJECT');
+    
+    // Sla File object ALLEEN op bij nieuwe upload
+    if (!isFromProject) {
+      editorAudioFile = file;
+      isNewlyUploadedAudio = true; // Markeer als nieuw - moet opgeslagen worden
+    } else {
+      editorAudioFile = null;
+      isNewlyUploadedAudio = false; // Vanuit project - NIET opslaan
+    }
     
     // Update filename display
     editorAudioFileName = file.name;
     if (elements.audioFilename) {
       elements.audioFilename.textContent = file.name;
+    }
+    
+    // Toon delete audio button
+    if (elements.deleteAudioBtn) {
+      elements.deleteAudioBtn.style.display = 'inline-block';
     }
 
     // Maak audio element voor playback
@@ -592,15 +699,19 @@ async function loadAudioFile(file, restoreMarkers = null) {
     // Draw waveform
     drawWaveform();
     
-    // Herstel markers als ze zijn meegeleverd (bij project laden)
-    if (restoreMarkers && Array.isArray(restoreMarkers) && restoreMarkers.length > 0) {
+    // Check hoe deze audio geladen is
+    if (restoreMarkers === 'FROM_PROJECT') {
+      // Audio komt uit project - markers worden later geladen via restoreAudioTimelineFromData
+      // Dispatch GEEN events, behoud bestaande state
+    } else if (restoreMarkers && Array.isArray(restoreMarkers) && restoreMarkers.length > 0) {
+      // Legacy: Herstel markers als ze zijn meegeleverd
+      isNewlyUploadedAudio = false; // Audio komt uit project - NIET opslaan
+      
       editorMarkers = restoreMarkers.map((time, index) => ({
         time: time,
         sceneIndex: index, // Dit is de marker index (0, 1, 2...)
         mediaType: 'image' // Default, wordt later geüpdatet via getSceneMediaType
       }));
-      
-      // Dispatch GEEN newAudioLoaded event - we willen de koppelingen behouden
       
       // Request media type voor elke marker van app.js
       editorMarkers.forEach((marker, markerIndex) => {
@@ -620,7 +731,7 @@ async function loadAudioFile(file, restoreMarkers = null) {
         document.dispatchEvent(event);
       });
     } else if (hadPreviousAudio) {
-      // Er was al audio geladen - reset alles (ongeacht of het dezelfde naam heeft)
+      // Er was al audio geladen - dit is een NIEUWE upload, reset alles
       const event = new CustomEvent('newAudioLoaded', {
         detail: {
           fileName: file.name,
@@ -967,6 +1078,11 @@ function handleWaveformMouseUp(event) {
       elements.waveformCanvas.style.cursor = 'crosshair';
     }
   } else if (!isDraggingMarker && event.type === 'mouseup') {
+    // Check of er een audio bestand geladen is voordat we clicks afhandelen
+    if (!editorAudioBuffer) {
+      return;
+    }
+    
     const canvas = elements.waveformCanvas;
     const rect = canvas.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -2288,45 +2404,138 @@ export function resetAudioVideoEditor() {
 }
 
 /**
- * Export audio timeline data voor opslaan in project.json
+ * Clear de editorAudioFile referentie na opslaan
+ * Voorkomt ERR_UPLOAD_FILE_CHANGED errors
  */
-export function getAudioTimelineData() {
-  if (!editorAudioBuffer || !editorMarkers || editorMarkers.length === 0) {
+export function clearAudioFileReference() {
+  editorAudioFile = null;
+  isNewlyUploadedAudio = false;
+}
+
+/**
+ * Export audio timeline data voor opslaan in project.json
+ * Synchroniseert markers vanuit projectData scenes
+ * @param {Object} projectData - Project data met scenes
+ */
+export function getAudioTimelineData(projectData = null) {
+  const roundTime = (t) => Math.round((Number(t) || 0) * 1000) / 1000;
+  
+  // BELANGRIJKE WIJZIGING: Markers worden NIET meer opgeslagen in audioTimeline
+  // Ze worden dynamisch gegenereerd uit scenes bij laden
+  // Dit garandeert 100% synchronisatie tussen scenes en markers
+  
+  // Als er markers zijn maar geen fileName, probeer van projectData te halen
+  let fileName = editorAudioFileName;
+  let duration = editorAudioBuffer ? editorAudioBuffer.duration : 0;
+  
+  if ((!fileName || fileName === '') && projectData?.audioTimeline?.fileName) {
+    fileName = projectData.audioTimeline.fileName;
+  }
+  
+  if (duration === 0 && projectData?.audioTimeline?.duration) {
+    duration = projectData.audioTimeline.duration;
+  }
+  
+  // Check of er linked scenes zijn
+  const hasLinkedScenes = projectData?.prompts?.some(p => p.isAudioLinked) || false;
+  
+  // Als er geen fileName EN geen linked scenes zijn, return null
+  if (!fileName && !hasLinkedScenes) {
     return null;
   }
   
+  // Return data ZONDER markers array
+  // Markers worden bij laden gegenereerd uit scenes
   return {
-    audioBuffer: true, // Aanwezig indicator (de buffer zelf wordt niet opgeslagen)
-    audioFile: editorAudioFile, // Het File object voor opslaan in project map
-    fileName: editorAudioFileName,
-    markers: editorMarkers.map(m => m.time),
-    duration: editorAudioBuffer.duration,
-    isActive: true
+    audioBuffer: true,
+    audioFile: isNewlyUploadedAudio ? editorAudioFile : null, // Alleen bij nieuwe upload
+    fileName: fileName || '',
+    // GEEN markers array meer!
+    duration: duration,
+    isActive: true,
+    isNewUpload: isNewlyUploadedAudio // Flag voor app.js
   };
 }
 
 /**
  * Herstel audio timeline data vanuit project.json
- * Note: Audio bestand moet opnieuw worden geüpload, alleen markers worden hersteld
+ * @param {Object} audioTimelineData - Audio timeline data
+ * @param {Object} projectData - Project data met scenes voor mediaType sync
  */
-export function restoreAudioTimelineFromData(audioTimelineData) {
-  if (!audioTimelineData || !audioTimelineData.markers) {
+export function restoreAudioTimelineFromData(audioTimelineData, projectData = null) {
+  // BELANGRIJK: Als audioTimelineData niet bestaat, reset
+  if (!audioTimelineData) {
+    editorMarkers = [];
+    editorAudioFileName = '';
     return;
   }
   
-  // Restore markers (audio moet opnieuw worden geüpload)
-  editorMarkers = audioTimelineData.markers.map((time, index) => ({
-    time: time,
-    sceneIndex: index
-  }));
+  // Bewaar fileName en duration (zelfs als audio bestand niet geladen is)
+  if (audioTimelineData.fileName) {
+    editorAudioFileName = audioTimelineData.fileName;
+  }
+  
+  // NIEUWE STRATEGIE: Genereer markers uit scenes
+  // Dit garandeert 100% synchronisatie
+  const roundTime = (t) => Math.round((Number(t) || 0) * 1000) / 1000;
+  const generatedMarkers = [];
+  
+  if (projectData && projectData.prompts) {
+    // Verzamel markers uit scenes die isAudioLinked hebben
+    projectData.prompts.forEach((scene, sceneIndex) => {
+      if (scene.isAudioLinked && scene.audioMarkerTime !== undefined && scene.audioMarkerTime !== null) {
+        generatedMarkers.push({
+          time: roundTime(scene.audioMarkerTime),
+          sceneId: scene.id,
+          originalSceneIndex: sceneIndex,
+          mediaType: scene.preferredMediaType || 'image'
+        });
+      }
+    });
+    
+    // Sorteer markers op tijd
+    generatedMarkers.sort((a, b) => a.time - b.time);
+    
+    // Update editorMarkers met gegenereerde markers
+    editorMarkers = generatedMarkers.map((marker, index) => ({
+      time: marker.time,
+      sceneIndex: index,  // Marker index (0, 1, 2...)
+      sceneId: marker.sceneId,
+      originalSceneIndex: marker.originalSceneIndex,
+      mediaType: marker.mediaType
+    }));
+  } else {
+    // Fallback: als er oude markers in audioTimelineData zitten (backward compatibility)
+    if (audioTimelineData.markers && Array.isArray(audioTimelineData.markers)) {
+      console.warn('⚠️ Using legacy markers from audioTimeline (should not happen in new saves)');
+      editorMarkers = audioTimelineData.markers.map((time, index) => ({
+        time: roundTime(time),
+        sceneIndex: index,
+        mediaType: 'image'
+      }));
+    } else {
+      editorMarkers = [];
+      console.log('ℹ️ No markers to restore');
+    }
+  }
   
   // Update markers count
   if (elements.markersCount) {
     elements.markersCount.textContent = editorMarkers.length.toString();
   }
   
+  // Update filename display
+  if (elements.audioFilename && editorAudioFileName) {
+    elements.audioFilename.textContent = editorAudioFileName;
+  }
+  
+  // Toon delete audio button als er audio data is
+  if (elements.deleteAudioBtn && editorAudioFileName) {
+    elements.deleteAudioBtn.style.display = 'inline-block';
+  }
+  
   // Toon melding dat audio opnieuw moet worden geüpload om waveform te zien
-  if (elements.waveformCanvas) {
+  if (elements.waveformCanvas && !editorAudioBuffer && editorMarkers.length > 0) {
     const ctx = elements.waveformCanvas.getContext('2d');
     const width = elements.waveformCanvas.width;
     const height = elements.waveformCanvas.height;
@@ -2339,11 +2548,12 @@ export function restoreAudioTimelineFromData(audioTimelineData) {
     ctx.font = '14px Arial';
     ctx.textAlign = 'center';
     ctx.fillText('Upload audio bestand om waveform en markers te zien', width / 2, height / 2 - 10);
-    ctx.fillText(`${editorMarkers.length} markers opgeslagen bij: ${audioTimelineData.markers.map(t => t.toFixed(2)).join(', ')}s`, width / 2, height / 2 + 10);
+    ctx.fillText(`${editorMarkers.length} markers bij: ${editorMarkers.map(m => m.time.toFixed(2)).join(', ')}s`, width / 2, height / 2 + 10);
   }
   
-  // Update markers display (werkt pas als audio is geladen)
-  updateMarkersDisplay();
+  // BELANGRIJK: Roep updateMarkersDisplay() NIET aan hier
+  // Want state.projectData is nog niet bijgewerkt met nieuwe project scenes
+  // updateMarkersDisplay() wordt automatisch aangeroepen bij openEditor()
 }
 
 /**

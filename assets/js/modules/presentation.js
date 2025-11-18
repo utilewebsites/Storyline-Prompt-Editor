@@ -628,10 +628,22 @@ export async function initializeAudioPresentation(state, localState, elements, p
     return null;
   }
   
-  // Controleer of project audio timeline heeft met markers
+  // NIEUWE STRATEGIE: Genereer markers uit scenes met isAudioLinked
+  const linkedScenes = state.projectData.prompts.filter(p => p.isAudioLinked && p.audioMarkerTime !== undefined);
+  
+  if (linkedScenes.length === 0) {
+    console.warn("Dit project heeft geen scenes gekoppeld aan audio timeline");
+    return null;
+  }
+  
+  // Sorteer scenes op audioMarkerTime en genereer markers array
+  linkedScenes.sort((a, b) => a.audioMarkerTime - b.audioMarkerTime);
+  const markers = linkedScenes.map(s => s.audioMarkerTime);
+  
+  // Controleer of project audio timeline heeft
   const audioData = state.projectData.audioTimeline;
-  if (!audioData || !audioData.markers || audioData.markers.length === 0) {
-    console.warn("Dit project heeft geen audio timeline of markers");
+  if (!audioData) {
+    console.warn("Dit project heeft geen audio timeline data");
     return null;
   }
   
@@ -668,8 +680,8 @@ export async function initializeAudioPresentation(state, localState, elements, p
       elements.presentationAudio.src = url;
       elements.presentationAudio.load();
       
-      // Store markers voor timeline visualization
-      localState.presentationMode.audioMarkers = audioData.markers || [];
+      // Store GEGENEREERDE markers voor timeline visualization
+      localState.presentationMode.audioMarkers = markers;
       
       // Decode audio voor waveform
       const arrayBuffer = await audioFile.arrayBuffer();
@@ -692,8 +704,8 @@ export async function initializeAudioPresentation(state, localState, elements, p
       );
       
       return {
-        markers: audioData.markers,
-        duration: audioData.duration
+        markers: markers, // Gegenereerde markers uit scenes
+        duration: audioBuffer.duration // Gebruik echte audio duration
       };
     }
   } catch (error) {

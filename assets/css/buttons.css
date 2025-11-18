@@ -48,6 +48,25 @@ button.icon-btn {
   min-width: auto;
 }
 
+/* Auto-save button styling */
+#toggle-autosave {
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+#toggle-autosave.active {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+#toggle-autosave:not(.active) {
+  opacity: 0.7;
+}
+
+#toggle-autosave:hover {
+  opacity: 1;
+}
+
 /* Split-button (export prompts + dropdown) */
 .split-button {
   display: inline-flex;

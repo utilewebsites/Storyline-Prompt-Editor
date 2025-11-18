@@ -7,7 +7,33 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## update 17 november versie 2.1
+## 18 november versie 2.2
+
+**Audio Timeline Workflow Verbeteringen**
+
+Na intensief testen van de audio timeline functionaliteit in onze dagelijkse video 4.0 productie hebben we een aantal belangrijke verbeteringen doorgevoerd:
+
+**Persistentie & Betrouwbaarheid:**
+- Audio marker koppelingen blijven nu correct behouden bij opslaan en herladen van projecten
+- Scene en marker synchronisatie werkt nu realtime - wijzigingen zijn direct zichtbaar zonder herladen
+- Presentation mode speelt nu betrouwbaar af met de juiste audio markers
+
+**Workflow Optimalisaties:**
+- Bij audio projecten kun je de scene volgorde alleen nog via de audio timeline aanpassen (move buttons zijn verborgen)
+- Scene cards tonen nu een 🎵 muzieknootje met marker tijd in plaats van "Scene X"
+- Nieuwe "Delete Audio" functie met professionele bevestigingsdialoog - verwijdert audio en reset project naar normale modus
+- Marker verwijderen ontkoppelt direct de scene (wordt inactief)
+- Scene verwijderen verwijdert automatisch de gekoppelde marker
+
+**Technisch:**
+- Complete code cleanup - alle debug logging verwijderd voor productie
+- Verbeterde event-driven architectuur voor betere synchronisatie tussen UI componenten
+- Backwards compatible - oude projecten werken gewoon door
+
+Deze updates maken de audio timeline workflow productie-ready voor dagelijks gebruik in video 4.0 projecten.
+
+
+## 17 november versie 2.1
 
 Je kunt nu nog sneller een video-prompt genereren direct vanuit de editor: we hebben Ollama geïntegreerd zodat je een korte instructie kunt invoeren, de editor de scène-afbeelding analyseert en automatisch een WAN 2.2‑compatibele video‑prompt genereert (ook image→image ). 
 
