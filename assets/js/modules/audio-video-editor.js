@@ -85,17 +85,13 @@ let elements = {
   sceneMediaToggle: null,
   markersList: null,
   markersCount: null,
-  zoomInBtn: null,
-  zoomOutBtn: null,
-  zoomFitBtn: null,
   timelineRuler: null,
   preloadToggle: null,
 };
 
-// Zoom state
-let waveformZoom = 1.0;
-const MIN_ZOOM = 0.5;
-const MAX_ZOOM = 5.0;
+// Cache voor marker cards zodat we geen dure DOM queries hoeven te doen tijdens playback
+let markerCardRefs = [];
+let activeMarkerCardRef = null;
 
 // Track of audio nieuw is geupload (moet opgeslagen worden)
 let isNewlyUploadedAudio = false;
@@ -129,9 +125,6 @@ export function initializeAudioVideoEditor() {
   elements.sceneMediaToggle = editorDialog.querySelector('#scene-media-toggle');
   elements.markersList = editorDialog.querySelector('#editor-markers-list');
   elements.markersCount = editorDialog.querySelector('#markers-count');
-  elements.zoomInBtn = editorDialog.querySelector('#editor-zoom-in');
-  elements.zoomOutBtn = editorDialog.querySelector('#editor-zoom-out');
-  elements.zoomFitBtn = editorDialog.querySelector('#editor-zoom-fit');
   elements.timelineRuler = editorDialog.querySelector('#timeline-ruler');
   elements.preloadToggle = editorDialog.querySelector('#editor-preload-toggle');
 
@@ -278,22 +271,6 @@ export function initializeAudioVideoEditor() {
 
   if (elements.muteBtn) {
     elements.muteBtn.addEventListener('click', toggleMute);
-  }
-
-  // Zoom controls
-  if (elements.zoomInBtn) {
-    elements.zoomInBtn.addEventListener('click', () => zoomWaveform(1.5));
-  }
-
-  if (elements.zoomOutBtn) {
-    elements.zoomOutBtn.addEventListener('click', () => zoomWaveform(0.75));
-  }
-
-  if (elements.zoomFitBtn) {
-    elements.zoomFitBtn.addEventListener('click', () => {
-      waveformZoom = 1.0;
-      drawWaveform();
-    });
   }
 
   // Quick Marker button
@@ -815,7 +792,7 @@ function drawWaveform() {
 
   // Get audio data
   const channelData = editorAudioBuffer.getChannelData(0);
-  const step = Math.ceil(channelData.length / (width * waveformZoom));
+  const step = Math.ceil(channelData.length / width);
   const amp = height / 2;
 
   // Calculate current playback position for progressive coloring
@@ -926,7 +903,7 @@ function drawTimelineRuler() {
   const duration = editorAudioBuffer.duration;
   const width = elements.waveformCanvas.width;
 
-  // Bepaal interval op basis van duration en zoom
+  // Bepaal interval op basis van totale duur
   let interval = 1; // seconds
   let showMilliseconds = false;
   
@@ -1249,20 +1226,21 @@ function handleMarkerDrag(event) {
  */
 function handleWaveformMouseUp(event) {
   if (isDraggingMarker && draggedMarkerIndex !== null) {
+    const marker = editorMarkers[draggedMarkerIndex];
+    const oldIndex = draggedMarkerIndex;
     // Check of er werkelijk gesleept is
     if (hasDragged) {
       // Marker drag voltooid
-      const marker = editorMarkers[draggedMarkerIndex];
-      const oldIndex = draggedMarkerIndex;
-      
       // EERST: Update marker positie in scene (voordat we reorderen)
-      syncMarkerPositionToScene(oldIndex, marker.time);
+      if (marker) {
+        syncMarkerPositionToScene(oldIndex, marker.time);
+      }
       
       // Re-sort markers op tijd
       editorMarkers.sort((a, b) => a.time - b.time);
       
       // Vind nieuwe index van verplaatste marker
-      const newIndex = editorMarkers.findIndex(m => m === marker);
+      const newIndex = marker ? editorMarkers.findIndex(m => m === marker) : oldIndex;
       
       // Re-index alle markers
       editorMarkers.forEach((m, idx) => {
@@ -1280,6 +1258,10 @@ function handleWaveformMouseUp(event) {
       
       // Update display
       updateMarkersDisplay();
+    } else if (marker) {
+      // Klik op marker zonder drag: focus bijbehorende card en seek
+      seekToTime(marker.time);
+      focusMarkerCard(oldIndex);
     }
     
     // Reset drag state (altijd, ook bij click zonder drag)
@@ -1592,17 +1574,25 @@ function addMarker(time) {
 function updateMarkersDisplay() {
   if (!elements.markersList || !elements.markersCount) return;
 
+  // Reset cache voor marker cards zodat playback updates snelle referenties hebben
+  markerCardRefs = new Array(editorMarkers.length);
+  activeMarkerCardRef = null;
+
   // Update count
   elements.markersCount.textContent = `${editorMarkers.length} markers`;
 
   // Clear list
   elements.markersList.innerHTML = '';
 
+  const markerFragment = document.createDocumentFragment();
+
   // Add active marker cards
   editorMarkers.forEach((marker, index) => {
     const card = createMarkerCard(marker, index);
-    elements.markersList.appendChild(card);
+    markerFragment.appendChild(card);
   });
+
+  elements.markersList.appendChild(markerFragment);
   
   // Toon inactieve scenes (scenes die ontkoppeld zijn van markers)
   // Toon ALLE scenes zonder actieve marker koppeling, ongeacht of ze ooit gekoppeld waren
@@ -1612,6 +1602,7 @@ function updateMarkersDisplay() {
   // Scenes kunnen aan timeline gekoppeld worden ongeacht of ze image/video hebben
   if (inactiveScenes.length > 0) {
     const separator = document.createElement('div');
+    separator.classList.add('markers-separator');
     separator.style.cssText = 'margin: 1rem 0; padding: 0.5rem; background: var(--muted-bg); border-radius: 4px; font-size: 0.9rem; color: var(--muted);';
     separator.textContent = `📋 Ontkoppelde scenes (${inactiveScenes.length})`;
     elements.markersList.appendChild(separator);
@@ -1620,6 +1611,35 @@ function updateMarkersDisplay() {
       const card = createInactiveSceneCard(scene);
       elements.markersList.appendChild(card);
     });
+  }
+
+  if (currentPlayingSceneIndex !== null && currentPlayingSceneIndex >= 0) {
+    focusMarkerCard(currentPlayingSceneIndex, { scroll: false });
+  }
+}
+
+function focusMarkerCard(markerIndex, { scroll = true, behavior = 'smooth' } = {}) {
+  if (markerIndex === undefined || markerIndex === null || markerIndex < 0) return;
+  const cachedRef = markerCardRefs[markerIndex];
+  let targetCard = cachedRef?.card || null;
+
+  if (!targetCard && elements.markersList) {
+    targetCard = elements.markersList.querySelector(`.marker-card[data-marker-index="${markerIndex}"]`);
+    if (targetCard && cachedRef) {
+      cachedRef.card = targetCard;
+    }
+  }
+
+  if (!targetCard) return;
+
+  if (activeMarkerCardRef && activeMarkerCardRef !== targetCard) {
+    activeMarkerCardRef.classList.remove('active');
+  }
+
+  activeMarkerCardRef = targetCard;
+  targetCard.classList.add('active');
+  if (scroll) {
+    targetCard.scrollIntoView({ behavior, block: 'nearest', inline: 'center' });
   }
 }
 
@@ -1867,6 +1887,12 @@ function createMarkerCard(marker, index) {
   const timeSlider = card.querySelector('.marker-time-slider');
   const timeSave = card.querySelector('.marker-time-save');
   const timeCancel = card.querySelector('.marker-time-cancel');
+
+  markerCardRefs[index] = {
+    card,
+    timeDisplay,
+    timeSlider
+  };
   
   // Bewaar originele tijd voor cancel
   let originalTime = marker.time;
@@ -1974,9 +2000,15 @@ function createMarkerCard(marker, index) {
 
   // Click to seek
   card.addEventListener('click', (e) => {
-    if (e.target.tagName !== 'BUTTON' && !e.target.classList.contains('marker-time-display')) {
-      seekToTime(marker.time);
+    const target = e.target;
+    if (target.tagName === 'BUTTON') {
+      return;
     }
+    if (target.closest('.marker-time-container') && target !== timeDisplay) {
+      return;
+    }
+    seekToTime(marker.time);
+    focusMarkerCard(index, { scroll: false });
   });
 
   return card;
@@ -2170,13 +2202,12 @@ function stopPlayback() {
  * Reset alle marker tijd displays naar originele marker tijd
  */
 function resetMarkerTimeDisplays() {
-  editorMarkers.forEach((marker, index) => {
-    const markerCard = document.querySelector(`.marker-card[data-marker-index="${index}"]`);
-    if (markerCard) {
-      const timeDisplay = markerCard.querySelector('.marker-time-display');
-      if (timeDisplay && timeDisplay.style.display !== 'none') {
-        timeDisplay.textContent = formatTime(marker.time);
-      }
+  markerCardRefs.forEach((ref, index) => {
+    const marker = editorMarkers[index];
+    if (!ref || !marker) return;
+    const { timeDisplay } = ref;
+    if (timeDisplay && timeDisplay.style.display !== 'none') {
+      timeDisplay.textContent = formatTime(marker.time);
     }
   });
 }
@@ -2203,24 +2234,20 @@ function updatePlaybackPosition() {
 
   // Update slider in huidige marker card
   if (currentPlayingSceneIndex !== null && currentPlayingSceneIndex >= 0) {
-    const markerCard = document.querySelector(`.marker-card[data-marker-index="${currentPlayingSceneIndex}"]`);
-    if (markerCard) {
-      const timeDisplay = markerCard.querySelector('.marker-time-display');
-      const timeSlider = markerCard.querySelector('.marker-time-slider');
+    const marker = editorMarkers[currentPlayingSceneIndex];
+    const activeRefs = markerCardRefs[currentPlayingSceneIndex];
+    if (marker && activeRefs) {
+      const { timeDisplay, timeSlider } = activeRefs;
       
       // Update slider positie (alleen als niet in edit mode)
       if (timeSlider && timeSlider.style.display === 'none' && timeDisplay) {
-        // Bereken relatieve tijd binnen deze scene
-        const marker = editorMarkers[currentPlayingSceneIndex];
-        if (marker) {
-          const relativeTime = currentTime - marker.time;
-          
-          // Update tijd display met relatieve tijd
-          if (relativeTime >= 0) {
-            timeDisplay.textContent = `${formatTime(marker.time)} (+${relativeTime.toFixed(1)}s)`;
-          } else {
-            timeDisplay.textContent = formatTime(marker.time);
-          }
+        const relativeTime = currentTime - marker.time;
+        
+        // Update tijd display met relatieve tijd
+        if (relativeTime >= 0) {
+          timeDisplay.textContent = `${formatTime(marker.time)} (+${relativeTime.toFixed(1)}s)`;
+        } else {
+          timeDisplay.textContent = formatTime(marker.time);
         }
       }
     }
@@ -2352,6 +2379,10 @@ function updateCurrentScene(currentTime) {
     
     // Update scene info (zal updatePreviewCanvas skippen als justSwapped=true)
     displaySceneInfo(activeSceneIndex);
+    if (activeSceneIndex >= 0) {
+      // Scroll mee met playback zodat actieve scene altijd zichtbaar blijft
+      focusMarkerCard(activeSceneIndex);
+    }
     
     // Control video playback als er een video is
     controlVideoPlayback(isPlaying && activeSceneIndex >= 0);
@@ -2603,14 +2634,6 @@ function toggleMute() {
 }
 
 /**
- * Zoom waveform
- */
-function zoomWaveform(factor) {
-  waveformZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, waveformZoom * factor));
-  drawWaveform();
-}
-
-/**
  * Format tijd naar MM:SS.mmm
  */
 function formatTime(seconds) {
@@ -2831,9 +2854,6 @@ export function resetAudioVideoEditor() {
   dragStartX = 0;
   dragStartTime = 0;
   
-  // Reset zoom
-  waveformZoom = 1.0;
-  
   // Clear UI (alleen als elementen bestaan)
   if (elements.waveformCanvas && elements.waveformCanvas.getContext) {
     const ctx = elements.waveformCanvas.getContext('2d');
@@ -2989,15 +3009,8 @@ editorMarkers = generatedMarkers.map((marker, index) => ({
   mediaType: marker.mediaType
 }));
 
-// BELANGRIJK: Update audioMarkerIndex in scenes om te matchen met gesorteerde markers
-if (projectData && projectData.prompts) {
-  editorMarkers.forEach((marker, markerIndex) => {
-    const scene = projectData.prompts.find(p => p.id === marker.sceneId);
-    if (scene && scene.isAudioLinked) {
-      scene.audioMarkerIndex = markerIndex;
-    }
-  });
-}
+// GEEN projectData mutatie hier - dat gebeurt in app.js bij sortScenesByAudioMarkers()
+// Deze module is alleen verantwoordelijk voor markers visualisatie
   } else {
     // Fallback: als er oude markers in audioTimelineData zitten (backward compatibility)
     if (audioTimelineData.markers && Array.isArray(audioTimelineData.markers)) {

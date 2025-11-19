@@ -11,6 +11,16 @@ import { t } from "./i18n.js";
 import { FILE_NAMES, DIR_NAMES, PROJECT_DEFAULTS } from "./constants.js";
 import { copyImageFile, copyVideoFile } from "./media-handlers.js";
 
+function generateUniqueSlug(name, existingSlugs) {
+  const base = slugify(name) || "project";
+  let slug = base;
+  let counter = 1;
+  while (existingSlugs.has(slug)) {
+    slug = `${base}-${counter++}`;
+  }
+  return slug;
+}
+
 /**
  * Maak een nieuw project
  * 
@@ -23,12 +33,8 @@ import { copyImageFile, copyVideoFile } from "./media-handlers.js";
  * @returns {Promise<{projectId, slug, projectData}>}
  */
 export async function createNewProject(projectName, videoGenerator, notes, projectenHandle, indexHandle, indexData) {
-  const slug = slugify(projectName);
-  const existing = indexData.projects.find((p) => p.slug === slug);
-  
-  if (existing) {
-    throw new Error(t("errors.projectExists"));
-  }
+  const existingSlugs = new Set(indexData.projects.map((p) => p.slug));
+  const slug = generateUniqueSlug(projectName, existingSlugs);
 
   const projectId = uuid();
   const createdAt = new Date().toISOString();
@@ -164,16 +170,15 @@ export async function deleteProject(projectId, projectenHandle, indexHandle, ind
     throw new Error("Project niet gevonden");
   }
 
+  // Verwijder project direct uit index zodat sync er niet meer naar verwijst
+  indexData.projects = indexData.projects.filter((p) => p.id !== projectId);
+  await writeJsonFile(indexHandle, indexData);
+
   try {
     await projectenHandle.removeEntry(projectMeta.slug, { recursive: true });
   } catch (error) {
     console.warn("Project verwijderen mislukt:", error);
-    throw error;
   }
-
-  // Remove from index
-  indexData.projects = indexData.projects.filter((p) => p.id !== projectId);
-  await writeJsonFile(indexHandle, indexData);
 }
 
 /**
@@ -188,12 +193,8 @@ export async function deleteProject(projectId, projectenHandle, indexHandle, ind
  * @returns {Promise<string>} - Nieuw project ID
  */
 export async function duplicateProject(newName, currentProject, handles, projectenHandle, indexHandle, indexData) {
-  const slug = slugify(newName);
-  const existing = indexData.projects.find((p) => p.slug === slug);
-  
-  if (existing) {
-    throw new Error(t("errors.projectExists"));
-  }
+  const existingSlugs = new Set(indexData.projects.map((p) => p.slug));
+  const slug = generateUniqueSlug(newName, existingSlugs);
 
   const newProjectId = uuid();
   const createdAt = new Date().toISOString();

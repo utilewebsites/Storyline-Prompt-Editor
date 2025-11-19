@@ -296,6 +296,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding: 1.25rem 1.75rem 1.5rem;
 }
 
 .timeline-toolbar {
@@ -516,7 +517,29 @@
 }
 
 .editor-markers-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  display: flex;
   gap: 1rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 1rem;
+  padding-left: 0.25rem;
+  padding-right: 0.25rem;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+
+.editor-markers-list .audio-marker-item {
+  flex: 0 0 320px;
+  max-width: 320px;
+  scroll-snap-align: start;
+}
+
+.editor-markers-list .marker-card.active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(34, 81, 255, 0.12);
+}
+
+.editor-markers-list .markers-separator {
+ /* flex: 0 0 100%;*/
 }

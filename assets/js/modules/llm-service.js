@@ -62,6 +62,23 @@ Generate ONLY the video prompt now:`,
   enabled: false
 };
 
+function normalizeOllamaUrl(url) {
+  const fallback = DEFAULT_CONFIG.ollamaUrl;
+  if (!url) return fallback;
+  let normalized = String(url).trim();
+  if (!normalized) return fallback;
+  if (!/^https?:\/\//i.test(normalized)) {
+    normalized = `http://${normalized}`;
+  }
+  return normalized.replace(/\/+$/, '');
+}
+
+function buildOllamaEndpoint(baseUrl, path) {
+  const normalizedBase = normalizeOllamaUrl(baseUrl);
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${normalizedBase}${normalizedPath}`;
+}
+
 /**
  * Test Ollama API connectie door beschikbare models op te halen.
  * 
@@ -71,7 +88,8 @@ Generate ONLY the video prompt now:`,
  */
 export async function testOllamaConnection(ollamaUrl) {
   try {
-    const response = await fetch(`${ollamaUrl}/api/tags`);
+    const endpoint = buildOllamaEndpoint(ollamaUrl, '/api/tags');
+    const response = await fetch(endpoint);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
@@ -79,7 +97,7 @@ export async function testOllamaConnection(ollamaUrl) {
     return data.models?.map(m => m.name) || [];
   } catch (error) {
     console.error('Ollama connectie test mislukt:', error);
-    throw new Error(`Kan niet verbinden met Ollama op ${ollamaUrl}`);
+    throw new Error(`Kan niet verbinden met Ollama op ${normalizeOllamaUrl(ollamaUrl)}`);
   }
 }
 
@@ -92,7 +110,8 @@ export async function testOllamaConnection(ollamaUrl) {
  */
 export async function getAvailableModels(ollamaUrl, filterType = undefined) {
   try {
-    const response = await fetch(`${ollamaUrl}/api/tags`);
+    const endpoint = buildOllamaEndpoint(ollamaUrl, '/api/tags');
+    const response = await fetch(endpoint);
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
@@ -258,9 +277,10 @@ function extractPromptFromResponse(response) {
  */
 export async function analyzeImage(ollamaUrl, model, instruction, imageData) {
   try {
+    const baseUrl = normalizeOllamaUrl(ollamaUrl);
     // Probeer eerst chat API (nieuwere Ollama versies)
     try {
-      const response = await fetch(`${ollamaUrl}/api/chat`, {
+      const response = await fetch(buildOllamaEndpoint(baseUrl, '/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -308,7 +328,7 @@ REQUIRED: Start with "The image shows" or "A [noun] [verb]".
 Describe this image in English:
 
 `;
-    const response = await fetch(`${ollamaUrl}/api/generate`, {
+    const response = await fetch(buildOllamaEndpoint(baseUrl, '/api/generate'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -352,9 +372,10 @@ Describe this image in English:
  */
 export async function generatePrompt(ollamaUrl, model, instruction, imageAnalysis) {
   try {
+    const baseUrl = normalizeOllamaUrl(ollamaUrl);
     // Probeer eerst chat API (nieuwere Ollama versies)
     try {
-      const response = await fetch(`${ollamaUrl}/api/chat`, {
+      const response = await fetch(buildOllamaEndpoint(baseUrl, '/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -395,7 +416,7 @@ WRITE:
 ✅ "Camera [action] while [transformation]."
 
 `;
-    const response = await fetch(`${ollamaUrl}/api/generate`, {
+    const response = await fetch(buildOllamaEndpoint(baseUrl, '/api/generate'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -484,7 +505,7 @@ export async function translateText(url, model, text, targetLang) {
   const targetLanguage = langNames[targetLang] || targetLang;
   const instructions = `Translate this English text to ${targetLanguage}. Output ONLY the translation, nothing else. NO explanations.`;
   
-  const response = await fetch(`${url}/api/generate`, {
+  const response = await fetch(buildOllamaEndpoint(url, '/api/generate'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -659,7 +680,7 @@ Output (follow EXAMPLE format exactly):`;
   }  // BELANGRIJK: Gebruik Chat API met strikte system prompt voor betere instruction following
   try {
     // Probeer eerst Chat API (nieuwere Ollama versies)
-    const chatResponse = await fetch(`${ollamaUrl}/api/chat`, {
+    const chatResponse = await fetch(buildOllamaEndpoint(ollamaUrl, '/api/chat'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

@@ -7,6 +7,14 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
+
+## Update — 19 November, version 3.0
+
+The 3.0 release is a breath of fresh air for the audio timeline editor: markers respond more immediately, scrubbing remains stable, and the fullscreen editor looks calmer now that redundant buttons have been removed. This makes it easier to link scenes to your audio in a single flow and gives you a clearer sense of where you are in the soundtrack.
+
+Under the hood we’ve further cleaned up the workflow. Layout and workflow toggles now live in their own controller, the Ollama integration validates URLs more robustly so prompt generation no longer trips over duplicate slashes, and the README structure has been updated so new team members can find their way faster. This release lays the foundation for the next round of features without affecting the stability of existing projects.
+
+
 ## Update — 18 November, version 2.2
 
 **Audio Timeline Workflow Improvements**
@@ -230,42 +238,51 @@ storylineprompteditor/
 │  │  ├─ attachments.css              # Attachments interface
 │  │  ├─ fullscreen-editor.css        # Fullscreen audio/video editor
 │  │  ├─ help-system.css              # Help tooltips & badges
+│  │  ├─ settings.css                 # Settings panel & toggles
 │  │  └─ responsive.css               # Mobile responsiveness
 │  └─ js/
-│     ├─ app.js                       # Main scripts: app logic and event wiring
+│     ├─ app.js                       # Main application logic & event wiring
 │     ├─ translations.js              # Language definitions (NL/EN)
 │     └─ modules/
 │        ├─ state.js                  # Central state management
 │        ├─ i18n.js                   # Internationalization & translation
 │        ├─ constants.js              # Application constants
-│        ├─ file-system.js            # Wrappers for File System Access API
-│        ├─ utils.js                  # UUID, slugify, date/time, JSON I/O
-│        ├─ dialogs.js                # showError/showSuccess dialog helpers
-│        ├─ dom-helpers.js            # DOM helpers & applyTranslations
-│        ├─ ui-rendering.js           # UI rendering functions
-│        ├─ project-manager.js        # Project synchronization & structure
+│        ├─ file-system.js            # File System Access API wrappers
+│        ├─ utils.js                  # UUID, slugify, date, JSON I/O
+│        ├─ dialogs.js                # showError, showSuccess
+│        ├─ dom-helpers.js            # DOM utilities & applyTranslations
+│        ├─ ui-rendering.js           # UI component rendering
+│        ├─ auto-save.js              # Auto-save schema & toggle button
+│        ├─ layout-workflow.js        # Header/sidebar toggles + workflow/help modes
+│        ├─ root-manager.js           # Root folder selection & recovery
+│        ├─ project-manager.js        # Project sync & structure
+│        ├─ project-list-controller.js # Project list actions & dialogs
 │        ├─ project-operations.js     # Project CRUD operations
 │        ├─ project-actions.js        # Project actions (deprecated)
-│        ├─ scenes.js                 # Scene/prompt management
-│        ├─ scene-actions.js          # Scene CRUD helpers
-│        ├─ scene-copy.js             # Copy scenes between projects
+│        ├─ prompt-dialog.js          # Scene dialog controls
+│        ├─ presentation-controller.js # Presentation mode controller
+│        ├─ presentation.js           # Fullscreen presentation renderer
+│        ├─ scenes.js                 # Scene/prompt base logic
+│        ├─ scene-actions.js          # Scene CRUD wrappers
+│        ├─ scene-copy.js             # Copy scene between projects
 │        ├─ media-handlers.js         # Image/video upload & preview
-│        ├─ upload-handlers.js        # Upload wrappers for media
+│        ├─ upload-handlers.js        # Media upload wrappers
 │        ├─ attachments.js            # File attachments per scene
-│        ├─ presentation.js           # Fullscreen presentation mode
-│        ├─ transitions.js            # Scene transition management
-│        ├─ audio-timeline.js         # Audio timeline (deprecated)
 │        ├─ audio-video-editor.js     # Audio/video timeline editor
 │        ├─ drag-drop.js              # Drag & drop card reordering
 │        ├─ export-handlers.js        # Export prompts, images, notes
-│        ├─ help.js                   # Contextual help system
-│        └─ logger.js                 # Debug logging (optional)
+│        ├─ export-dialogs.js         # Export selection dialogs & previews
+│        ├─ help.js                   # Contextual help + workflow tips
+│        ├─ ai-prompt.js              # AI prompt generator controller
+│        ├─ llm-settings.js           # Ollama/LLM settings UI
+│        ├─ llm-service.js            # API calls to LLM backend
+│        └─ logger.js                 # Debug logging (opt-in)
 ├─ docs/
 │  └─ images/                         # Screenshots for README
 ├─ server.sh                          # Start/stop script for local server
 ├─ index.html                         # Application entry point
-├─ README.md                          # English documentation
-└─ README.nl.md                       # Dutch documentation
+├─ README.md                          # English explanation
+└─ README.nl.md                       # This Dutch explanation
 ```
 
 ## Getting started

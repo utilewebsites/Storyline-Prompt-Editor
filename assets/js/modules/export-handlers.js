@@ -6,9 +6,24 @@
  */
 
 import { writeTextFile } from "./utils.js";
-import { copyToClipboard, showSuccess } from "./dialogs.js";
-import { t } from "./i18n.js";
+import { copyToClipboard } from "./dialogs.js";
 import { FILE_NAMES } from "./constants.js";
+
+function normaliseerPromptTekst(waarde) {
+  if (typeof waarde !== "string") {
+    return "";
+  }
+  return waarde.replace(/\s+/g, " ").trim();
+}
+
+function verzamelExportRegels(prompts = [], mode = "prompts") {
+  return prompts
+    .map((prompt) => {
+      const bron = mode === "notes" ? prompt.translation : prompt.text;
+      return normaliseerPromptTekst(bron ?? "");
+    })
+    .filter((regel) => regel.length > 0);
+}
 
 /**
  * Exporteer prompts naar tekstbestand en klembord
@@ -19,44 +34,17 @@ import { FILE_NAMES } from "./constants.js";
  * @param {string} params.mode - "prompts" of "notes"
  * @returns {Promise<string>} - Geëxporteerde tekst
  */
-export async function exportPromptsToText({ prompts, projectDirHandle, mode = "prompts" }) {
-  let text = "";
-  
-  if (mode === "prompts") {
-    // Exporteer alleen prompts (Engels)
-    text = prompts
-      .map((prompt, index) => `${index + 1}. ${prompt.text || "(leeg)"}`)
-      .join("\n\n");
-  } else if (mode === "notes") {
-    // Exporteer notities/vertalingen (Nederlands)
-    text = prompts
-      .map((prompt, index) => `${index + 1}. ${prompt.translation || "(leeg)"}`)
-      .join("\n\n");
+export async function exportPromptsToText({ prompts, projectDirHandle, mode = "prompts", fileName } = {}) {
+  const regels = verzamelExportRegels(prompts, mode);
+  if (!regels.length) {
+    throw new Error("NO_PROMPTS_AVAILABLE");
   }
-
-  if (!text.trim()) {
-    text = mode === "prompts" 
-      ? t("export.noPrompts") 
-      : t("export.noNotes");
-  }
-
-  // Schrijf naar bestand
-  const filename = mode === "prompts" ? FILE_NAMES.EXPORTED_PROMPTS : FILE_NAMES.EXPORTED_NOTES;
-  try {
-    const fileHandle = await projectDirHandle.getFileHandle(filename, { create: true });
-    await writeTextFile(fileHandle, text);
-  } catch (error) {
-    console.warn("Schrijven naar bestand mislukt:", error);
-  }
-
-  // Kopieer naar klembord
-  try {
-    await copyToClipboard(text);
-  } catch (error) {
-    console.warn("Kopiëren naar klembord mislukt:", error);
-  }
-
-  return text;
+  const tekst = regels.join("\n\n");
+  const bestand = fileName || (mode === "prompts" ? FILE_NAMES.EXPORTED_PROMPTS : FILE_NAMES.EXPORTED_NOTES);
+  const fileHandle = await projectDirHandle.getFileHandle(bestand, { create: true });
+  await writeTextFile(fileHandle, tekst);
+  await copyToClipboard(tekst);
+  return { text: tekst, count: regels.length, fileName: bestand };
 }
 
 /**
@@ -69,48 +57,77 @@ export async function exportPromptsToText({ prompts, projectDirHandle, mode = "p
  * @param {FileSystemDirectoryHandle} params.imagesHandle - Images directory
  * @returns {Promise<{exportPath: string, count: number}>} - Export resultaat
  */
-export async function exportSceneImages({ prompts, projectName, projectDirHandle, imagesHandle }) {
-  // Maak export directory
-  const exportDirName = `scene_images_${projectName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
-  let exportDir;
-  
-  try {
-    exportDir = await projectDirHandle.getDirectoryHandle(exportDirName, { create: true });
-  } catch (error) {
-    throw new Error(t("errors.createExportDir"));
+export async function exportSceneImages({
+  prompts = [],
+  projectName,
+  slug,
+  projectDirHandle,
+  imagesHandle,
+}) {
+  if (!projectDirHandle) {
+    throw new Error("PROJECT_DIR_HANDLE_MISSING");
+  }
+  if (!imagesHandle) {
+    throw new Error("IMAGES_HANDLE_MISSING");
   }
 
-  let exportedCount = 0;
+  const basisNaam = slug || (projectName ? projectName.replace(/[^a-z0-9]+/gi, "-").toLowerCase() : "project");
+  const exportDirName = `scene_images_${basisNaam}`;
+  const exportDir = await projectDirHandle.getDirectoryHandle(exportDirName, { create: true });
 
-  // Kopieer alle afbeeldingen
-  for (let i = 0; i < prompts.length; i++) {
-    const prompt = prompts[i];
-    if (!prompt.imagePath) continue;
+  const nieuweBestanden = new Set();
+  let teller = 1;
+  for (const prompt of prompts) {
+    if (prompt?.imagePath) {
+      try {
+        await imagesHandle.getFileHandle(prompt.imagePath);
+        nieuweBestanden.add(teller);
+      } catch (error) {
+        console.warn(`Afbeelding ${prompt.imagePath} niet beschikbaar`, error);
+      }
+    }
+    teller += 1;
+  }
 
-    try {
-      // Lees bron afbeelding
-      const sourceFile = await imagesHandle.getFileHandle(prompt.imagePath);
-      const file = await sourceFile.getFile();
-      
-      // Bepaal extensie
-      const ext = prompt.imagePath.split('.').pop() || 'jpg';
-      
-      // Schrijf naar export directory met scene nummer
-      const exportFilename = `scene_${(i + 1).toString().padStart(3, '0')}.${ext}`;
-      const destFile = await exportDir.getFileHandle(exportFilename, { create: true });
-      const writable = await destFile.createWritable();
-      await writable.write(file);
-      await writable.close();
-      
-      exportedCount++;
-    } catch (error) {
-      console.warn(`Afbeelding ${i + 1} exporteren mislukt:`, error);
+  for await (const entry of exportDir.values()) {
+    if (entry.kind === "file") {
+      const nummer = parseInt(entry.name.split('.')[0], 10);
+      if (!Number.isNaN(nummer) && !nieuweBestanden.has(nummer)) {
+        try {
+          await exportDir.removeEntry(entry.name);
+        } catch (error) {
+          console.warn(`Verwijderen van ${entry.name} mislukt`, error);
+        }
+      }
     }
   }
 
+  teller = 1;
+  let exportedCount = 0;
+  for (const prompt of prompts) {
+    if (!prompt?.imagePath) {
+      teller += 1;
+      continue;
+    }
+    try {
+      const sourceHandle = await imagesHandle.getFileHandle(prompt.imagePath);
+      const sourceFile = await sourceHandle.getFile();
+      const extension = prompt.imagePath.split('.').pop();
+      const targetName = `${teller}.${extension}`;
+      const targetHandle = await exportDir.getFileHandle(targetName, { create: true });
+      const writable = await targetHandle.createWritable();
+      await writable.write(await sourceFile.arrayBuffer());
+      await writable.close();
+      exportedCount += 1;
+    } catch (error) {
+      console.warn(`Afbeelding ${prompt.imagePath} exporteren mislukt`, error);
+    }
+    teller += 1;
+  }
+
   return {
-    exportPath: exportDirName,
-    count: exportedCount
+    exportDirName,
+    exportedCount,
   };
 }
 
@@ -122,13 +139,9 @@ export async function exportSceneImages({ prompts, projectName, projectDirHandle
  * @returns {string} - Preview tekst
  */
 export function generatePromptsPreview(prompts, mode = "prompts") {
-  if (mode === "prompts") {
-    return prompts
-      .map((prompt, index) => `${index + 1}. ${prompt.text || "(leeg)"}`)
-      .join("\n\n");
-  } else {
-    return prompts
-      .map((prompt, index) => `${index + 1}. ${prompt.translation || "(leeg)"}`)
-      .join("\n\n");
-  }
+  const regels = verzamelExportRegels(prompts, mode);
+  return {
+    text: regels.join("\n\n"),
+    count: regels.length,
+  };
 }

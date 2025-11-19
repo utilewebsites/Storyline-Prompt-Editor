@@ -7,6 +7,12 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
+## Update 19 november 3.0
+
+De 3.0-release voelt als een frisse wind door de audio timeline editor: markers reageren directer, scrubbing blijft stabiel en de fullscreen editor oogt rustiger nu de overbodige knoppen zijn verdwenen. Hierdoor kun je makkelijker in één flow scènes koppelen aan je audio en blijf je beter zien waar je je in de soundtrack bevindt.
+
+Onder de motorkap hebben we de workflow verder opgeschoond. Layout- en workflowtoggels zitten nu in een eigen controller, de Ollama-integratie controleert URLs slimmer zodat promptgeneratie niet meer struikelt over dubbele slashes, en de README-structuur is bijgewerkt zodat nieuwe teamleden sneller hun weg vinden. Deze release legt zo de basis voor de volgende ronde features zonder dat je huidige projecten iets van hun stabiliteit verliezen.
+
 ## 18 november versie 2.2
 
 **Audio Timeline Workflow Verbeteringen**
@@ -224,6 +230,7 @@ storylineprompteditor/
 │  │  ├─ attachments.css              # Attachments interface
 │  │  ├─ fullscreen-editor.css        # Fullscreen audio/video editor
 │  │  ├─ help-system.css              # Help tooltips & badges
+│  │  ├─ settings.css                 # Instellingspaneel & toggles
 │  │  └─ responsive.css               # Mobile responsiveness
 │  └─ js/
 │     ├─ app.js                       # Hoofd applicatielogica & event wiring
@@ -237,22 +244,30 @@ storylineprompteditor/
 │        ├─ dialogs.js                # showError, showSuccess
 │        ├─ dom-helpers.js            # DOM utilities & applyTranslations
 │        ├─ ui-rendering.js           # UI component rendering
+│        ├─ auto-save.js              # Auto-save schema & toggleknop
+│        ├─ layout-workflow.js        # Header/sidebar toggles + workflow/help modes
+│        ├─ root-manager.js           # Rootmap selectie & herstel
 │        ├─ project-manager.js        # Project sync & structuur
+│        ├─ project-list-controller.js # Projectlijst acties & dialogen
 │        ├─ project-operations.js     # Project CRUD operaties
 │        ├─ project-actions.js        # Project acties (deprecated)
-│        ├─ scenes.js                 # Scene/prompt management
+│        ├─ prompt-dialog.js          # Scene dialoog besturing
+│        ├─ presentation-controller.js # Presentatiemodus controller
+│        ├─ presentation.js           # Fullscreen presentatie renderer
+│        ├─ scenes.js                 # Scene/prompt basislogica
 │        ├─ scene-actions.js          # Scene CRUD wrappers
 │        ├─ scene-copy.js             # Scene kopiëren tussen projecten
 │        ├─ media-handlers.js         # Image/video upload & preview
 │        ├─ upload-handlers.js        # Media upload wrappers
 │        ├─ attachments.js            # File attachments per scene
-│        ├─ presentation.js           # Fullscreen presentatiemodus
-│        ├─ transitions.js            # Scene transitie management
-│        ├─ audio-timeline.js         # Audio timeline (deprecated)
 │        ├─ audio-video-editor.js     # Audio/video timeline editor
 │        ├─ drag-drop.js              # Drag & drop card reordering
 │        ├─ export-handlers.js        # Export prompts, images, notes
-│        ├─ help.js                   # Contextueel help systeem
+│        ├─ export-dialogs.js         # Export keuzedialogen & previews
+│        ├─ help.js                   # Contextueel help + workflow tips
+│        ├─ ai-prompt.js              # AI prompt generator controller
+│        ├─ llm-settings.js           # Ollama/LLM instellingen UI
+│        ├─ llm-service.js            # API calls richting LLM backend
 │        └─ logger.js                 # Debug logging (opt-in)
 ├─ docs/
 │  └─ images/                         # Screenshots voor README
