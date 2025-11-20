@@ -5,6 +5,7 @@ const translations = {
       subtitle: "Beheer storylineprojecten, prompts en scene-afbeeldingen in één overzicht.",
       languageLabel: "Taal",
       workflowMode: "Werkwijze",
+      hiddenMode: "Verborgen (startmodus)",
       aiPromptMode: "AI Prompt Mode",
       traditionalMode: "Traditionele Video Storyline",
       bothMode: "Beide modi",
@@ -65,7 +66,7 @@ const translations = {
       title: "Prompts",
       add: "➕ Nieuwe prompt",
       audioTimeline: "🎵 Audio Timeline",
-      help: "Sleep afbeeldingen op een kaart of gebruik de uploadknop. Bekijk per scene de afbeelding, de Engelse prompt en de vertaling naar het Nederlands.",
+      help: "Sleep afbeeldingen op een kaart. Bekijk per scene de afbeelding, de Engelse prompt en de vertaling naar het Nederlands.",
       scene: "Scene {{index}}",
     },
     audioTimeline: {
@@ -300,7 +301,7 @@ const translations = {
     help: {
       toggleHelp: "Schakel hulpteksten in of uit bij alle functies",
       languageSwitch: "Kies de taal van de interface (Nederlands of Engels)",
-      workflowMode: "Kies tussen AI Prompt Mode (voor AI video generators) of Traditionele Video Storyline (klassieke videoproductie)",
+      workflowMode: "Start met 'Verborgen (startmodus)' zodat beide werkvelden dichtblijven en schakel daarna naar AI Prompt Mode of Traditionele Video Storyline zodra je velden nodig hebt",
       llmSettings: "Open LLM instellingen om Ollama API te configureren voor automatische image analyse en prompt generatie. Groene indicator = actief, rode indicator = inactief.",
       sortProjects: "Sorteer de projectenlijst op laatst aangepast, aanmaakdatum of naam",
       chooseRoot: "Selecteer de hoofdmap waar al je storyline projecten worden opgeslagen",
@@ -337,6 +338,7 @@ const translations = {
       subtitle: "Manage storyline projects, prompts and scene images in one overview.",
       languageLabel: "Language",
       workflowMode: "Workflow",
+      hiddenMode: "Hidden (start mode)",
       aiPromptMode: "AI Prompt Mode",
       traditionalMode: "Traditional Video Storyline",
       bothMode: "Both modes",
@@ -397,7 +399,7 @@ const translations = {
       title: "Prompts",
       add: "➕ New prompt",
       audioTimeline: "🎵 Audio Timeline",
-      help: "Drag images onto a card or use the upload button. See the image, English prompt and translation per scene.",
+      help: "Drag images onto a card. See the image, English prompt and translation per scene.",
       scene: "Scene {{index}}",
     },
     audioTimeline: {
@@ -632,7 +634,7 @@ const translations = {
     help: {
       toggleHelp: "Toggle help text on or off for all features",
       languageSwitch: "Choose the interface language (Dutch or English)",
-      workflowMode: "Choose between AI Prompt Mode (for AI video generators) or Traditional Video Storyline (classic video production)",
+      workflowMode: "Start in 'Hidden (start mode)' to keep both workflows out of sight, then switch to AI Prompt Mode or Traditional Video Storyline when you want to edit fields",
       llmSettings: "Open LLM settings to configure Ollama API for automatic image analysis and prompt generation. Green indicator = active, red indicator = inactive.",
       sortProjects: "Sort the project list by last modified, creation date, or name",
       chooseRoot: "Select the root folder where all your storyline projects are stored",

@@ -204,6 +204,11 @@ body[data-workflow-mode="both"] .ai-prompt-fields {
   display: block !important;
 }
 
+body[data-workflow-mode="hidden"] .traditional-video-fields,
+body[data-workflow-mode="hidden"] .ai-prompt-fields {
+  display: none !important;
+}
+
 body[data-workflow-mode="traditional-video"]::before {
   content: "📹 Traditionele Video Storyline Mode";
   position: fixed;
@@ -249,6 +254,21 @@ body[data-workflow-mode="both"]::before {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
+body[data-workflow-mode="hidden"]::before {
+  content: "🙈 Workflow velden verborgen";
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(107, 114, 128, 0.85);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 #toggle-help {
   background: transparent;
   border: 1px solid var(--border);
@@ -285,6 +305,12 @@ body[data-workflow-mode="traditional-video"] .scene-traditional-fields {
 
 body[data-workflow-mode="both"] .scene-both-mode {
   display: block;
+}
+
+body[data-workflow-mode="hidden"] .scene-ai-fields,
+body[data-workflow-mode="hidden"] .scene-traditional-fields,
+body[data-workflow-mode="hidden"] .scene-both-mode {
+  display: none;
 }
 
 .edit-scene-btn {

@@ -92,7 +92,7 @@ export const UI = {
  */
 export const STORAGE_KEYS = {
   LAST_LANGUAGE: "storyline-editor-language",
-  LAST_WORKFLOW_MODE: "storyline-editor-workflow-mode",
+  LAST_WORKFLOW_MODE: "storyline-workflow-mode",
   HELP_MODE_ENABLED: "storyline-editor-help-mode",
   LAST_ROOT_HANDLE: "lastRoot",
 };
@@ -101,10 +101,13 @@ export const STORAGE_KEYS = {
  * Workflow modes
  */
 export const WORKFLOW_MODES = {
+  HIDDEN: "hidden",
   AI_PROMPT: "ai-prompt",
   TRADITIONAL_VIDEO: "traditional-video",
   BOTH: "both",
 };
+
+export const DEFAULT_WORKFLOW_MODE = WORKFLOW_MODES.HIDDEN;
 
 /**
  * Talen

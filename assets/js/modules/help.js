@@ -4,10 +4,12 @@
  */
 
 import translations from "../translations.js";
+import { WORKFLOW_MODES, STORAGE_KEYS, DEFAULT_WORKFLOW_MODE } from "./constants.js";
 
 let currentLanguage = "nl";
 let helpModeActive = false;
-let workflowMode = "ai-prompt"; // "ai-prompt" of "traditional-video"
+let workflowMode = DEFAULT_WORKFLOW_MODE;
+const geldigeWorkflowModes = new Set(Object.values(WORKFLOW_MODES));
 
 /**
  * Initialiseer het help-systeem
@@ -16,16 +18,19 @@ export function initializeHelpSystem(lang = "nl") {
   currentLanguage = lang;
   
   // Laad opgeslagen voorkeuren
-  const savedWorkflowMode = localStorage.getItem("storyline-workflow-mode");
-  if (savedWorkflowMode) {
-    workflowMode = savedWorkflowMode;
-    applyWorkflowMode(workflowMode);
-    
-    // Update de dropdown selector
-    const workflowModeSelect = document.querySelector("#workflow-mode");
-    if (workflowModeSelect) {
-      workflowModeSelect.value = savedWorkflowMode;
-    }
+  const opgeslagenMode = localStorage.getItem(STORAGE_KEYS.LAST_WORKFLOW_MODE);
+  if (opgeslagenMode && geldigeWorkflowModes.has(opgeslagenMode)) {
+    workflowMode = opgeslagenMode;
+  } else {
+    workflowMode = DEFAULT_WORKFLOW_MODE;
+  }
+
+  applyWorkflowMode(workflowMode);
+
+  // Update de dropdown selector ongeacht bron (default óf opslag)
+  const workflowModeSelect = document.querySelector("#workflow-mode");
+  if (workflowModeSelect) {
+    workflowModeSelect.value = workflowMode;
   }
   
   const savedHelpMode = localStorage.getItem("storyline-help-mode");
@@ -80,10 +85,23 @@ function applyHelpMode(active) {
 /**
  * Verander workflow mode
  */
-export function handleWorkflowModeChange(mode) {
+export function handleWorkflowModeChange(mode, opties = {}) {
+  const { persist = true } = opties;
+  if (!geldigeWorkflowModes.has(mode)) {
+    mode = DEFAULT_WORKFLOW_MODE;
+  }
+
   workflowMode = mode;
   applyWorkflowMode(mode);
-  localStorage.setItem("storyline-workflow-mode", mode);
+
+  if (persist) {
+    localStorage.setItem(STORAGE_KEYS.LAST_WORKFLOW_MODE, mode);
+  }
+
+  const workflowModeSelect = document.querySelector("#workflow-mode");
+  if (workflowModeSelect && workflowModeSelect.value !== mode) {
+    workflowModeSelect.value = mode;
+  }
   
   return workflowMode;
 }
@@ -97,19 +115,19 @@ function applyWorkflowMode(mode) {
   // Update velden visibility in dialogs
   const aiPromptFields = document.querySelector("#ai-prompt-fields");
   const traditionalFields = document.querySelector("#traditional-video-fields");
-  
-  if (mode === "ai-prompt") {
-    // Alleen AI prompt velden tonen
+
+  if (mode === WORKFLOW_MODES.AI_PROMPT) {
     if (aiPromptFields) aiPromptFields.classList.remove("hidden");
     if (traditionalFields) traditionalFields.classList.add("hidden");
-  } else if (mode === "traditional-video") {
-    // Alleen traditionele velden tonen
+  } else if (mode === WORKFLOW_MODES.TRADITIONAL_VIDEO) {
     if (aiPromptFields) aiPromptFields.classList.add("hidden");
     if (traditionalFields) traditionalFields.classList.remove("hidden");
-  } else if (mode === "both") {
-    // Beide tonen
+  } else if (mode === WORKFLOW_MODES.BOTH) {
     if (aiPromptFields) aiPromptFields.classList.remove("hidden");
     if (traditionalFields) traditionalFields.classList.remove("hidden");
+  } else {
+    if (aiPromptFields) aiPromptFields.classList.add("hidden");
+    if (traditionalFields) traditionalFields.classList.add("hidden");
   }
 }
 
@@ -178,18 +196,18 @@ export function applyWorkflowModeToDialog() {
   const aiPromptFields = document.querySelector("#ai-prompt-fields");
   const traditionalFields = document.querySelector("#traditional-video-fields");
   
-  if (workflowMode === "ai-prompt") {
-    // Alleen AI prompt velden tonen
+  if (workflowMode === WORKFLOW_MODES.AI_PROMPT) {
     if (aiPromptFields) aiPromptFields.classList.remove("hidden");
     if (traditionalFields) traditionalFields.classList.add("hidden");
-  } else if (workflowMode === "traditional-video") {
-    // Alleen traditionele velden tonen
+  } else if (workflowMode === WORKFLOW_MODES.TRADITIONAL_VIDEO) {
     if (aiPromptFields) aiPromptFields.classList.add("hidden");
     if (traditionalFields) traditionalFields.classList.remove("hidden");
-  } else if (workflowMode === "both") {
-    // Beide tonen
+  } else if (workflowMode === WORKFLOW_MODES.BOTH) {
     if (aiPromptFields) aiPromptFields.classList.remove("hidden");
     if (traditionalFields) traditionalFields.classList.remove("hidden");
+  } else {
+    if (aiPromptFields) aiPromptFields.classList.add("hidden");
+    if (traditionalFields) traditionalFields.classList.add("hidden");
   }
 }
 

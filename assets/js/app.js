@@ -17,7 +17,7 @@ import { t, applyTranslations, setLanguage as setI18nLanguage, getCurrentLanguag
 import { showError, showSuccess } from "./modules/dialogs.js";
 import { getState, resetState, setRootHandle, setProjectenHandle, setIndexData, loadProject, setProjectDirty, isProjectDirty, updateScene, getScene, getImageCache, getVideoCache, updateProjectInIndex, removeProjectFromIndex, addProjectToIndex } from "./modules/state.js";
 import { formatTime, debounce, toggleVisibility } from "./modules/dom-helpers.js";
-import { FILE_NAMES, DIR_NAMES, MIME_TYPES, SCENE_DEFAULTS, CSS_CLASSES, LIMITS } from "./modules/constants.js";
+import { FILE_NAMES, DIR_NAMES, MIME_TYPES, SCENE_DEFAULTS, CSS_CLASSES, LIMITS, DEFAULT_WORKFLOW_MODE } from "./modules/constants.js";
 
 // Bestaande imports
 import translations from "./translations.js";
@@ -1140,6 +1140,9 @@ async function openProject(projectId) {
   state.projectData = projectData;
   state.isDirty = false;
   state.currentMediaViewMode = null; // ⭐ RESET: media view mode bij nieuw project
+
+  // Start elke projectload in de verborgen workflowmodus zodat velden pas zichtbaar worden na expliciete keuze
+  handleWorkflowModeChange(DEFAULT_WORKFLOW_MODE, { persist: false });
 
   imageMap.clear();
   videoMap.clear(); // ⭐ NIEUW: clear video cache
