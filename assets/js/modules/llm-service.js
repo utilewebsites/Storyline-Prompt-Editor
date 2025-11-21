@@ -149,121 +149,133 @@ export async function getAvailableModels(ollamaUrl, filterType = undefined) {
  * Verwijdert redenatie tekst en extraheert alleen de daadwerkelijke prompt.
  * 
  * @param {string} response - Volledige LLM response
+ * @param {string} modeType - De huidige generatie modus (optioneel)
  * @returns {string} Alleen de prompt tekst
  */
-function extractPromptFromResponse(response) {
+function extractPromptFromResponse(response, modeType = '') {
   console.log('=== EXTRACTING PROMPT FROM RESPONSE ===');
   console.log('Raw response:', response);
   
-  // Als response bijna helemaal Nederlands is, return gewoon de hele response
-  // (dit is fallback voor als system message niet werkt)
-  const trimmed = response.trim();
+  let cleaned = response.trim();
   
-  // BELANGRIJKSTE: Als response direct met een beschrijving begint (geen meta-tekst),
-  // neem dan gewoon de hele eerste paragraaf
-  const lines = trimmed.split('\n');
-  
-  // Verwijder lege regels aan het begin
-  while (lines.length > 0 && lines[0].trim() === '') {
-    lines.shift();
-  }
-  
-  if (lines.length === 0) {
-    console.warn('No lines found in response');
-    return '';
-  }
-  
-  // Check of eerste regel meta-commentaar is (problemen zoals "Oké", "Deze analyse", etc.)
-  const metaPatterns = [
-    /^(Oké|OK|Deze|Het|De|Om je|Wil je|Hier zijn)/i,
-    /^\*\*/,  // Bold markdown headers
-    /^=/  // === headers
-  ];
-  
-  const firstLine = lines[0].trim();
-  const hasMeta = metaPatterns.some(p => p.test(firstLine));
-  
-  console.log('First line:', firstLine);
-  console.log('Has meta?', hasMeta);
-  
-  // Als GEEN meta-commentaar: neem gewoon eerste paragraaf (dit is de prompt!)
-  if (!hasMeta && firstLine.length > 20) {
-    const paragraph = [];
-    for (const line of lines) {
-      const trimmedLine = line.trim();
-      // Stop bij lege regel OF bij meta-commentaar
-      if (trimmedLine === '' && paragraph.length > 0) {
-        break;
+  // 1. Global cleanup: Remove Markdown code blocks
+  cleaned = cleaned.replace(/```\w*\n?|```$/g, '');
+
+  // 2. OVI Mode Strategy (Specific handling for <S> tags)
+  if (modeType === 'ovi-10s' || cleaned.includes('<S>') || /Audio:.*$/m.test(cleaned)) {
+    console.log('=== DETECTED OVI FORMAT ===');
+    let extracted = cleaned;
+    
+    // Strip common meta-talk prefixes
+    const lines = extracted.split('\n');
+    const metaPatterns = [
+      /^(Here (is|are)|Sure|Okay|Certainly|Output:|Result:|Prompt:|The video prompt|Generated prompt)/i,
+      /^I have generated/i,
+      /^(Please|Note|Remember)/i
+    ];
+    
+    while (lines.length > 0) {
+      const line = lines[0].trim();
+      if (line === '') {
+        lines.shift();
+        continue;
       }
-      if (metaPatterns.some(p => p.test(trimmedLine))) {
-        break;
+      if (line.includes('<S>')) break;
+      if (metaPatterns.some(p => p.test(line))) {
+        lines.shift();
+        continue;
       }
-      if (trimmedLine !== '') {
-        paragraph.push(trimmedLine);
-      }
+      break;
     }
     
-    const extracted = paragraph.join(' ').trim().replace(/^["']|["']$/g, '');
-    console.log('=== EXTRACTED (no meta) ===', extracted);
+    extracted = lines.join('\n');
+    // Flatten newlines to spaces
+    extracted = extracted.replace(/\n+/g, ' ');
+    // Trim extra spaces
+    extracted = extracted.replace(/\s+/g, ' ').trim();
+    
+    console.log('=== EXTRACTED (OVI) ===', extracted);
     return extracted;
   }
-  
-  // Als WEL meta-commentaar: zoek naar de echte prompt verderop
-  // Zoek naar prompt markers
-  const promptMarkers = [
-    /^(?:Final\s+)?(?:Video\s+)?Prompt:\s*/i,
-    /^Here(?:'s| is) the (?:video )?prompt:?\s*/i,
-    /^(?:Output|Result):\s*/i
-  ];
-  
-  for (let i = 0; i < lines.length; i++) {
-    for (const marker of promptMarkers) {
-      if (marker.test(lines[i])) {
-        const promptText = lines[i].replace(marker, '');
-        const remainingLines = lines.slice(i + 1);
-        
-        const stopMarkers = [
-          /^(?:Note|Suggesties|Opmerking|Explanation|Analysis|Laat me weten|Wil je):/i,
-          /^\*\*.*\*\*$/
-        ];
-        
-        const validLines = [promptText];
-        for (const line of remainingLines) {
-          if (stopMarkers.some(m => m.test(line.trim()))) {
-            break;
-          }
-          validLines.push(line);
-        }
-        
-        const extracted = validLines.join('\n').trim().replace(/["']$/, '');
-        console.log('=== EXTRACTED (with marker) ===', extracted);
-        return extracted;
+
+  // 3. Camera Mode Strategy (Preserve Newlines for Timeline)
+  if (modeType === 'wan-camera') {
+    console.log('=== DETECTED CAMERA FORMAT ===');
+    const lines = cleaned.split('\n');
+    // Simple meta stripping from start
+    const metaPatterns = [
+      /^(Here (is|are)|Sure|Okay|Certainly|Output:|Result:|Prompt:|The video prompt|Generated prompt)/i,
+      /^I have generated/i,
+      /^(Please|Note|Remember)/i,
+      /^\*\*/
+    ];
+
+    while (lines.length > 0) {
+      const line = lines[0].trim();
+      if (line === '') {
+        lines.shift();
+        continue;
       }
+      // If it looks like a timeline beat, stop stripping
+      if (line.startsWith('(')) break;
+      
+      if (metaPatterns.some(p => p.test(line))) {
+        lines.shift();
+        continue;
+      }
+      break;
     }
+    return lines.join('\n').trim();
   }
+
+  // 4. Standard Mode Strategy (Single, Sequence) -> FLATTEN
+  // Remove meta-talk and flatten everything into one paragraph
+  console.log('=== DETECTED STANDARD FORMAT (FLATTENING) ===');
   
-  // Laatste fallback: neem eerste paragraaf die GEEN meta-commentaar is
+  const lines = cleaned.split('\n');
+  const metaPatterns = [
+    /^(Here (is|are)|Sure|Okay|Certainly|Output:|Result:|Prompt:|The video prompt|Generated prompt|Final prompt)/i,
+    /^I have generated/i,
+    /^(Please|Note|Remember)/i,
+    /^\*\*/,
+    /^=/
+  ];
+
+  const contentLines = [];
+  let foundContent = false;
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
-    if (line.length > 20 && !metaPatterns.some(p => p.test(line))) {
-      const paragraph = [];
-      for (let j = i; j < lines.length; j++) {
-        const l = lines[j].trim();
-        if (l === '' && paragraph.length > 0) break;
-        if (metaPatterns.some(p => p.test(l))) break;
-        if (l !== '') paragraph.push(l);
-      }
-      const extracted = paragraph.join(' ').trim().replace(/^["']|["']$/g, '');
-      console.log('=== EXTRACTED (fallback) ===', extracted);
-      return extracted;
+    if (!line) continue;
+
+    // Check if line is meta-talk
+    const isMeta = metaPatterns.some(p => p.test(line));
+    
+    // If we haven't found content yet and this is meta, skip
+    if (!foundContent && isMeta) continue;
+
+    // If we haven't found content and this is NOT meta, this is the start
+    if (!foundContent && !isMeta) {
+      foundContent = true;
+    }
+
+    // Stop markers (trailing meta)
+    const stopMarkers = [
+        /^(?:Note|Suggesties|Opmerking|Explanation|Analysis|Laat me weten|Wil je):/i
+    ];
+    if (foundContent && stopMarkers.some(m => m.test(line))) {
+        break;
+    }
+
+    if (foundContent) {
+        contentLines.push(line);
     }
   }
-  
-  // Allerlaatste fallback: return hele response (max 150 woorden)
-  const words = trimmed.split(/\s+/);
-  const extracted = words.slice(0, 150).join(' ');
-  console.log('=== EXTRACTED (full fallback) ===', extracted);
-  return extracted;
+
+  // Flatten!
+  const flattened = contentLines.join(' ').replace(/\s+/g, ' ').trim();
+  console.log('=== EXTRACTED (FLATTENED) ===', flattened);
+  return flattened;
 }
 
 /**
@@ -370,9 +382,70 @@ Describe this image in English:
  * @param {string} imageAnalysis - Resultaat van image analyse
  * @returns {Promise<{prompt: string, fullResponse: string}>} Object met prompt en volledige response
  */
-export async function generatePrompt(ollamaUrl, model, instruction, imageAnalysis) {
+export async function generatePrompt(ollamaUrl, model, instruction, imageAnalysis, options = {}) {
+  const { modeType = 'wan-single', durationSeconds = 5 } = options;
   try {
     const baseUrl = normalizeOllamaUrl(ollamaUrl);
+    const safeDuration = Number.isFinite(Number(durationSeconds))
+      ? Math.max(0, Math.min(120, Math.round(Number(durationSeconds))))
+      : 5;
+    const beatCount = safeDuration + 1;
+    const cameraTimelinePrompt = `FOLLOW THIS STRICT CAMERA TIMELINE FORMAT.
+
+OUTPUT RULES:
+1. ENGLISH ONLY.
+2. RETURN EXACTLY ${beatCount} LINES COVERING SECONDS 0-${safeDuration}, ONE LINE PER SECOND.
+3. EACH LINE MUST USE THIS TEMPLATE:
+(at X seconds: [camera type] [movement], [subject focus], [lighting/atmosphere], [action details]).
+4. ALWAYS MENTION CAMERA TYPE, SUBJECT FOCUS, LIGHTING.
+5. NO EXTRA TEXT BEFORE OR AFTER THE TIMELINE.
+6. NEVER SKIP SECONDS, NEVER MERGE SECONDS.
+
+EXAMPLE OUTPUT:
+(at 0 seconds: wide dolly shot gliding along the city rooftop, camera pushes forward while neon reflections shimmer on the wet surface).
+(at 1 second: medium shot switches to handheld sway around the protagonist, focus racks from her face to the glowing skyline).
+(at 2 seconds: close-up crane tilt lifts above her shoulder as headlights streak through the fog).
+END OF INSTRUCTIONS.`;
+
+    const oviSystemPrompt = `You are an OVI Video Generator assistant.
+Your goal is to write a SINGLE PARAGRAPH video prompt that includes visual descriptions, spoken dialogue, and audio.
+
+FORMAT (SINGLE BLOCK, NO NEWLINES):
+[Cinematic Visual Description] [Character] says, <S>[Dialogue]<E> [More action] [Character] replies, <S>[Dialogue]<E> Audio: [Soundtrack and ambience]
+
+RULES:
+1. OUTPUT MUST BE A SINGLE PARAGRAPH. NO LINE BREAKS.
+2. <S> starts speech. <E> ends speech. USE EXACTLY THESE TAGS. Do NOT use </S>.
+3. PRESERVE USER DIALOGUE: If the user provides text inside <S>...<E>, you MUST include it EXACTLY as written.
+4. ORDER IS CRITICAL: Visuals first, then Dialogue interspersed with action, ending with 'Audio:'.
+5. AUDIO: Must be the VERY LAST sentence starting with "Audio:".
+6. ENGLISH ONLY.
+
+If the user input contains <S> tags, build the visual scene around them.
+If the user input does NOT contain <S> tags, just write a visual description and an Audio line.`;
+
+    let chatSystemPrompt;
+    if (modeType === 'wan-camera') {
+      chatSystemPrompt = cameraTimelinePrompt;
+    } else if (modeType === 'ovi-10s') {
+      chatSystemPrompt = oviSystemPrompt;
+    } else {
+      chatSystemPrompt = 'You write ONE video transition. FORBIDDEN: "Scene 1", "Scene 2", "Combining these", story explanations. OUTPUT: Single transition description in English.';
+    }
+
+    const fallbackSystemPrompt = modeType === 'wan-camera'
+      ? cameraTimelinePrompt
+      : (modeType === 'ovi-10s' ? oviSystemPrompt : `OUTPUT ONE TRANSITION IN ENGLISH.
+
+DO NOT WRITE:
+❌ "Scene 1: ... Scene 2: ..."
+❌ "Combining these two scenes..."
+❌ Explanations or stories
+
+WRITE:
+✅ "Camera [action] while [transformation]."
+
+`);
     // Probeer eerst chat API (nieuwere Ollama versies)
     try {
       const response = await fetch(buildOllamaEndpoint(baseUrl, '/api/chat'), {
@@ -383,7 +456,7 @@ export async function generatePrompt(ollamaUrl, model, instruction, imageAnalysi
           messages: [
             {
               role: 'system',
-              content: 'You write ONE video transition. FORBIDDEN: \"Scene 1\", \"Scene 2\", \"Combining these\", story explanations. OUTPUT: Single transition description in English.'
+              content: chatSystemPrompt
             },
             {
               role: 'user',
@@ -397,7 +470,7 @@ export async function generatePrompt(ollamaUrl, model, instruction, imageAnalysi
       if (response.ok) {
         const data = await response.json();
         const fullResponse = data.message?.content || data.response || '';
-        const prompt = extractPromptFromResponse(fullResponse);
+        const prompt = extractPromptFromResponse(fullResponse, modeType);
         return { prompt, fullResponse };
       }
     } catch (chatError) {
@@ -405,23 +478,12 @@ export async function generatePrompt(ollamaUrl, model, instruction, imageAnalysi
     }
     
     // Fallback naar generate API (oudere Ollama versies)
-    const systemPrompt = `OUTPUT ONE TRANSITION IN ENGLISH.
-
-DO NOT WRITE:
-❌ "Scene 1: ... Scene 2: ..."
-❌ "Combining these two scenes..."
-❌ Explanations or stories
-
-WRITE:
-✅ "Camera [action] while [transformation]."
-
-`;
     const response = await fetch(buildOllamaEndpoint(baseUrl, '/api/generate'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: model,
-        prompt: `${systemPrompt}${instruction}\n\nImage analysis:\n${imageAnalysis}`,
+        prompt: `${fallbackSystemPrompt}${instruction}\n\nImage analysis:\n${imageAnalysis}`,
         stream: false
       })
     });
@@ -432,7 +494,7 @@ WRITE:
     
     const data = await response.json();
     const fullResponse = data.response || '';
-    const prompt = extractPromptFromResponse(fullResponse);
+    const prompt = extractPromptFromResponse(fullResponse, modeType);
     
     return { prompt, fullResponse };
   } catch (error) {
@@ -559,7 +621,8 @@ export async function generateSingleScenePrompt(
   imageBase64,
   imageAnalysisInstructions,
   promptGenerationInstructions,
-  extraInstructions = ''
+  extraInstructions = '',
+  options = {}
 ) {
   // Analyseer afbeelding met vision model
   const imageAnalysis = await analyzeImage(
@@ -578,7 +641,8 @@ export async function generateSingleScenePrompt(
     ollamaUrl,
     textModel,
     fullInstructions,
-    imageAnalysis
+    imageAnalysis,
+    options
   );
   
   return {
@@ -609,8 +673,13 @@ export async function generateSequencePrompts(
   image2Base64,
   imageAnalysisInstructions,
   promptGenerationInstructions,
-  extraInstructions = ''
+  extraInstructions = '',
+  options = {}
 ) {
+  const { durationSeconds = 5, sceneNumbers = [] } = options;
+  const scene1Label = sceneNumbers[0] ? `\n(Scene ${sceneNumbers[0]})` : '';
+  const scene2Label = sceneNumbers[1] ? `\n(Scene ${sceneNumbers[1]})` : '';
+
   // Analyseer beide afbeeldingen met de juiste instructies
   const analysis1 = await analyzeImage(
     ollamaUrl,
@@ -628,48 +697,56 @@ export async function generateSequencePrompts(
   
   // Genereer ÉÉN vloeiende transitie prompt (niet 2 aparte prompts!)
   // WAN 2.2 compatible: start image → end image
-  const sequenceContext = `START IMAGE (beginning):
-${analysis1}
+  const sequenceContext = `=== START IMAGE ANALYSIS (Frame 1) ===
+${analysis1}${scene1Label}
 
-END IMAGE (final frame):
-${analysis2}
+=== END IMAGE ANALYSIS (Frame 2) ===
+${analysis2}${scene2Label}
 
-Describe ONE video transition from start image to end image. NOT two separate scenes.`;
+Describe ONE video transition from Frame 1 to Frame 2. NOT two separate scenes.`;
   
   // Ultra-korte, WAN 2.2 compatibele instructies met FEW-SHOT LEARNING
   const sequenceSpecificRules = `
-WAN 2.2 VIDEO TRANSITION PROMPT (start image → end image)
+WAN 2.2 VIDEO TRANSITION PROMPT (Frame 1 → Frame 2)
 
 FORMAT:
-Camera [movement] while [transformation]. [details]. Duration X seconds.
+Camera [movement] while [subject action OR transformation]. [details]. Duration ${durationSeconds} seconds.
 
-EXAMPLE 1:
-Start image: YouTube video interface
-End image: Vintage car
-Output: Camera pushes into computer screen while video interface dissolves into vintage car. Play button morphs into steering wheel, progress bar becomes dashboard, screen pixels transform into metal body. Duration 3 seconds.
+CRITICAL RULES:
+1. ⚠️ USER INSTRUCTIONS ARE THE BOSS. If the user says "The car speeds up", WRITE "The car speeds up", even if the image looks static.
+2. TRANSLATE: If user instructions are in Dutch/German/etc, TRANSLATE them to English and USE THEM.
+3. LOGIC: Connect Frame 1 to Frame 2 using the ACTION described by the user.
+4. NO HALLUCINATIONS: Do not invent "slowing down" if the user says "accelerating".
+5. MANDATORY: Output MUST end with "Duration ${durationSeconds} seconds."
 
-EXAMPLE 2:
-Start image: Office desk
-End image: Forest landscape
-Output: Camera zooms through window while office space transforms into forest. Keyboard keys morph into leaves, monitor becomes tree trunk, desk chair transforms into moss-covered rock. Duration 4 seconds.
+EXAMPLE 1 (Action/Motion):
+Frame 1: Car parked
+Frame 2: Car driving fast
+User Instruction: The car accelerates rapidly with smoke from tires.
+Output: Camera tracks alongside as the car accelerates rapidly, tires spinning and generating thick smoke. The vehicle shoots forward, blurring the background with speed. Duration ${durationSeconds} seconds.
 
-EXAMPLE 3:
-Start image: Smartphone screen
-End image: Ocean waves
-Output: Camera pulls back from phone screen while device dissolves into ocean waves. App icons morph into fish, glass surface becomes water, notification light transforms into sunset reflection. Duration 3 seconds.
+EXAMPLE 2 (Character Action):
+Frame 1: Woman sitting
+Frame 2: Woman standing
+User Instruction: She stands up and walks to window.
+Output: Camera tracks backward as the woman pushes her chair back and stands up. She walks calmly across the room and turns to face the window. Duration ${durationSeconds} seconds.
 
-FORBIDDEN (do NOT write):
+EXAMPLE 3 (Object Morph):
+Frame 1: Phone
+Frame 2: Ocean
+User Instruction: Phone dissolves into water.
+Output: Camera pulls back from phone screen while device dissolves into ocean waves. App icons morph into fish. Duration ${durationSeconds} seconds.
+
+FORBIDDEN:
 ❌ "Scene 1" or "Scene 2"
-❌ "The scene transitions from..."
-❌ "Transition Description..."
-❌ "As the [character] [action]..."
-❌ "(Scene 1)" or "(Scene 2)"
-❌ ANY explanation or description
+❌ "The scene transitions..."
+❌ Explaining the images
+❌ Ignoring user's specific action verbs (e.g. "run", "jump", "drive")
 
 YOUR TASK:
-Start image: ${analysis1.substring(0, 80)}...
-End image: ${analysis2.substring(0, 80)}...
-${extraInstructions ? `\nExtra requirement: ${extraInstructions}` : ''}
+Frame 1 Analysis: ${analysis1.substring(0, 150)}...
+Frame 2 Analysis: ${analysis2.substring(0, 150)}...
+${extraInstructions ? `\n🔥 USER INSTRUCTION (MUST FOLLOW): ${extraInstructions}` : ''}
 
 Output (follow EXAMPLE format exactly):`;
   
@@ -707,7 +784,7 @@ Output (follow EXAMPLE format exactly):`;
     if (chatResponse.ok) {
       const chatData = await chatResponse.json();
       const fullResponse = chatData.message?.content || '';
-      const prompt = extractPromptFromResponse(fullResponse);
+      const prompt = extractPromptFromResponse(fullResponse, 'wan-sequence');
       
       console.log('=== SEQUENCE PROMPT (Chat API) ===');
       console.log(prompt);
@@ -728,7 +805,8 @@ Output (follow EXAMPLE format exactly):`;
     ollamaUrl,
     textModel,
     sequenceSpecificRules,
-    sequenceContext
+    sequenceContext,
+    { modeType: 'wan-sequence' }
   );
   
   return {
@@ -745,23 +823,27 @@ Output (follow EXAMPLE format exactly):`;
  * 
  * @param {Object} config - Configuratie object
  * @param {string} config.mode - 'single' of 'sequence'
+ * @param {string} config.modeType - UI modus (bijv. wan-camera, wan-single)
  * @param {number} config.sceneIndex - Index van eerste scene
  * @param {Array} config.prompts - Array van alle scenes
  * @param {Object} config.llmSettings - LLM configuratie
  * @param {FileSystemDirectoryHandle} config.imagesHandle - Images directory handle
  * @param {string} config.extraInstructions - Extra gebruiker instructies
  * @param {string} config.translationLang - Doeltaal voor vertaling (optioneel)
+ * @param {number} config.durationSeconds - Gewenste duur (camera modus)
  * @param {Function} config.onStatus - Callback voor status updates (text)
  * @returns {Promise<Object>} { prompt, translation, reasoning, imageAnalysis(es) }
  */
 export async function generateAIPromptWithStatus(config) {
   const {
     mode,
+    modeType = 'wan-single',
     sceneIndex,
     prompts,
     llmSettings,
     imagesHandle,
     extraInstructions = '',
+    durationSeconds = 5,
     translationLang = '',
     onStatus = () => {}
   } = config;
@@ -805,7 +887,8 @@ export async function generateAIPromptWithStatus(config) {
       llmSettings.ollamaUrl,
       llmSettings.promptGenerationModel,
       fullInstructions,
-      imageAnalysis
+      imageAnalysis,
+      { modeType, durationSeconds }
     );
     
     result = {
@@ -848,7 +931,8 @@ export async function generateAIPromptWithStatus(config) {
       image2Base64,
       llmSettings.imageAnalysisInstruction || "Describe this image in detail.",
       llmSettings.promptGenerationInstruction || "",
-      extraInstructions
+      extraInstructions,
+      { durationSeconds, sceneNumbers: [sceneIndex + 1, sceneIndex + 2] }
     );
   }
   

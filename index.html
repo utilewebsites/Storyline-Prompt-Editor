@@ -11,7 +11,7 @@
       <div class="title-group">
         <h1 id="header-title">
           <span data-i18n="header.title">Storyline Prompt Editor</span>
-          <span style="font-size: 0.6em; color: var(--text-muted); margin-left: 0.5rem;">(V3.0)</span>
+          <span style="font-size: 0.6em; color: var(--text-muted); margin-left: 0.5rem;">(V3.1)</span>
         </h1>
         <p id="header-subtitle" class="subtitle" data-i18n="header.subtitle">
           Beheer storylineprojecten, prompts en scene-afbeeldingen in één overzicht.
@@ -1092,27 +1092,108 @@
           <button type="button" class="close-btn" id="ai-prompt-close">✕</button>
         </div>
         
-        <div class="dialog-content">
-          <!-- LINKER KOLOM: Input sectie -->
-          <div class="ai-input-section">
-            <!-- Mode selectie -->
+        <div class="dialog-content ai-dialog-layout">
+          <!-- KOLOM 1: Mode selectie + uitleg -->
+          <section class="ai-mode-panel">
             <div class="form-section">
               <label>
                 <span data-i18n="aiPrompt.mode">Generatie Modus</span>
-                <div class="mode-toggle-buttons">
-                  <button type="button" class="mode-toggle-btn active" data-mode="single" id="ai-mode-single">
-                    <span data-i18n="aiPrompt.modeSingle">Enkele Scene</span>
+                <div class="mode-toggle-buttons mode-grid">
+                  <button
+                    type="button"
+                    class="mode-toggle-btn active"
+                    data-mode="wan-single"
+                    id="ai-mode-single"
+                    data-help-key="modeHelpWanSingle"
+                    data-detail-key="modeDetailWanSingle"
+                  >
+                    <span data-i18n="aiPrompt.modeSingle">Image → Video (Lightning)</span>
                   </button>
-                  <button type="button" class="mode-toggle-btn" data-mode="sequence" id="ai-mode-sequence">
-                    <span data-i18n="aiPrompt.modeSequence">Scene naar Scene</span>
+                  <button
+                    type="button"
+                    class="mode-toggle-btn"
+                    data-mode="wan-sequence"
+                    id="ai-mode-sequence"
+                    data-help-key="modeHelpWanSequence"
+                    data-detail-key="modeDetailWanSequence"
+                  >
+                    <span data-i18n="aiPrompt.modeSequence">Frame naar Frame Transitie</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="mode-toggle-btn"
+                    data-mode="wan-camera"
+                    id="ai-mode-camera"
+                    data-help-key="modeHelpCamera"
+                    data-detail-key="modeDetailWanCamera"
+                  >
+                    <span data-i18n="aiPrompt.modeCamera">Camera Movement Tijdlijn</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="mode-toggle-btn"
+                    data-mode="ovi-10s"
+                    id="ai-mode-ovi"
+                    data-help-key="modeHelpOvi"
+                    data-detail-key="modeDetailOvi"
+                  >
+                    <span data-i18n="aiPrompt.modeOvi">OVI 10s Audio + Video</span>
                   </button>
                 </div>
               </label>
+              <div class="ai-mode-help">
+                <strong data-i18n="aiPrompt.modeHelpTitle">Modus uitleg</strong>
+                <p id="ai-mode-help-text" data-i18n="aiPrompt.modeHelpDefault">Kies een modus om een korte uitleg te zien.</p>
+                <button type="button" id="ai-mode-help-toggle" class="ai-mode-help-toggle" aria-expanded="false" aria-controls="ai-mode-help-details">
+                  <span class="label-more" data-i18n="aiPrompt.modeHelpReadMore">Lees meer</span>
+                  <span class="label-less" data-i18n="aiPrompt.modeHelpReadLess">Verberg uitleg</span>
+                  <span class="toggle-icon" aria-hidden="true">＋</span>
+                </button>
+                <div id="ai-mode-help-details" class="ai-mode-help-details" hidden></div>
+              </div>
+              <div id="ai-quick-inserts" class="ai-quick-inserts" hidden>
+                <div id="ai-quick-camera" class="ai-quick-group" hidden>
+                  <div class="ai-quick-group-info">
+                    <strong data-i18n="aiPrompt.quickInsertCameraLabel">Camera beweging snelkiezers</strong>
+                    <p data-i18n="aiPrompt.quickInsertCameraHint">Gebruik deze sjablonen om in één klik een per-seconde timeline te vullen en pas daarna de details aan.</p>
+                  </div>
+                  <div class="ai-quick-buttons">
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCameraEstablish">
+                      <span data-i18n="aiPrompt.quickInsertCameraEstablish">Establish + focus shift</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCameraOrbit">
+                      <span data-i18n="aiPrompt.quickInsertCameraOrbit">Orbit reveal</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCameraDolly">
+                      <span data-i18n="aiPrompt.quickInsertCameraDolly">Dolly + crane beat</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCameraHandheld">
+                      <span data-i18n="aiPrompt.quickInsertCameraHandheld">Handheld energie</span>
+                    </button>
+                  </div>
+                </div>
+                <div id="ai-quick-ovi" class="ai-quick-group" hidden>
+                  <div class="ai-quick-group-info">
+                    <strong data-i18n="aiPrompt.quickInsertOviLabel">OVI spraak/audio snelkiezers</strong>
+                    <p data-i18n="aiPrompt.quickInsertOviHint">Voeg direct een dialoogblok of Audio: regel toe en vervang de placeholders.</p>
+                  </div>
+                  <div class="ai-quick-buttons">
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateOviSpeech">
+                      <span data-i18n="aiPrompt.quickInsertOviSpeech">Spraakblok &lt;S&gt;/&lt;E&gt;</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateOviAudio">
+                      <span data-i18n="aiPrompt.quickInsertOviAudio">Audio instructie</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <!-- Taal selectie voor vertaling -->
-            <div class="form-section">
-              <label>
+          </section>
+
+          <!-- KOLOM 2: Composer / input -->
+          <section class="ai-composer-panel">
+            <div class="ai-inline-controls">
+              <label class="ai-translation-select">
                 <span data-i18n="aiPrompt.translationLanguage">Vertaal resultaat naar</span>
                 <select id="ai-prompt-translation-lang">
                   <option value="">Geen vertaling</option>
@@ -1132,34 +1213,41 @@
                   <option value="hu">Magyar</option>
                 </select>
               </label>
+              <div class="ai-duration-control">
+                <label for="ai-prompt-duration" data-i18n="aiPrompt.durationLabel">Duur (seconden)</label>
+                <input
+                  type="number"
+                  id="ai-prompt-duration"
+                  min="3"
+                  max="120"
+                  step="1"
+                  value="5"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                />
+                <span class="ai-duration-hint" data-i18n="aiPrompt.durationHint">Bereik 3-120 s (standaard 5 s)</span>
+              </div>
             </div>
-            
-            <!-- Image preview gebied -->
+
             <div class="ai-prompt-images">
               <div class="image-preview-container">
+                <p class="frame-label" id="ai-prompt-frame-1-label" style="display: none;"><span data-i18n="aiPrompt.frame1">Frame 1</span></p>
+                <div id="ai-prompt-image-1" class="image-preview"></div>
                 <p class="scene-label"><span data-i18n="aiPrompt.scene">Scene</span> <span id="ai-prompt-scene-1-number">1</span></p>
-                <div id="ai-prompt-image-1" class="image-preview">
-                  <!-- Image wordt hier geladen -->
-                </div>
               </div>
               <div class="image-preview-container" style="display: none;">
+                <p class="frame-label"><span data-i18n="aiPrompt.frame2">Frame 2</span></p>
+                <div id="ai-prompt-image-2" class="image-preview"></div>
                 <p class="scene-label"><span data-i18n="aiPrompt.scene">Scene</span> <span id="ai-prompt-scene-2-number">2</span></p>
-                <div id="ai-prompt-image-2" class="image-preview">
-                  <!-- Image wordt hier geladen -->
-                </div>
               </div>
             </div>
-            
-            <!-- Extra instructies -->
-            <div class="form-section">
-              <label>
-                <span data-i18n="aiPrompt.extraInstructions">Extra instructies (optioneel)</span>
-                <textarea id="ai-prompt-extra-instructions" rows="4" placeholder="Beschrijf WAT er moet gebeuren in de video. Bijv: 'de maan beweegt langzaam over de sterrenhemel', 'camera zoomt in op het gebouw', 'persoon loopt naar de deur'"></textarea>
-              </label>
-            </div>
-            
-            <!-- Generate button met inline status -->
-            <div class="form-actions" style="display: flex; align-items: center; gap: 1rem; justify-content: flex-start;">
+
+            <label class="ai-extra-label">
+              <span data-i18n="aiPrompt.extraInstructions">Extra instructies (optioneel)</span>
+              <textarea id="ai-prompt-extra-instructions" rows="4" placeholder="Beschrijf WAT er moet gebeuren in de video. Bijv: 'de maan beweegt langzaam over de sterrenhemel', 'camera zoomt in op het gebouw', 'persoon loopt naar de deur'"></textarea>
+            </label>
+
+            <div class="ai-actions-bar">
               <button type="button" id="ai-prompt-generate" class="primary" data-i18n="aiPrompt.generate">
                 ✨ Genereer Prompt
               </button>
@@ -1168,10 +1256,10 @@
                 <span id="ai-prompt-status-text">Bezig...</span>
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- RECHTER KOLOM: Output sectie -->
-          <div class="ai-output-section">
+          <!-- KOLOM 3: Output sectie -->
+          <section class="ai-output-section">
             <!-- Placeholder (toon alleen als geen resultaten) -->
             <div class="result-placeholder" id="ai-result-placeholder">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" id="ai-result-icon">
@@ -1219,7 +1307,7 @@
                 </button>
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </form>
     </dialog>

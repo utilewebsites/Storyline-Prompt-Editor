@@ -253,10 +253,20 @@ const elements = {
   aiPromptClose: document.querySelector("#ai-prompt-close"),
   aiModeSingle: document.querySelector("#ai-mode-single"),
   aiModeSequence: document.querySelector("#ai-mode-sequence"),
+  aiModeCamera: document.querySelector("#ai-mode-camera"),
+  aiModeOvi: document.querySelector("#ai-mode-ovi"),
+  aiModeHelpText: document.querySelector("#ai-mode-help-text"),
+  aiModeHelpToggle: document.querySelector("#ai-mode-help-toggle"),
+  aiModeHelpDetails: document.querySelector("#ai-mode-help-details"),
   aiPromptTranslationLang: document.querySelector("#ai-prompt-translation-lang"),
   aiPromptImage1: document.querySelector("#ai-prompt-image-1"),
+  aiPromptFrame1Label: document.querySelector("#ai-prompt-frame-1-label"),
   aiPromptImage2: document.querySelector("#ai-prompt-image-2"),
   aiPromptExtraInstructions: document.querySelector("#ai-prompt-extra-instructions"),
+  aiQuickInsertContainer: document.querySelector("#ai-quick-inserts"),
+  aiQuickCameraGroup: document.querySelector("#ai-quick-camera"),
+  aiQuickOviGroup: document.querySelector("#ai-quick-ovi"),
+  aiPromptDuration: document.querySelector("#ai-prompt-duration"),
   aiPromptGenerate: document.querySelector("#ai-prompt-generate"),
   aiPromptStatus: document.querySelector("#ai-prompt-status"),
   aiPromptStatusText: document.querySelector("#ai-prompt-status-text"),
@@ -287,7 +297,8 @@ const localState = {
   sidebarCollapsed: false,
   projectHeaderMinimized: false,
   allMinimized: false,
-  aiPromptContext: null, // { sceneIndex, mode: 'single' | 'sequence' }
+  aiPromptContext: null, // { sceneIndex, mode: 'wan-single' | 'wan-sequence' | 'wan-camera' | 'ovi-10s' }
+  aiPromptDetailsExpanded: false,
   presentationMode: {
     currentSlide: 0,
     languageMode: "both",
@@ -410,6 +421,10 @@ function setLanguage(lang, { reRender = true } = {}) {
       renderProjectEditor();
     } else {
       refreshProjectMetaDisplay();
+    }
+
+    if (aiPromptController?.refreshExtraInstructionsPlaceholder) {
+      aiPromptController.refreshExtraInstructionsPlaceholder();
     }
   });
 }
@@ -2445,11 +2460,19 @@ function init() {
   if (elements.aiPromptClose) {
     elements.aiPromptClose.addEventListener('click', () => aiPromptController.closeAIPromptDialog());
   }
-  if (elements.aiModeSingle) {
-    elements.aiModeSingle.addEventListener('click', () => aiPromptController.handleAIPromptModeChange('single'));
-  }
-  if (elements.aiModeSequence) {
-    elements.aiModeSequence.addEventListener('click', () => aiPromptController.handleAIPromptModeChange('sequence'));
+  const modeButtons = [
+    { element: elements.aiModeSingle, mode: 'wan-single' },
+    { element: elements.aiModeSequence, mode: 'wan-sequence' },
+    { element: elements.aiModeCamera, mode: 'wan-camera' },
+    { element: elements.aiModeOvi, mode: 'ovi-10s' }
+  ];
+  modeButtons.forEach(({ element, mode }) => {
+    if (element) {
+      element.addEventListener('click', () => aiPromptController.handleAIPromptModeChange(mode));
+    }
+  });
+  if (elements.aiModeHelpToggle) {
+    elements.aiModeHelpToggle.addEventListener('click', () => aiPromptController.toggleModeDetails());
   }
   if (elements.aiPromptGenerate) {
     elements.aiPromptGenerate.addEventListener('click', () => aiPromptController.generateAIPrompt());
@@ -2463,6 +2486,12 @@ function init() {
   if (elements.aiPromptRegenerate) {
     elements.aiPromptRegenerate.addEventListener('click', () => aiPromptController.generateAIPrompt());
   }
+  document.querySelectorAll('[data-quick-template]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const templateKey = button.dataset.quickTemplate;
+      aiPromptController.insertQuickTemplate(templateKey);
+    });
+  });
 
   elements.chooseRoot.addEventListener("click", handleChooseRoot);
   elements.projectForm.addEventListener("submit", (event) =>

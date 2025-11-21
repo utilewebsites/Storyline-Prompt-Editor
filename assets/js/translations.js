@@ -271,11 +271,95 @@ const translations = {
       buttonLabel: "AI",
       buttonTitle: "Genereer prompts met AI",
       mode: "Generatie Modus",
-      modeSingle: "Enkele Scene",
-      modeSequence: "Scene naar Scene (transitie)",
+      frame1: "Start image",
+      frame2: "End image",
+      scene: "Scene",
+      modeSingle: "Image → Video (Lightning)",
+      modeSequence: "Frame naar Frame Transitie",
+      modeCamera: "Camera Movement Tijdlijn",
+      modeOvi: "OVI 10s Audio + Video",
+      modeHelpTitle: "Modus uitleg",
+      modeHelpDefault: "Kies een modus om een korte uitleg te zien.",
+      modeHelpWanSingle: "Genereert een WAN 2.2 prompt op basis van één beeld met standaard 5 seconden duur.",
+      modeHelpWanSequence: "Verbindt twee beelden in één WAN 2.2 transitieprompt met magische verandering.",
+      modeHelpCamera: "Maakt een tijdlijn met camerabewegingen per seconde volgens het Lightning-profiel.",
+      modeHelpOvi: "Schrijft een 10s OVI prompt met <S>/<E>-spraak en Audio: soundtrack instructie.",
+      modeHelpReadMore: "Lees meer",
+      modeHelpReadLess: "Verberg uitleg",
+      modeDetailDefault: `<p>Selecteer een modus om uitgebreide workflowtips, voorbeeldprompts en relevante links te tonen.</p>`,
+      modeDetailWanSingle: `<p>Lightning-versneld WAN 2.2 Image → Video geeft een stabiele 5s prompt die de volledige beeldanalyse benut. Gebruik het voor establishing shots of snelle inserts en voeg extra instructies toe voor specifieke acties.</p>
+      <ul>
+        <li>Focus op 1 onderwerp en 1 duidelijke cameraactie voor maximale coherentie.</li>
+        <li>Gebruik de extra instructies om stijl, lens en ritme op te leggen (bijv. "handheld neon noir").</li>
+        <li>Combineer met Lightning-profiel voor betere interpretatie van licht, reflecties en beweging.</li>
+      </ul>`,
+      modeDetailWanSequence: `<p>Frame-to-frame volgt de WAN 2.2 FLF (First-Last Frame) aanpak: één prompt beschrijft hoe beeld A metamorfoseert naar beeld B met 2 à 3 magische beats.</p>
+      <p>Belangrijk:</p>
+      <ul>
+        <li>Noem tastbare elementen uit beide beelden (outfits, props, licht).</li>
+        <li>Beschrijf camera + sfeer bij elke beat zodat de video-AI precies weet hoe de transitie aanvoelt.</li>
+        <li>Gebruik de bronnen onderaan voor inspiratie op compositie en timing.</li>
+      </ul>
+      <p>Bronnen:
+        <a href="https://www.nextdiffusion.ai/tutorials/wan-22-first-last-frame-video-generation-in-comfyui" target="_blank" rel="noopener noreferrer">NextDiffusion</a> ·
+        <a href="https://stable-diffusion-art.com/wan-2-2-first-last-frame-video/" target="_blank" rel="noopener noreferrer">Stable Diffusion Art</a> ·
+        <a href="https://www.mimicpc.com/learn/wan-22-flf2v-ai-video-start-end-frame" target="_blank" rel="noopener noreferrer">MimicPC</a>
+      </p>`,
+      modeDetailWanCamera: `<p>Deze custom WAN 2.2 I2V build, versneld met Lightning, begrijpt camerahoeken veel beter en houdt per seconde bij hoe de lens beweegt. Gebruik de tijdlijn om focus, orbit en lichtwissels exact te dicteren.</p>
+      <p><strong>Voorbeeld (per seconde):</strong></p>
+      <pre>(at 0 seconds: wide frontal shot of a man standing in front of an open fridge, cinematic lighting, subtle ambient kitchen reflections, the fridge contents visible, camera static).
+(at 1 second: medium shot from the front as he opens the fridge fully, reaches for a can, slight zoom-in to emphasize the action, cinematic framing).
+(at 2 seconds: camera shifts to a side medium shot, tracking him as he lifts the can to his mouth, fluid movement, maintaining lighting and reflections).
+(at 3 seconds: camera starts a smooth 360-degree orbit around the man, following him as he drinks from the can, motion fluid, background slightly blurred for cinematic effect).
+(at 4 seconds: close-up on his face and upper body while drinking, orbit continues subtly, fridge reflections accentuating realism, cinematic polish).
+(at 5 seconds: final wide shot as he lowers the can, camera completes orbit to original angle, showcasing the kitchen space, lighting, and dynamic movement).</pre>
+      <p>Tips: houd elke regel kort (&lt;25 woorden), mix shot types (wide → medium → close-up) en noem licht/reflecties minimaal elke twee seconden.</p>`,
+      modeDetailOvi: `<p>OVI genereert beeld én audio en is gespecialiseerd in sprekende karakters. Gebruik &lt;S&gt; en &lt;E&gt; rond iedere dialoog, beschrijf mimiek en sluit ALTIJD af met <strong>Audio:</strong> + soundtrackbeschrijving.</p>
+      <p><strong>Voorbeeld prompt:</strong></p>
+      <pre>In a dimly lit bar or diner with a green ambient light, a woman with short, curly brown hair and a white button-up shirt sits thoughtfully, looking down and touching her chin. A man with curly brown hair and a dark shirt with colorful patterns on the shoulder leans towards her from a green booth, holding a drink and smiling gently. He speaks to her, &lt;S&gt;I said I was sorry and I meant it. It just didn't fit in the five second version.&lt;E&gt; He continues, &lt;S&gt;Now Ovi gave me ten and I'm using all of them to be wrong again.&lt;E&gt; The woman looks up, her expression serious, and gestures with her left hand, a ring visible on her finger. She responds, &lt;S&gt;Impressive consistency.&lt;E&gt; The man leans back slightly, still holding his drink, and looks at her expectantly, &lt;S&gt;Would you mind telling me if the director can cut this take?&lt;E&gt; Audio: Upbeat background music, faint murmur of conversation, calm male voice, slightly dismissive female voice, clinking of glasses.</pre>
+      <p>Lees meer over de workflow op <a href="https://github.com/character-ai/Ovi" target="_blank" rel="noopener noreferrer">github.com/character-ai/Ovi</a>.</p>`,
       translationLanguage: "Vertaal resultaat naar",
       scene: "Scene",
       extraInstructions: "Instructies voor de AI (verplicht)",
+      durationLabel: "Duur (seconden)",
+      durationHint: "Bereik 3-120 s (standaard 5 s)",
+      extraPlaceholderWanSingle: "Beschrijf WAT er moet gebeuren in de video. Voorbeeld: 'de maan beweegt langzaam over de sterrenhemel', 'camera zoomt in op het gebouw', 'persoon loopt naar de deur'.",
+      extraPlaceholderWanSequence: "Beschrijf hoe beeld 1 transformeert naar beeld 2 in 2-3 beats. Noem start- en einddetails, camera-actie en licht per beat zodat de overgang duidelijk blijft.",
+      extraPlaceholderWanCamera: "Schrijf per seconde wat er gebeurt: 'at 0 seconds: ...', 'at 1 second: ...'. Benoem camera type, beweging, onderwerp en licht voor de timeline.",
+      extraPlaceholderOvi: "Omschrijf de scène, voeg dialogen toe met <S>…<E>, benoem mimiek/lichaamstaal en sluit af met 'Audio: ...' voor soundtrack en achtergrondgeluiden.",
+      quickInsertCameraLabel: "Camera beweging snelkiezers",
+      quickInsertCameraHint: "Gebruik deze sjablonen om in één klik een per-seconde timeline te vullen en pas daarna de details aan.",
+      quickInsertOviLabel: "OVI spraak/audio snelkiezers",
+      quickInsertOviHint: "Voeg direct een dialoogblok of Audio: regel toe en vervang de placeholders.",
+      quickInsertCameraEstablish: "Establish + focus shift",
+      quickInsertCameraOrbit: "Orbit reveal",
+      quickInsertCameraDolly: "Dolly + crane beat",
+      quickInsertCameraHandheld: "Handheld energie",
+      quickInsertOviSpeech: "Spraakblok <S>/<E>",
+      quickInsertOviAudio: "Audio instructie",
+      quickTemplateCameraEstablish: `(at 0 seconds: wide establishing shot of the full location, camera static, describe atmosphere and lighting).
+    (at 1 second: slow dolly-in toward the main subject, mention color contrast and reflections).
+    (at 2 seconds: medium shot tracking left-to-right with foreground parallax, keep motion fluid).
+    (at 3 seconds: close-up with rack focus from prop to subject's eyes, describe emotion and micro-movements).
+    (at 4 seconds: pull back to a medium-wide beat, summarize the action and highlight light accents).`,
+      quickTemplateCameraOrbit: `(at 0 seconds: medium-wide hero framing, camera starts a clockwise orbit, background softly blurred).
+    (at 1 second: orbit continues while the subject turns toward the lens, note lighting shift or highlight flare).
+    (at 2 seconds: tighten to medium close-up, keep orbit speed steady, describe expression changes).
+    (at 3 seconds: widen back out while the camera finishes the 360 move, mention environment details revealed).
+    (at 4 seconds: final matched framing to the opening angle, reinforce tone and motion).`,
+      quickTemplateCameraDolly: `(at 0 seconds: low angle slider start, camera pushes forward toward the subject, describe texture and depth).
+    (at 1 second: rise into a gentle crane up move while continuing the dolly, mention how light wraps around the subject).
+    (at 2 seconds: level off into an over-the-shoulder view, track sideways to reveal new context).
+    (at 3 seconds: execute a subtle pull-back while tilting down, emphasize props or environment beats).
+    (at 4 seconds: settle into a locked-off hero frame, describe final action and lighting cue).`,
+      quickTemplateCameraHandheld: `(at 0 seconds: handheld medium shot with slight sway, describe breathing or kinetic energy).
+    (at 1 second: quick push toward the subject, let the frame drift and mention motion blur streaks).
+    (at 2 seconds: swing to a reaction detail (hands, eyes, props), keep exposure gritty).
+    (at 3 seconds: fall back to a wider angle, follow the subject as they pivot or move, note ambient light changes).
+    (at 4 seconds: land on a steady but imperfect framing, underline mood and ambient texture).`,
+      quickTemplateOviSpeech: `[Character name] ([tone]) says, <S>"First line of dialogue that matches the scene goal."<E>
+    [Second character] ([reaction]) replies, <S>"Second line that reveals intent or conflict."<E>`,
+      quickTemplateOviAudio: "Audio: Layered soundtrack with [genre/tempo], add [ambience] and [fx] so the voices sit naturally.",
       generate: "✨ Genereer Prompt",
       generating: "⏳ Genereren...",
       resultTitle: "Gegenereerde Prompts",
@@ -306,7 +390,7 @@ const translations = {
       sortProjects: "Sorteer de projectenlijst op laatst aangepast, aanmaakdatum of naam",
       chooseRoot: "Selecteer de hoofdmap waar al je storyline projecten worden opgeslagen",
       projectName: "Geef je project een duidelijke naam (bijv. 'Magisch Bos Avontuur')",
-      projectGenerator: "Optioneel: welke AI video generator gebruik je? (bijv. Runway, Sora, Pika)",
+      projectGenerator: "Optioneel: welke AI video generator gebruik je? (bijv. interne tool of clouddienst)",
       projectNotes: "Algemene notities over dit project",
       createProject: "Maak een nieuw project aan met de ingevulde gegevens",
       saveProject: "Sla alle wijzigingen in het huidige project op",
@@ -328,7 +412,7 @@ const translations = {
       dialogRating: "Geef een kwaliteitsbeoordeling aan deze scene (1 ster = slecht, 5 sterren = uitstekend)",
       scenePrompt: "Schrijf hier de Engelse prompt voor deze scene (beschrijf wat je wilt zien in de video)",
       sceneTranslation: "Nederlandse vertaling of notities over deze scene (optioneel maar handig voor teamcommunicatie)",
-      aiPromptHelp: "In AI Prompt Mode focus je op het schrijven van prompts voor AI video generators zoals Runway of Sora",
+      aiPromptHelp: "In AI Prompt Mode focus je op het schrijven van prompts voor moderne AI video generators",
       traditionalHelp: "In Traditionele Video Storyline Mode beschrijf je precies wat er gebeurt, hoe je het filmt, en de exacte timing zoals bij klassieke videoproductie",
     },
   },
@@ -604,11 +688,95 @@ const translations = {
       buttonLabel: "AI",
       buttonTitle: "Generate prompts with AI",
       mode: "Generation Mode",
-      modeSingle: "Single Scene",
-      modeSequence: "Scene to Scene (transition)",
+      frame1: "Start image",
+      frame2: "End image",
+      scene: "Scene",
+      modeSingle: "Image → Video (Lightning)",
+      modeSequence: "Frame to Frame Transition",
+      modeCamera: "Camera Movement Timeline",
+      modeOvi: "OVI 10s Audio + Video",
+      modeHelpTitle: "Mode guidance",
+      modeHelpDefault: "Select a mode to learn what it does.",
+      modeHelpWanSingle: "Generates a WAN 2.2 prompt from a single image with a 5-second duration.",
+      modeHelpWanSequence: "Blends two images into one WAN 2.2 transition prompt with a magical beat.",
+      modeHelpCamera: "Produces a per-second camera movement timeline using the Lightning profile.",
+      modeHelpOvi: "Creates a 10 s OVI script with <S>/<E> speech tags and an Audio: soundtrack cue.",
+      modeHelpReadMore: "Read more",
+      modeHelpReadLess: "Hide details",
+      modeDetailDefault: `<p>Select a mode to reveal in-depth workflow notes, example prompts, and reference links.</p>`,
+      modeDetailWanSingle: `<p>The Lightning-tuned WAN 2.2 Image → Video flow delivers a reliable 5-second shot from a single analysis block. Use it for establishing shots or quick inserts and steer style/tempo via the extra instructions.</p>
+      <ul>
+        <li>Keep one hero subject plus one clear camera action for crisp motion.</li>
+        <li>Describe lens, color palette, or vibes (e.g. "handheld neon noir") in the extra field.</li>
+        <li>Lightning enhances camera comprehension, highlights, and reflections for richer micro-movements.</li>
+      </ul>`,
+      modeDetailWanSequence: `<p>Frame-to-frame follows WAN 2.2 FLF (First-Last Frame): one prompt narrates how frame A morphs into frame B across 2–3 magical beats.</p>
+      <p>Key points:</p>
+      <ul>
+        <li>Quote tangible cues from both frames (outfits, props, lighting shifts).</li>
+        <li>Tie every beat to camera motion + atmosphere so the video AI understands the feeling.</li>
+        <li>Use the resources below for composition and pacing inspiration.</li>
+      </ul>
+      <p>Guides:
+        <a href="https://www.nextdiffusion.ai/tutorials/wan-22-first-last-frame-video-generation-in-comfyui" target="_blank" rel="noopener noreferrer">NextDiffusion</a> ·
+        <a href="https://stable-diffusion-art.com/wan-2-2-first-last-frame-video/" target="_blank" rel="noopener noreferrer">Stable Diffusion Art</a> ·
+        <a href="https://www.mimicpc.com/learn/wan-22-flf2v-ai-video-start-end-frame" target="_blank" rel="noopener noreferrer">MimicPC</a>
+      </p>`,
+      modeDetailWanCamera: `<p>This custom Lightning-accelerated WAN 2.2 build tracks camera angles and cinematic moves per second. Use the timeline to issue dollies, tilts, rack focus moments, and lighting pivots with total control.</p>
+      <p><strong>Example timeline:</strong></p>
+      <pre>(at 0 seconds: wide frontal shot of a man standing in front of an open fridge, cinematic lighting, subtle ambient kitchen reflections, the fridge contents visible, camera static).
+(at 1 second: medium shot from the front as he opens the fridge fully, reaches for a can, slight zoom-in to emphasize the action, cinematic framing).
+(at 2 seconds: camera shifts to a side medium shot, tracking him as he lifts the can to his mouth, fluid movement, maintaining lighting and reflections).
+(at 3 seconds: camera starts a smooth 360-degree orbit around the man, following him as he drinks from the can, motion fluid, background slightly blurred for cinematic effect).
+(at 4 seconds: close-up on his face and upper body while drinking, orbit continues subtly, fridge reflections accentuating realism, cinematic polish).
+(at 5 seconds: final wide shot as he lowers the can, camera completes orbit to original angle, showcasing the kitchen space, lighting, and dynamic movement).</pre>
+      <p>Tips: stay under ~25 words per beat, mix shot sizes (wide → medium → close) and mention lighting or reflections at least every other second.</p>`,
+      modeDetailOvi: `<p>OVI renders video + soundtrack and excels at talking characters. Wrap every spoken line with &lt;S&gt; and &lt;E&gt;, describe facial acting, and finish with <strong>Audio:</strong> plus ambience cues.</p>
+      <p><strong>Sample prompt:</strong></p>
+      <pre>In a dimly lit bar or diner with a green ambient light, a woman with short, curly brown hair and a white button-up shirt sits thoughtfully, looking down and touching her chin. A man with curly brown hair and a dark shirt with colorful patterns on the shoulder leans towards her from a green booth, holding a drink and smiling gently. He speaks to her, &lt;S&gt;I said I was sorry and I meant it. It just didn't fit in the five second version.&lt;E&gt; He continues, &lt;S&gt;Now Ovi gave me ten and I'm using all of them to be wrong again.&lt;E&gt; The woman looks up, her expression serious, and gestures with her left hand, a ring visible on her finger. She responds, &lt;S&gt;Impressive consistency.&lt;E&gt; The man leans back slightly, still holding his drink, and looks at her expectantly, &lt;S&gt;Would you mind telling me if the director can cut this take?&lt;E&gt; Audio: Upbeat background music, faint murmur of conversation, calm male voice, slightly dismissive female voice, clinking of glasses.</pre>
+      <p>More details: <a href="https://github.com/character-ai/Ovi" target="_blank" rel="noopener noreferrer">github.com/character-ai/Ovi</a>.</p>`,
       translationLanguage: "Translate result to",
       scene: "Scene",
       extraInstructions: "Instructions for AI (required)",
+      durationLabel: "Duration (seconds)",
+      durationHint: "Range 3-120 s (default 5 s)",
+      extraPlaceholderWanSingle: "Describe WHAT should happen in the video. Example: 'the moon drifts across the night sky', 'camera pushes in on the tower', 'character walks toward the door'.",
+      extraPlaceholderWanSequence: "Explain how frame 1 morphs into frame 2 in 2-3 beats. Mention starting cues, ending details, camera motion and lighting for each beat.",
+      extraPlaceholderWanCamera: "Write per-second beats: 'at 0 seconds: ...', 'at 1 second: ...'. Include camera type, movement, subject focus and lighting so the timeline stays precise.",
+      extraPlaceholderOvi: "Describe the scene, add dialogue using <S>…<E>, mention facial acting/body language and close with 'Audio: ...' for soundtrack plus ambience.",
+      quickInsertCameraLabel: "Camera movement presets",
+      quickInsertCameraHint: "Drop in a per-second timeline with one click and customize the details immediately.",
+      quickInsertOviLabel: "OVI speech/audio presets",
+      quickInsertOviHint: "Instantly add a dialogue block or Audio: line and replace the placeholders.",
+      quickInsertCameraEstablish: "Establish + focus shift",
+      quickInsertCameraOrbit: "Orbit reveal",
+      quickInsertCameraDolly: "Dolly + crane beat",
+      quickInsertCameraHandheld: "Handheld energy",
+      quickInsertOviSpeech: "Speech block <S>/<E>",
+      quickInsertOviAudio: "Audio instruction",
+      quickTemplateCameraEstablish: `(at 0 seconds: wide establishing shot of the full location, camera static, describe atmosphere and lighting).
+    (at 1 second: slow dolly-in toward the main subject, mention color contrast and reflections).
+    (at 2 seconds: medium shot tracking left-to-right with foreground parallax, keep motion fluid).
+    (at 3 seconds: close-up with rack focus from prop to subject's eyes, describe emotion and micro-movements).
+    (at 4 seconds: pull back to a medium-wide beat, summarize the action and highlight light accents).`,
+      quickTemplateCameraOrbit: `(at 0 seconds: medium-wide hero framing, camera starts a clockwise orbit, background softly blurred).
+    (at 1 second: orbit continues while the subject turns toward the lens, note lighting shift or highlight flare).
+    (at 2 seconds: tighten to medium close-up, keep orbit speed steady, describe expression changes).
+    (at 3 seconds: widen back out while the camera finishes the 360 move, mention environment details revealed).
+    (at 4 seconds: final matched framing to the opening angle, reinforce tone and motion).`,
+      quickTemplateCameraDolly: `(at 0 seconds: low angle slider start, camera pushes forward toward the subject, describe texture and depth).
+    (at 1 second: rise into a gentle crane up move while continuing the dolly, mention how light wraps around the subject).
+    (at 2 seconds: level off into an over-the-shoulder view, track sideways to reveal new context).
+    (at 3 seconds: execute a subtle pull-back while tilting down, emphasize props or environment beats).
+    (at 4 seconds: settle into a locked-off hero frame, describe final action and lighting cue).`,
+      quickTemplateCameraHandheld: `(at 0 seconds: handheld medium shot with slight sway, describe breathing or kinetic energy).
+    (at 1 second: quick push toward the subject, let the frame drift and mention motion blur streaks).
+    (at 2 seconds: swing to a reaction detail (hands, eyes, props), keep exposure gritty).
+    (at 3 seconds: fall back to a wider angle, follow the subject as they pivot or move, note ambient light changes).
+    (at 4 seconds: land on a steady but imperfect framing, underline mood and ambient texture).`,
+      quickTemplateOviSpeech: `[Character name] ([tone]) says, <S>"First line of dialogue that matches the scene goal."<E>
+    [Second character] ([reaction]) replies, <S>"Second line that reveals intent or conflict."<E>`,
+      quickTemplateOviAudio: "Audio: Layered soundtrack with [genre/tempo], add [ambience] and [fx] so the voices sit naturally.",
       generate: "✨ Generate Prompt",
       generating: "⏳ Generating...",
       resultTitle: "Generated Prompts",
@@ -639,7 +807,7 @@ const translations = {
       sortProjects: "Sort the project list by last modified, creation date, or name",
       chooseRoot: "Select the root folder where all your storyline projects are stored",
       projectName: "Give your project a clear name (e.g. 'Magical Forest Adventure')",
-      projectGenerator: "Optional: which AI video generator are you using? (e.g. Runway, Sora, Pika)",
+      projectGenerator: "Optional: which AI video generator are you using? (e.g. internal tool or cloud service)",
       projectNotes: "General notes about this project",
       createProject: "Create a new project with the entered information",
       saveProject: "Save all changes in the current project",
@@ -661,7 +829,7 @@ const translations = {
       dialogRating: "Give a quality rating to this scene (1 star = poor, 5 stars = excellent)",
       scenePrompt: "Write the English prompt for this scene (describe what you want to see in the video)",
       sceneTranslation: "Dutch translation or notes about this scene (optional but useful for team communication)",
-      aiPromptHelp: "In AI Prompt Mode you focus on writing prompts for AI video generators like Runway or Sora",
+      aiPromptHelp: "In AI Prompt Mode you focus on writing prompts for modern AI video generators",
       traditionalHelp: "In Traditional Video Storyline Mode you describe exactly what happens, how you film it, and the exact timing like in classic video production",
     },
   },

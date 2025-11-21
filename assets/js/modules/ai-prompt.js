@@ -21,6 +21,61 @@ import { generateAIPromptWithStatus, isLLMServiceActive } from "./llm-service.js
  * @returns {Object} Publieke helpers
  */
 export function createAIPromptController({ state, elements, localState, renderProjectEditor }) {
+  const MIN_DURATION = 3;
+  const MAX_DURATION = 120;
+  const DEFAULT_DURATION = 5;
+  const OVI_DURATION = 10;
+  const MODE_TYPES = {
+    WAN_SINGLE: "wan-single",
+    WAN_SEQUENCE: "wan-sequence",
+    WAN_CAMERA: "wan-camera",
+    OVI_10S: "ovi-10s",
+  };
+  const PLACEHOLDER_KEYS = {
+    [MODE_TYPES.WAN_SINGLE]: "extraPlaceholderWanSingle",
+    [MODE_TYPES.WAN_SEQUENCE]: "extraPlaceholderWanSequence",
+    [MODE_TYPES.WAN_CAMERA]: "extraPlaceholderWanCamera",
+    [MODE_TYPES.OVI_10S]: "extraPlaceholderOvi",
+  };
+  let modeDetailsExpanded = Boolean(localState.aiPromptDetailsExpanded);
+
+  function isSequenceMode(mode) {
+    return mode === MODE_TYPES.WAN_SEQUENCE || mode === "sequence";
+  }
+
+  function isOviMode(mode) {
+    return mode === MODE_TYPES.OVI_10S;
+  }
+
+  function mapToLegacyMode(mode) {
+    return isSequenceMode(mode) ? "sequence" : "single";
+  }
+
+  function clampDuration(value) {
+    if (value === null || value === undefined || value === "") {
+      return DEFAULT_DURATION;
+    }
+    const parsed = Number(value);
+    if (Number.isNaN(parsed)) {
+      return DEFAULT_DURATION;
+    }
+    const rounded = Math.round(parsed);
+    return Math.min(MAX_DURATION, Math.max(MIN_DURATION, rounded));
+  }
+
+  function setDurationInputValue(value) {
+    if (!elements.aiPromptDuration) return;
+    const safeValue = clampDuration(value);
+    elements.aiPromptDuration.value = safeValue;
+  }
+
+  function getDurationInputValue() {
+    if (!elements.aiPromptDuration) {
+      return DEFAULT_DURATION;
+    }
+    return clampDuration(elements.aiPromptDuration.value);
+  }
+
   function renderAIPromptButton(sceneIndex) {
     const button = document.createElement("button");
     button.className = "ai-prompt-button";
@@ -48,11 +103,13 @@ export function createAIPromptController({ state, elements, localState, renderPr
       return;
     }
 
-    localState.aiPromptContext = { sceneIndex, mode: "single" };
+    localState.aiPromptContext = { sceneIndex, mode: MODE_TYPES.WAN_SINGLE };
+    setModeDetailsExpanded(false);
 
-    handleAIPromptModeChange("single");
+    handleAIPromptModeChange(MODE_TYPES.WAN_SINGLE);
     if (elements.aiPromptTranslationLang) elements.aiPromptTranslationLang.value = "nl";
     if (elements.aiPromptExtraInstructions) elements.aiPromptExtraInstructions.value = "";
+    setDurationInputValue(DEFAULT_DURATION);
     if (elements.aiPromptResult) elements.aiPromptResult.style.display = "none";
     if (elements.aiResultPlaceholder) {
       elements.aiResultPlaceholder.style.display = "block";
@@ -121,24 +178,141 @@ export function createAIPromptController({ state, elements, localState, renderPr
   }
 
   function handleAIPromptModeChange(mode) {
+    if (!localState.aiPromptContext) return;
+    localState.aiPromptContext.mode = mode;
+
     const image2Container = elements.aiPromptImage2?.closest?.(".image-preview-container");
-    if (localState.aiPromptContext) {
-      localState.aiPromptContext.mode = mode;
+    const modeButtons = [elements.aiModeSingle, elements.aiModeSequence, elements.aiModeCamera, elements.aiModeOvi];
+
+    modeButtons.forEach((btn) => btn?.classList.remove("active"));
+    const activeButton = modeButtons.find((btn) => btn?.dataset?.mode === mode);
+    if (activeButton) activeButton.classList.add("active");
+
+    if (image2Container) {
+      image2Container.style.display = isSequenceMode(mode) ? "block" : "none";
     }
 
-    if (!elements.aiModeSingle || !elements.aiModeSequence || !image2Container) {
-      return;
+    if (elements.aiPromptFrame1Label) {
+      elements.aiPromptFrame1Label.style.display = "block";
     }
 
-    if (mode === "single") {
-      elements.aiModeSingle.classList.add("active");
-      elements.aiModeSequence.classList.remove("active");
-      image2Container.style.display = "none";
+    const helpKey = activeButton?.dataset?.helpKey;
+    const detailKey = activeButton?.dataset?.detailKey;
+    updateModeHelpText(helpKey, detailKey);
+    updateExtraInstructionsPlaceholder(mode);
+    updateQuickInsertVisibility(mode);
+    setModeDetailsExpanded(false);
+
+    if (isSequenceMode(mode)) {
+      if (elements.aiPromptDuration && !elements.aiPromptDuration.disabled) {
+        setDurationInputValue(DEFAULT_DURATION);
+      }
+    } else if (isOviMode(mode)) {
+      setDurationInputValue(OVI_DURATION);
+      if (elements.aiPromptDuration) {
+        elements.aiPromptDuration.disabled = true;
+      }
     } else {
-      elements.aiModeSingle.classList.remove("active");
-      elements.aiModeSequence.classList.add("active");
-      image2Container.style.display = "block";
+      setDurationInputValue(DEFAULT_DURATION);
+      if (elements.aiPromptDuration) {
+        elements.aiPromptDuration.disabled = false;
+      }
     }
+  }
+
+  function toggleQuickGroup(groupElement, isVisible) {
+    if (!groupElement) return;
+    groupElement.hidden = !isVisible;
+    groupElement.style.display = isVisible ? "" : "none";
+  }
+
+  function updateQuickInsertVisibility(mode) {
+    const showCamera = mode === MODE_TYPES.WAN_CAMERA;
+    const showOvi = isOviMode(mode);
+    toggleQuickGroup(elements.aiQuickCameraGroup, showCamera);
+    toggleQuickGroup(elements.aiQuickOviGroup, showOvi);
+    if (elements.aiQuickInsertContainer) {
+      const shouldShow = showCamera || showOvi;
+      elements.aiQuickInsertContainer.hidden = !shouldShow;
+      elements.aiQuickInsertContainer.style.display = shouldShow ? "block" : "none";
+    }
+  }
+
+  function updateModeHelpText(helpKey, detailKey) {
+    if (!elements.aiModeHelpText) return;
+    const key = helpKey || "modeHelpDefault";
+    elements.aiModeHelpText.textContent = t(`aiPrompt.${key}`);
+    updateModeDetail(detailKey);
+  }
+
+  function updateModeDetail(detailKey) {
+    if (!elements.aiModeHelpDetails) return;
+    const key = detailKey || "modeDetailDefault";
+    const content = t(`aiPrompt.${key}`);
+    elements.aiModeHelpDetails.innerHTML = typeof content === "string" ? content.trim() : "";
+    if (elements.aiModeHelpToggle) {
+      elements.aiModeHelpToggle.disabled = !content;
+    }
+  }
+
+  function setModeDetailsExpanded(expanded) {
+    modeDetailsExpanded = expanded;
+    localState.aiPromptDetailsExpanded = expanded;
+    if (elements.aiModeHelpDetails) {
+      if (expanded) {
+        elements.aiModeHelpDetails.hidden = false;
+      } else {
+        elements.aiModeHelpDetails.hidden = true;
+      }
+    }
+    if (elements.aiModeHelpToggle) {
+      elements.aiModeHelpToggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+    }
+  }
+
+  function toggleModeDetails() {
+    if (elements.aiModeHelpToggle?.disabled) return;
+    setModeDetailsExpanded(!modeDetailsExpanded);
+  }
+
+  function getPlaceholderKeyForMode(mode) {
+    return PLACEHOLDER_KEYS[mode] || PLACEHOLDER_KEYS[MODE_TYPES.WAN_SINGLE];
+  }
+
+  function updateExtraInstructionsPlaceholder(mode) {
+    if (!elements.aiPromptExtraInstructions) return;
+    const key = getPlaceholderKeyForMode(mode);
+    elements.aiPromptExtraInstructions.setAttribute("placeholder", t(`aiPrompt.${key}`));
+  }
+
+  function refreshExtraInstructionsPlaceholder() {
+    const currentMode = localState.aiPromptContext?.mode || MODE_TYPES.WAN_SINGLE;
+    updateExtraInstructionsPlaceholder(currentMode);
+    updateQuickInsertVisibility(currentMode);
+  }
+
+  function insertQuickTemplate(templateKey) {
+    if (!templateKey || !elements.aiPromptExtraInstructions) return;
+    const template = t(`aiPrompt.${templateKey}`);
+    if (!template || typeof template !== "string") return;
+    const sanitized = template.trim();
+    if (!sanitized) return;
+
+    const textarea = elements.aiPromptExtraInstructions;
+    const value = textarea.value || "";
+    const start = typeof textarea.selectionStart === "number" ? textarea.selectionStart : value.length;
+    const end = typeof textarea.selectionEnd === "number" ? textarea.selectionEnd : start;
+    const before = value.slice(0, start);
+    const after = value.slice(end);
+    const prefix = before && !before.endsWith("\n") ? "\n" : "";
+    const suffix = !after || !after.startsWith("\n") ? "\n" : "";
+    const insertion = `${prefix}${sanitized}${suffix}`;
+    textarea.value = `${before}${insertion}${after}`;
+    const cursor = before.length + insertion.length;
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.setSelectionRange(cursor, cursor);
+    });
   }
 
   function toggleReasoningDisplay() {
@@ -165,6 +339,7 @@ export function createAIPromptController({ state, elements, localState, renderPr
   async function generateAIPrompt() {
     if (!localState.aiPromptContext || !state.projectData) return;
     const { sceneIndex, mode } = localState.aiPromptContext;
+    const legacyMode = mapToLegacyMode(mode);
     const llmSettings = state.projectData.llmSettings;
 
     if (!isLLMServiceActive(llmSettings)) {
@@ -178,16 +353,26 @@ export function createAIPromptController({ state, elements, localState, renderPr
       return;
     }
 
+    let durationSeconds = getDurationInputValue();
+    if (isOviMode(mode)) {
+      durationSeconds = OVI_DURATION;
+      setDurationInputValue(OVI_DURATION);
+    } else {
+      setDurationInputValue(durationSeconds);
+    }
+
     setLoadingState(true);
 
     try {
       const result = await generateAIPromptWithStatus({
-        mode,
+        mode: legacyMode,
+        modeType: mode,
         sceneIndex,
         prompts: state.projectData.prompts,
         llmSettings,
         imagesHandle: state.projectImagesHandle,
         extraInstructions,
+        durationSeconds,
         translationLang: elements.aiPromptTranslationLang?.value,
         onStatus: (statusText) => {
           if (elements.aiPromptStatusText) {
@@ -202,7 +387,7 @@ export function createAIPromptController({ state, elements, localState, renderPr
       await new Promise((resolve) => setTimeout(resolve, 500));
       if (elements.aiPromptStatus) elements.aiPromptStatus.style.display = "none";
 
-      updatePromptResultUI(result, mode);
+      updatePromptResultUI(result, legacyMode);
     } catch (error) {
       handleAIPromptError(error);
     } finally {
@@ -216,6 +401,11 @@ export function createAIPromptController({ state, elements, localState, renderPr
       elements.aiPromptGenerate.textContent = isLoading
         ? t("aiPrompt.generating")
         : t("aiPrompt.generate");
+    }
+
+    if (elements.aiPromptDuration) {
+      const isOvi = isOviMode(localState.aiPromptContext?.mode);
+      elements.aiPromptDuration.disabled = isLoading || isOvi;
     }
 
     if (!elements.aiPromptStatus || !elements.aiResultPlaceholder) return;
@@ -236,14 +426,16 @@ export function createAIPromptController({ state, elements, localState, renderPr
     elements.aiPromptResultEn.textContent = result.prompt;
     localState.aiPromptContext.reasoning = result.reasoning;
 
-    if (mode === "single") {
+    const isSequence = isSequenceMode(mode);
+
+    if (!isSequence) {
       localState.aiPromptContext.imageAnalysis = result.imageAnalysis;
     } else {
       localState.aiPromptContext.imageAnalysis1 = result.imageAnalysis1;
       localState.aiPromptContext.imageAnalysis2 = result.imageAnalysis2;
     }
 
-    const reasoningText = mode === "single"
+    const reasoningText = !isSequence
       ? `=== IMAGE ANALYSE ===\n${result.imageAnalysis}\n\n=== VOLLEDIGE LLM RESPONSE ===\n${result.reasoning}`
       : `=== IMAGE ANALYSE 1 ===\n${result.imageAnalysis1}\n\n=== IMAGE ANALYSE 2 ===\n${result.imageAnalysis2}\n\n=== VOLLEDIGE LLM RESPONSE ===\n${result.reasoning}`;
 
@@ -310,7 +502,9 @@ export function createAIPromptController({ state, elements, localState, renderPr
 
     if (!englishPrompt) return;
 
-    if (mode === "single") {
+    const isSequence = isSequenceMode(mode);
+
+    if (!isSequence) {
       prompts[sceneIndex].text = englishPrompt;
       if (translationLang && translationText) {
         prompts[sceneIndex].translation = translationText;
@@ -354,7 +548,10 @@ export function createAIPromptController({ state, elements, localState, renderPr
     closeAIPromptDialog,
     handleAIPromptModeChange,
     toggleReasoningDisplay,
+    toggleModeDetails,
+    refreshExtraInstructionsPlaceholder,
     generateAIPrompt,
     useGeneratedPrompts,
+    insertQuickTemplate,
   };
 }
