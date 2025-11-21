@@ -221,6 +221,19 @@
   color: var(--text-muted);
 }
 
+.ai-mode-help-details pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background: var(--surface-hover);
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  margin: 0.5rem 0;
+  font-family: monospace;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .ai-inline-controls {
   display: flex;
   gap: 1rem;
