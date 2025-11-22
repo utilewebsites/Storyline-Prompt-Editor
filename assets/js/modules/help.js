@@ -32,6 +32,11 @@ export function initializeHelpSystem(lang = "nl") {
   if (workflowModeSelect) {
     workflowModeSelect.value = workflowMode;
   }
+
+  const dialogWorkflowModeSelect = document.querySelector("#dialog-workflow-mode");
+  if (dialogWorkflowModeSelect) {
+    dialogWorkflowModeSelect.value = workflowMode;
+  }
   
   const savedHelpMode = localStorage.getItem("storyline-help-mode");
   if (savedHelpMode === "true") {
@@ -101,6 +106,11 @@ export function handleWorkflowModeChange(mode, opties = {}) {
   const workflowModeSelect = document.querySelector("#workflow-mode");
   if (workflowModeSelect && workflowModeSelect.value !== mode) {
     workflowModeSelect.value = mode;
+  }
+
+  const dialogWorkflowModeSelect = document.querySelector("#dialog-workflow-mode");
+  if (dialogWorkflowModeSelect && dialogWorkflowModeSelect.value !== mode) {
+    dialogWorkflowModeSelect.value = mode;
   }
   
   return workflowMode;

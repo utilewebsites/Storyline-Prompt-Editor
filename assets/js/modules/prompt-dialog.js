@@ -156,6 +156,7 @@ export function createPromptDialogController({
 
     await laadDialoogAfbeelding(prompt);
     await laadDialoogVideo(prompt);
+    await updateTransitionView();
     applyTranslations(elements.promptDialog);
   }
 
@@ -293,12 +294,110 @@ export function createPromptDialogController({
     }
   }
 
+  async function laadNextDialoogAfbeelding(prompt) {
+    if (!elements.dialogNextImageWrapper) return;
+    
+    // Reset state
+    elements.dialogNextImageWrapper.dataset.hasImage = "false";
+    if (elements.dialogNextImage) elements.dialogNextImage.src = "";
+    if (elements.dialogNextImagePlaceholder) elements.dialogNextImagePlaceholder.textContent = t("dialog.prompt.noNextImage");
+
+    if (!prompt || !prompt.imagePath || !state.projectImagesHandle) {
+      return;
+    }
+
+    try {
+      const fileHandle = await state.projectImagesHandle.getFileHandle(prompt.imagePath);
+      const file = await fileHandle.getFile();
+      const blobUrl = URL.createObjectURL(file);
+      
+      elements.dialogNextImageWrapper.dataset.hasImage = "true";
+      if (elements.dialogNextImage) {
+        elements.dialogNextImage.src = blobUrl;
+      }
+      // Note: We don't store this blobUrl in localState for cleanup yet, 
+      // but we should probably track it if we want to be strict about memory.
+      // For now, relying on browser GC or page refresh is acceptable for this preview.
+    } catch (error) {
+      console.warn("Afbeelding voor volgende scene laden mislukt", error);
+      if (elements.dialogNextImagePlaceholder) {
+        elements.dialogNextImagePlaceholder.textContent = t("dialog.prompt.loadFailed");
+      }
+    }
+  }
+
+  async function laadNextDialoogVideo(prompt) {
+    if (!elements.dialogNextVideoWrapper) return;
+
+    // Reset state
+    elements.dialogNextVideoWrapper.dataset.hasVideo = "false";
+    if (elements.dialogNextVideo) {
+      elements.dialogNextVideo.removeAttribute("src");
+      elements.dialogNextVideo.load();
+    }
+    if (elements.dialogNextVideoPlaceholder) elements.dialogNextVideoPlaceholder.textContent = t("dialog.prompt.noNextVideo");
+
+    if (!prompt || !prompt.videoPath || !state.projectVideosHandle) {
+      return;
+    }
+
+    try {
+      const fileHandle = await state.projectVideosHandle.getFileHandle(prompt.videoPath);
+      const file = await fileHandle.getFile();
+      const blobUrl = URL.createObjectURL(file);
+      
+      elements.dialogNextVideoWrapper.dataset.hasVideo = "true";
+      if (elements.dialogNextVideo) {
+        elements.dialogNextVideo.src = blobUrl;
+        elements.dialogNextVideo.load();
+      }
+    } catch (error) {
+      console.warn("Video voor volgende scene laden mislukt", error);
+      if (elements.dialogNextVideoPlaceholder) {
+        elements.dialogNextVideoPlaceholder.textContent = t("dialog.prompt.loadFailed");
+      }
+    }
+  }
+
+  async function updateTransitionView() {
+    if (!elements.dialogShowNextScene || !elements.dialogMediaContainer) return;
+
+    const showNext = elements.dialogShowNextScene.checked;
+    
+    if (showNext) {
+      elements.dialogMediaContainer.classList.add("transition-view");
+      
+      // Find next prompt
+      if (state.projectData && localState.dialogPromptId) {
+        const currentPrompt = state.projectData.prompts.find(p => p.id === localState.dialogPromptId);
+        if (currentPrompt) {
+          const currentIndex = state.projectData.prompts.indexOf(currentPrompt);
+          const nextPrompt = state.projectData.prompts[currentIndex + 1];
+          
+          if (nextPrompt) {
+            await laadNextDialoogAfbeelding(nextPrompt);
+            await laadNextDialoogVideo(nextPrompt);
+          } else {
+            // End of project
+            await laadNextDialoogAfbeelding(null);
+            await laadNextDialoogVideo(null);
+            if (elements.dialogNextImagePlaceholder) elements.dialogNextImagePlaceholder.textContent = t("dialog.prompt.endOfProject");
+            if (elements.dialogNextVideoPlaceholder) elements.dialogNextVideoPlaceholder.textContent = t("dialog.prompt.endOfProject");
+          }
+        }
+      }
+    } else {
+      elements.dialogMediaContainer.classList.remove("transition-view");
+    }
+  }
+
   return {
     openPromptDialoog,
     navigeerPromptDialoogScene,
     verwerkPromptDialoogSluiting,
     openDialoogAfbeelding,
     verwerkPromptDialoogKeydown,
+    updateTransitionView,
     resetDialoogAfbeelding, // Exposed voor tests of toekomstige hergebruik
   };
 }

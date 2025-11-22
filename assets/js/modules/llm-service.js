@@ -14,14 +14,15 @@ const DEFAULT_CONFIG = {
   imageAnalysisModel: 'llava:latest',
   promptGenerationModel: 'llama3.2:latest',
   
-  imageAnalysisInstruction: `Describe this image in English for video AI.
+  imageAnalysisInstruction: `Analyze this image for Image-to-Video generation.
+Focus on these 4 layers:
+1. Content: Main subject and setting.
+2. Composition: Shot type (wide, close-up), angle, and framing.
+3. Style: Lighting, colors, and aesthetic.
+4. Depth: Foreground vs background separation (for parallax).
 
-CRITICAL: Write in ENGLISH. Start with "The image shows" or "A [noun] [verb]".
-
-NO DUTCH: Het, De, Op, toont, laat zien, beeldt, wordt, zijn, kunnen.
-
-Describe: subject, setting, colors, composition, atmosphere, motion potential.
-Max 80 words.`,
+Finally, mention one potential motion or action.
+Output in English only. Max 100 words.`,
   
   promptGenerationInstruction: `You are a video prompt generator. Output ONLY the video prompt in English.
 
@@ -300,7 +301,7 @@ export async function analyzeImage(ollamaUrl, model, instruction, imageData) {
           messages: [
             {
               role: 'system',
-              content: 'CRITICAL: Output ONLY in ENGLISH. FORBIDDEN Dutch words: Het, De, Een, afbeelding, scherm, toont, laat zien, beeldt, wordt, zijn, er is, je ziet. START with "The image shows" or "A [noun] [verb]". Describe in English ONLY.'
+              content: 'You are a Video AI Vision Analyst. Analyze the image for Image-to-Video generation. Describe: 1. Content (Subject), 2. Composition (Shot type/Angle), 3. Style (Lighting), 4. Depth (Layers). Output in English ONLY. No Dutch.'
             },
             {
               role: 'user',
@@ -331,14 +332,16 @@ export async function analyzeImage(ollamaUrl, model, instruction, imageData) {
     }
     
     // Fallback naar generate API (oudere Ollama versies)
-    const systemPrompt = `ANSWER IN ENGLISH ONLY. DO NOT USE DUTCH.
+    const systemPrompt = `You are a Video AI Vision Analyst.
+Analyze this image for Image-to-Video generation.
 
-FORBIDDEN DUTCH WORDS: Het, De, Een, afbeelding, scherm, beeld, interface, toont, laat zien, beeldt, wordt, zijn, er is, er zijn, je ziet, aan de, van de, in de, op de, verschillende, onderdelen.
+REQUIRED OUTPUT (English Only):
+1. Content: [Subject/Action]
+2. Composition: [Shot type/Angle]
+3. Style: [Lighting/Atmosphere]
+4. Depth: [Foreground/Background layers]
 
-REQUIRED: Start with "The image shows" or "A [noun] [verb]".
-
-Describe this image in English:
-
+DO NOT USE DUTCH.
 `;
     const response = await fetch(buildOllamaEndpoint(baseUrl, '/api/generate'), {
       method: 'POST',
@@ -424,18 +427,56 @@ RULES:
 If the user input contains <S> tags, build the visual scene around them.
 If the user input does NOT contain <S> tags, just write a visual description and an Audio line.`;
 
+    const wanSingleSystemPrompt = `You are a professional video prompt engineer for WAN 2.2 (Image-to-Video).
+Your goal is to write a concise, motion-focused prompt that brings the static image to life.
+
+CRITICAL RULES:
+1. DO NOT DESCRIBE THE STATIC IMAGE. The model already sees the image (content, composition, style).
+2. FOCUS ONLY ON MOTION, CHANGE, AND CAMERA MOVEMENT.
+3. USE SPECIFIC CAMERA TERMS: Pan, Tilt, Dolly, Orbit, Roll, Crane, Tracking Shot, Crash Zoom, Whip Pan.
+4. DESCRIBE ACTION: What happens? What moves? How does the lighting change?
+5. ENGLISH ONLY.
+
+STRUCTURE:
+[Camera Movement] + [Subject Action/Motion] + [Atmospheric Change/Details]
+
+EXAMPLES:
+- "Camera slowly dollies out to reveal the vast landscape, wind whips through the trees sending leaves swirling."
+- "Camera orbits around the subject while the background blurs into motion."
+- "Slow motion capture of the water droplets freezing in mid-air, camera tracks the movement."
+
+OUTPUT:
+A single, high-quality video prompt in English. No meta-talk.`;
+
+    const wanSequenceSystemPrompt = `You are a professional video prompt engineer for WAN 2.2 (Frame-to-Frame Transition).
+Your goal is to write a prompt that bridges the gap between the Start Image and the End Image.
+
+CRITICAL RULES:
+1. DO NOT DESCRIBE THE STATIC START IMAGE.
+2. DESCRIBE THE TRANSITION: How do we get from Image A to Image B?
+3. FOCUS ON MOTION AND CHANGE.
+4. USE CAMERA TERMS if applicable (e.g., "Camera pans right to reveal...").
+5. ENGLISH ONLY.
+
+OUTPUT:
+A single, high-quality transition prompt in English. No meta-talk.`;
+
     let chatSystemPrompt;
     if (modeType === 'wan-camera') {
       chatSystemPrompt = cameraTimelinePrompt;
     } else if (modeType === 'ovi-10s') {
       chatSystemPrompt = oviSystemPrompt;
+    } else if (modeType === 'wan-single') {
+      chatSystemPrompt = wanSingleSystemPrompt;
+    } else if (modeType === 'wan-sequence') {
+      chatSystemPrompt = wanSequenceSystemPrompt;
     } else {
       chatSystemPrompt = 'You write ONE video transition. FORBIDDEN: "Scene 1", "Scene 2", "Combining these", story explanations. OUTPUT: Single transition description in English.';
     }
 
     const fallbackSystemPrompt = modeType === 'wan-camera'
       ? cameraTimelinePrompt
-      : (modeType === 'ovi-10s' ? oviSystemPrompt : `OUTPUT ONE TRANSITION IN ENGLISH.
+      : (modeType === 'ovi-10s' ? oviSystemPrompt : (modeType === 'wan-single' ? wanSingleSystemPrompt : (modeType === 'wan-sequence' ? wanSequenceSystemPrompt : `OUTPUT ONE TRANSITION IN ENGLISH.
 
 DO NOT WRITE:
 ❌ "Scene 1: ... Scene 2: ..."
@@ -445,7 +486,7 @@ DO NOT WRITE:
 WRITE:
 ✅ "Camera [action] while [transformation]."
 
-`);
+`)));
     // Probeer eerst chat API (nieuwere Ollama versies)
     try {
       const response = await fetch(buildOllamaEndpoint(baseUrl, '/api/chat'), {

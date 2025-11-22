@@ -180,10 +180,25 @@ const elements = {
   traditionalVideoFields: document.querySelector("#traditional-video-fields"),
   dialogImage: document.querySelector("#dialog-image"),
   dialogImagePlaceholder: document.querySelector("#dialog-image-placeholder"),
-  dialogImageWrapper: document.querySelector(".dialog-image-preview"),
+  dialogImageWrapper: document.querySelector(".dialog-image-preview"), // Selects the first one (current scene)
   dialogVideo: document.querySelector("#dialog-video"),
   dialogVideoPlaceholder: document.querySelector("#dialog-video-placeholder"),
-  dialogVideoWrapper: document.querySelector(".dialog-video-preview"),
+  dialogVideoWrapper: document.querySelector(".dialog-video-preview"), // Selects the first one (current scene)
+  
+  // Next Scene Preview Elements
+  dialogShowNextScene: document.querySelector("#dialog-show-next-scene"),
+  dialogMediaContainer: document.querySelector("#dialog-media-container"),
+  dialogNextSceneMedia: document.querySelector("#dialog-next-scene-media"),
+  dialogNextImage: document.querySelector("#dialog-next-image"),
+  dialogNextImagePlaceholder: document.querySelector("#dialog-next-image-placeholder"),
+  dialogNextImageWrapper: document.querySelector("#dialog-next-image-wrapper"),
+  dialogNextVideo: document.querySelector("#dialog-next-video"),
+  dialogNextVideoPlaceholder: document.querySelector("#dialog-next-video-placeholder"),
+  dialogNextVideoWrapper: document.querySelector("#dialog-next-video-wrapper"),
+
+  // Dialog Workflow Toggle
+  dialogWorkflowMode: document.querySelector("#dialog-workflow-mode"),
+
   dialogOpenImage: document.querySelector("#dialog-open-image"),
   dialogSave: document.querySelector("#dialog-save"),
   duplicateProject: document.querySelector("#duplicate-project"),
@@ -2769,6 +2784,11 @@ function init() {
       promptDialogController.openDialoogAfbeelding().catch((error) => showError(t("errors.loadImage"), error));
     });
     elements.dialogOpenImage.disabled = true;
+  }
+  if (elements.dialogShowNextScene) {
+    elements.dialogShowNextScene.addEventListener("change", () => {
+      promptDialogController.updateTransitionView().catch(error => console.warn("Transition view update failed", error));
+    });
   }
   if (elements.exportPromptsDropdown && elements.exportChoiceDialog) {
     elements.exportPromptsDropdown.addEventListener("click", (event) => {

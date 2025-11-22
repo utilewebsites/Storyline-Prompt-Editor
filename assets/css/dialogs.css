@@ -269,7 +269,9 @@ dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content > label:last-chil
   display: block;
 }
 
-.dialog-image-preview[data-has-image="true"] #dialog-image-placeholder {
+.dialog-image-preview[data-has-image="true"] p.muted,
+.dialog-image-preview[data-has-image="true"] #dialog-image-placeholder,
+.dialog-image-preview[data-has-image="true"] #dialog-next-image-placeholder {
   display: none;
 }
 
@@ -298,7 +300,9 @@ dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content > label:last-chil
   display: block;
 }
 
-.dialog-video-preview[data-has-video="true"] #dialog-video-placeholder {
+.dialog-video-preview[data-has-video="true"] p.muted,
+.dialog-video-preview[data-has-video="true"] #dialog-video-placeholder,
+.dialog-video-preview[data-has-video="true"] #dialog-next-video-placeholder {
   display: none;
 }
 
@@ -347,4 +351,112 @@ dialog#prompt-dialog form.prompt-dialog .prompt-dialog-content > label:last-chil
 
 #edit-transition-dialog .form-section {
   margin-bottom: 1rem;
+}
+
+/* Toggle Switch for Next Scene View */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: var(--primary);
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px var(--primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(16px);
+}
+
+.slider.round {
+  border-radius: 20px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Transition View Layout - High Specificity Override */
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  width: 600px !important; /* Compact width, sharing space */
+  max-width: 90vw !important;
+  min-width: 0 !important;
+  gap: 0.75rem !important;
+}
+
+.scene-media-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.scene-media-group .media-label {
+  display: block !important;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
+/* Override the 100% width on children */
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view .dialog-image-preview,
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view .dialog-video-preview {
+  width: auto !important;
+  min-width: 0 !important;
+  height: 180px !important; /* Smaller height for compact view */
+  min-height: 0 !important;
+  padding: 0.5rem !important;
+}
+
+/* Ensure images/videos fit */
+.dialog-media-container.transition-view img,
+.dialog-media-container.transition-view video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Ensure next scene elements are hidden by default */
+#dialog-next-scene-media {
+  display: none;
+}
+
+/* Show next scene when container has class */
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view #dialog-next-scene-media {
+  display: flex !important;
 }

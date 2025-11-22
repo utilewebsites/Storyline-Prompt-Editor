@@ -656,12 +656,29 @@
       <form method="dialog" class="prompt-dialog">
         <header class="prompt-dialog-header">
           <div class="dialog-header-left">
-            <button type="button" id="dialog-prev-scene" class="dialog-nav-btn" title="Vorige scene">⬅️</button>
+            <button type="button" id="dialog-prev-scene" class="dialog-nav-btn" data-i18n-attr-title="dialog.prompt.prevScene" title="Vorige scene">⬅️</button>
             <h3 id="prompt-dialog-title">
               <span data-i18n="dialog.prompt.title">Scene</span>
               <span id="dialog-scene-index"></span>
             </h3>
-            <button type="button" id="dialog-next-scene" class="dialog-nav-btn" title="Volgende scene">➡️</button>
+            <button type="button" id="dialog-next-scene" class="dialog-nav-btn" data-i18n-attr-title="dialog.prompt.nextScene" title="Volgende scene">➡️</button>
+            
+            <div class="dialog-view-toggle" style="margin-left: 15px; display: flex; align-items: center; gap: 8px;">
+              <label class="switch" data-i18n-attr-title="dialog.prompt.toggleTransition" title="Toon volgende scene voor transitie check">
+                <input type="checkbox" id="dialog-show-next-scene">
+                <span class="slider round"></span>
+              </label>
+              <span style="font-size: 0.9em; color: var(--text-muted);" data-i18n="dialog.prompt.transitionView">Transitie View</span>
+            </div>
+
+            <div class="dialog-workflow-toggle" style="margin-left: 15px;">
+              <select id="dialog-workflow-mode" style="padding: 0.3rem; font-size: 0.9rem; border-radius: 4px; border: 1px solid var(--border);">
+                <option value="hidden" data-i18n="header.hiddenMode">Verborgen</option>
+                <option value="ai-prompt" data-i18n="header.aiPromptMode">AI Prompt</option>
+                <option value="traditional-video" data-i18n="header.traditionalMode">Traditioneel</option>
+                <option value="both" data-i18n="header.bothMode">Beide</option>
+              </select>
+            </div>
           </div>
           <menu>
           <button id="dialog-open-image" type="button" data-i18n="dialog.prompt.openImage">Open afbeelding</button>
@@ -670,18 +687,39 @@
           </menu>
         </header>
         <div class="prompt-dialog-body">
-          <div class="dialog-media-container">
-            <div class="dialog-image-preview" data-has-image="false">
-              <img id="dialog-image" alt="Scene afbeelding groot" />
-              <p class="muted" id="dialog-image-placeholder" data-i18n="dialog.prompt.noImage">
-                Nog geen afbeelding gekoppeld.
-              </p>
+          <div class="dialog-media-container" id="dialog-media-container">
+            <!-- Current Scene Media -->
+            <div class="scene-media-group current-scene">
+              <div class="media-label" style="display: none; margin-bottom: 5px; font-weight: bold; color: var(--text-color);" data-i18n="dialog.prompt.currentScene">Huidige Scene</div>
+              <div class="dialog-image-preview" data-has-image="false">
+                <img id="dialog-image" alt="Scene afbeelding groot" />
+                <p class="muted" id="dialog-image-placeholder" data-i18n="dialog.prompt.noImage">
+                  Nog geen afbeelding gekoppeld.
+                </p>
+              </div>
+              <div class="dialog-video-preview" data-has-video="false">
+                <video id="dialog-video" controls></video>
+                <p class="muted" id="dialog-video-placeholder" data-i18n="dialog.prompt.noVideo">
+                  Nog geen video gekoppeld.
+                </p>
+              </div>
             </div>
-            <div class="dialog-video-preview" data-has-video="false">
-              <video id="dialog-video" controls></video>
-              <p class="muted" id="dialog-video-placeholder">
-                Nog geen video gekoppeld.
-              </p>
+
+            <!-- Next Scene Media (Hidden by default) -->
+            <div class="scene-media-group next-scene" id="dialog-next-scene-media" style="display: none;">
+              <div class="media-label" style="margin-bottom: 5px; font-weight: bold; color: var(--text-color);" data-i18n="dialog.prompt.nextSceneLabel">Volgende Scene</div>
+              <div class="dialog-image-preview" id="dialog-next-image-wrapper" data-has-image="false">
+                <img id="dialog-next-image" alt="Volgende scene afbeelding" />
+                <p class="muted" id="dialog-next-image-placeholder" data-i18n="dialog.prompt.noNextImage">
+                  Geen afbeelding.
+                </p>
+              </div>
+              <div class="dialog-video-preview" id="dialog-next-video-wrapper" data-has-video="false">
+                <video id="dialog-next-video" controls></video>
+                <p class="muted" id="dialog-next-video-placeholder" data-i18n="dialog.prompt.noNextVideo">
+                  Geen video.
+                </p>
+              </div>
             </div>
           </div>
           <div class="prompt-dialog-content">
@@ -1152,6 +1190,106 @@
                 <div id="ai-mode-help-details" class="ai-mode-help-details" hidden></div>
               </div>
               <div id="ai-quick-inserts" class="ai-quick-inserts" hidden>
+                <div id="ai-quick-wan-single" class="ai-quick-group" hidden>
+                  <div class="ai-quick-group-info">
+                    <strong data-i18n="aiPrompt.quickInsertWanSingleLabel">Beweging snelkiezers</strong>
+                    <p data-i18n="aiPrompt.quickInsertWanSingleHint">Voeg direct camerabeweging of actiecommando's toe.</p>
+                  </div>
+                  <div class="ai-quick-buttons">
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplatePanLeft">
+                      <span data-i18n="aiPrompt.quickInsertPanLeft">Pan Links</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplatePanRight">
+                      <span data-i18n="aiPrompt.quickInsertPanRight">Pan Rechts</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateTiltUp">
+                      <span data-i18n="aiPrompt.quickInsertTiltUp">Tilt Omhoog</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateTiltDown">
+                      <span data-i18n="aiPrompt.quickInsertTiltDown">Tilt Omlaag</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateDollyIn">
+                      <span data-i18n="aiPrompt.quickInsertDollyIn">Dolly In</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateDollyOut">
+                      <span data-i18n="aiPrompt.quickInsertDollyOut">Dolly Uit</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateOrbit">
+                      <span data-i18n="aiPrompt.quickInsertOrbit">Orbital Arc</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateRoll">
+                      <span data-i18n="aiPrompt.quickInsertRoll">Camera Roll</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateSlowMo">
+                      <span data-i18n="aiPrompt.quickInsertSlowMo">Slow Motion</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateWhipPan">
+                      <span data-i18n="aiPrompt.quickInsertWhipPan">Whip Pan</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCrashZoom">
+                      <span data-i18n="aiPrompt.quickInsertCrashZoom">Crash Zoom</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateTracking">
+                      <span data-i18n="aiPrompt.quickInsertTracking">Tracking Shot</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCraneUp">
+                      <span data-i18n="aiPrompt.quickInsertCraneUp">Crane Omhoog</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCraneDown">
+                      <span data-i18n="aiPrompt.quickInsertCraneDown">Crane Omlaag</span>
+                    </button>
+                  </div>
+                </div>
+                <div id="ai-quick-wan-sequence" class="ai-quick-group" hidden>
+                  <div class="ai-quick-group-info">
+                    <strong data-i18n="aiPrompt.quickInsertWanSequenceLabel">Transitie snelkiezers</strong>
+                    <p data-i18n="aiPrompt.quickInsertWanSequenceHint">Voeg direct transitielogica toe.</p>
+                  </div>
+                  <div class="ai-quick-buttons">
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplatePanLeft">
+                      <span data-i18n="aiPrompt.quickInsertPanLeft">Pan Links</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplatePanRight">
+                      <span data-i18n="aiPrompt.quickInsertPanRight">Pan Rechts</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateTiltUp">
+                      <span data-i18n="aiPrompt.quickInsertTiltUp">Tilt Omhoog</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateTiltDown">
+                      <span data-i18n="aiPrompt.quickInsertTiltDown">Tilt Omlaag</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateDollyIn">
+                      <span data-i18n="aiPrompt.quickInsertDollyIn">Dolly In</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateDollyOut">
+                      <span data-i18n="aiPrompt.quickInsertDollyOut">Dolly Uit</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateWhipPan">
+                      <span data-i18n="aiPrompt.quickInsertWhipPan">Whip Pan</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCrashZoom">
+                      <span data-i18n="aiPrompt.quickInsertCrashZoom">Crash Zoom</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateSlowMo">
+                      <span data-i18n="aiPrompt.quickInsertSlowMo">Slow Motion</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateTracking">
+                      <span data-i18n="aiPrompt.quickInsertTracking">Tracking Shot</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateOrbit">
+                      <span data-i18n="aiPrompt.quickInsertOrbit">Orbital Arc</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateRoll">
+                      <span data-i18n="aiPrompt.quickInsertRoll">Camera Roll</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCraneUp">
+                      <span data-i18n="aiPrompt.quickInsertCraneUp">Crane Omhoog</span>
+                    </button>
+                    <button type="button" class="ai-quick-btn" data-quick-template="quickTemplateCraneDown">
+                      <span data-i18n="aiPrompt.quickInsertCraneDown">Crane Omlaag</span>
+                    </button>
+                  </div>
+                </div>
                 <div id="ai-quick-camera" class="ai-quick-group" hidden>
                   <div class="ai-quick-group-info">
                     <strong data-i18n="aiPrompt.quickInsertCameraLabel">Camera beweging snelkiezers</strong>

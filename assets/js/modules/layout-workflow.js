@@ -57,13 +57,21 @@ export function createLayoutWorkflowController({
    * helpteksten en dialogvelden correct wisselen.
    */
   function koppelWorkflowSelector() {
-    if (!elements?.workflowMode || typeof onWorkflowModeChange !== "function") {
+    if (typeof onWorkflowModeChange !== "function") {
       return;
     }
 
-    elements.workflowMode.addEventListener("change", (event) => {
-      onWorkflowModeChange(event.target.value);
-    });
+    if (elements?.workflowMode) {
+      elements.workflowMode.addEventListener("change", (event) => {
+        onWorkflowModeChange(event.target.value);
+      });
+    }
+
+    if (elements?.dialogWorkflowMode) {
+      elements.dialogWorkflowMode.addEventListener("change", (event) => {
+        onWorkflowModeChange(event.target.value);
+      });
+    }
   }
 
   /**

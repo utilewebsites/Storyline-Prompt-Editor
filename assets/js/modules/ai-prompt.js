@@ -227,12 +227,18 @@ export function createAIPromptController({ state, elements, localState, renderPr
   }
 
   function updateQuickInsertVisibility(mode) {
+    const showWanSingle = mode === MODE_TYPES.WAN_SINGLE;
+    const showWanSequence = isSequenceMode(mode);
     const showCamera = mode === MODE_TYPES.WAN_CAMERA;
     const showOvi = isOviMode(mode);
+
+    toggleQuickGroup(elements.aiQuickWanSingleGroup, showWanSingle);
+    toggleQuickGroup(elements.aiQuickWanSequenceGroup, showWanSequence);
     toggleQuickGroup(elements.aiQuickCameraGroup, showCamera);
     toggleQuickGroup(elements.aiQuickOviGroup, showOvi);
+
     if (elements.aiQuickInsertContainer) {
-      const shouldShow = showCamera || showOvi;
+      const shouldShow = showWanSingle || showWanSequence || showCamera || showOvi;
       elements.aiQuickInsertContainer.hidden = !shouldShow;
       elements.aiQuickInsertContainer.style.display = shouldShow ? "block" : "none";
     }

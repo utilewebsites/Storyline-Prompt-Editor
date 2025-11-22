@@ -131,6 +131,16 @@ const translations = {
         loadFailed: "Afbeelding laden mislukt.",
         loadingImage: "Afbeelding wordt geladen...",
         rating: "Rating (1-5 sterren)",
+        prevScene: "Vorige scene",
+        nextScene: "Volgende scene",
+        transitionView: "Transitie View",
+        toggleTransition: "Toon volgende scene voor transitie check",
+        currentScene: "Huidige Scene",
+        nextSceneLabel: "Volgende Scene",
+        noVideo: "Nog geen video gekoppeld.",
+        noNextImage: "Geen afbeelding.",
+        noNextVideo: "Geen video.",
+        endOfProject: "Einde project",
       },
       traditional: {
         title: "Traditionele Video Storyline",
@@ -287,18 +297,17 @@ const translations = {
       modeHelpReadMore: "Lees meer",
       modeHelpReadLess: "Verberg uitleg",
       modeDetailDefault: `<p>Selecteer een modus om uitgebreide workflowtips, voorbeeldprompts en relevante links te tonen.</p>`,
-      modeDetailWanSingle: `<p>Lightning-versneld WAN 2.2 Image → Video geeft een stabiele 5s prompt die de volledige beeldanalyse benut. Gebruik het voor establishing shots of snelle inserts en voeg extra instructies toe voor specifieke acties.</p>
+      modeDetailWanSingle: `<p><strong>WAN 2.2 Image-to-Video (I2V)</strong> vereist een specifieke prompt-strategie: <strong>beschrijf NIET de statische afbeelding</strong> (de AI ziet die al), maar focus puur op <strong>beweging en verandering</strong>.</p>
       <ul>
-        <li>Focus op 1 onderwerp en 1 duidelijke cameraactie voor maximale coherentie.</li>
-        <li>Gebruik de extra instructies om stijl, lens en ritme op te leggen (bijv. "handheld neon noir").</li>
-        <li>Combineer met Lightning-profiel voor betere interpretatie van licht, reflecties en beweging.</li>
+        <li><strong>Motion-First:</strong> Gebruik werkwoorden en cameratermen (Pan, Tilt, Dolly, Orbit).</li>
+        <li><strong>Wat gebeurt er?</strong> Beschrijf actie, wind, lichtverandering of emotie.</li>
+        <li><strong>Voorbeeld:</strong> "Camera slowly dollies out to reveal the landscape, wind whips through the trees."</li>
       </ul>`,
-      modeDetailWanSequence: `<p>Frame-to-frame volgt de WAN 2.2 FLF (First-Last Frame) aanpak: één prompt beschrijft hoe beeld A metamorfoseert naar beeld B met 2 à 3 magische beats.</p>
-      <p>Belangrijk:</p>
+      modeDetailWanSequence: `<p><strong>WAN 2.2 Frame-to-Frame (FLF)</strong> verbindt twee beelden. De prompt moet de <strong>transitie</strong> beschrijven, niet de statische beelden.</p>
       <ul>
-        <li>Noem tastbare elementen uit beide beelden (outfits, props, licht).</li>
-        <li>Beschrijf camera + sfeer bij elke beat zodat de video-AI precies weet hoe de transitie aanvoelt.</li>
-        <li>Gebruik de bronnen onderaan voor inspiratie op compositie en timing.</li>
+        <li><strong>Focus op de brug:</strong> Hoe komen we van A naar B? (Morph, Fade, Camera move).</li>
+        <li><strong>Beweging:</strong> Beschrijf de actie die de twee beelden verbindt.</li>
+        <li><strong>Voorbeeld:</strong> "Camera pans right from the forest into the city street, lighting shifts from natural to neon."</li>
       </ul>
       <p>Bronnen:
         <a href="https://www.nextdiffusion.ai/tutorials/wan-22-first-last-frame-video-generation-in-comfyui" target="_blank" rel="noopener noreferrer">NextDiffusion</a> ·
@@ -327,6 +336,38 @@ const translations = {
       extraPlaceholderWanSequence: "Beschrijf hoe beeld 1 transformeert naar beeld 2 in 2-3 beats. Noem start- en einddetails, camera-actie en licht per beat zodat de overgang duidelijk blijft.",
       extraPlaceholderWanCamera: "Schrijf per seconde wat er gebeurt: 'at 0 seconds: ...', 'at 1 second: ...'. Benoem camera type, beweging, onderwerp en licht voor de timeline.",
       extraPlaceholderOvi: "Omschrijf de scène, voeg dialogen toe met <S>…<E>, benoem mimiek/lichaamstaal en sluit af met 'Audio: ...' voor soundtrack en achtergrondgeluiden.",
+      quickInsertWanSingleLabel: "Beweging snelkiezers",
+      quickInsertWanSingleHint: "Voeg direct camerabeweging of actiecommando's toe.",
+      quickInsertWanSequenceLabel: "Transitie snelkiezers",
+      quickInsertWanSequenceHint: "Voeg direct transitielogica toe.",
+      quickInsertPanLeft: "Pan Links",
+      quickInsertPanRight: "Pan Rechts",
+      quickInsertTiltUp: "Tilt Omhoog",
+      quickInsertTiltDown: "Tilt Omlaag",
+      quickInsertDollyIn: "Dolly In",
+      quickInsertDollyOut: "Dolly Uit",
+      quickInsertOrbit: "Orbital Arc",
+      quickInsertRoll: "Camera Roll",
+      quickInsertSlowMo: "Slow Motion",
+      quickInsertWhipPan: "Whip Pan",
+      quickInsertCrashZoom: "Crash Zoom",
+      quickInsertTracking: "Tracking Shot",
+      quickInsertCraneUp: "Crane Omhoog",
+      quickInsertCraneDown: "Crane Omlaag",
+      quickTemplatePanLeft: "Camera pant naar links om te onthullen...",
+      quickTemplatePanRight: "Camera pant naar rechts om te volgen...",
+      quickTemplateTiltUp: "Camera tilt omhoog om te tonen...",
+      quickTemplateTiltDown: "Camera tilt omlaag om te focussen op...",
+      quickTemplateDollyIn: "Camera dolliet in om te benadrukken...",
+      quickTemplateDollyOut: "Camera dolliet uit om context te tonen...",
+      quickTemplateOrbit: "Camera maakt een orbitale boog rond het onderwerp...",
+      quickTemplateRoll: "Camera rolt lichtjes voor desoriëntatie...",
+      quickTemplateSlowMo: "Actie verloopt in slow-motion...",
+      quickTemplateWhipPan: "Camera whip-pant naar het volgende onderwerp...",
+      quickTemplateCrashZoom: "Camera crash-zoomt op het gezicht...",
+      quickTemplateTracking: "Camera trackt mee met het onderwerp...",
+      quickTemplateCraneUp: "Camera crant omhoog voor een vogelperspectief...",
+      quickTemplateCraneDown: "Camera crant omlaag naar grondniveau...",
       quickInsertCameraLabel: "Camera beweging snelkiezers",
       quickInsertCameraHint: "Gebruik deze sjablonen om in één klik een per-seconde timeline te vullen en pas daarna de details aan.",
       quickInsertOviLabel: "OVI spraak/audio snelkiezers",
@@ -548,6 +589,16 @@ const translations = {
         loadFailed: "Failed to load image.",
         loadingImage: "Loading image...",
         rating: "Rating (1-5 stars)",
+        prevScene: "Previous scene",
+        nextScene: "Next scene",
+        transitionView: "Transition View",
+        toggleTransition: "Show next scene for transition check",
+        currentScene: "Current Scene",
+        nextSceneLabel: "Next Scene",
+        noVideo: "No video linked yet.",
+        noNextImage: "No image.",
+        noNextVideo: "No video.",
+        endOfProject: "End of project",
       },
       traditional: {
         title: "Traditional Video Storyline",
@@ -744,6 +795,38 @@ const translations = {
       extraPlaceholderWanSequence: "Explain how frame 1 morphs into frame 2 in 2-3 beats. Mention starting cues, ending details, camera motion and lighting for each beat.",
       extraPlaceholderWanCamera: "Write per-second beats: 'at 0 seconds: ...', 'at 1 second: ...'. Include camera type, movement, subject focus and lighting so the timeline stays precise.",
       extraPlaceholderOvi: "Describe the scene, add dialogue using <S>…<E>, mention facial acting/body language and close with 'Audio: ...' for soundtrack plus ambience.",
+      quickInsertWanSingleLabel: "Movement presets",
+      quickInsertWanSingleHint: "Add camera motion or action commands instantly.",
+      quickInsertWanSequenceLabel: "Transition presets",
+      quickInsertWanSequenceHint: "Add transition logic commands instantly.",
+      quickInsertPanLeft: "Pan Left",
+      quickInsertPanRight: "Pan Right",
+      quickInsertTiltUp: "Tilt Up",
+      quickInsertTiltDown: "Tilt Down",
+      quickInsertDollyIn: "Dolly In",
+      quickInsertDollyOut: "Dolly Out",
+      quickInsertOrbit: "Orbital Arc",
+      quickInsertRoll: "Camera Roll",
+      quickInsertSlowMo: "Slow Motion",
+      quickInsertWhipPan: "Whip Pan",
+      quickInsertCrashZoom: "Crash Zoom",
+      quickInsertTracking: "Tracking Shot",
+      quickInsertCraneUp: "Crane Up",
+      quickInsertCraneDown: "Crane Down",
+      quickTemplatePanLeft: "Camera pans left to reveal...",
+      quickTemplatePanRight: "Camera pans right to follow...",
+      quickTemplateTiltUp: "Camera tilts up to show...",
+      quickTemplateTiltDown: "Camera tilts down to focus on...",
+      quickTemplateDollyIn: "Camera dollies in to emphasize...",
+      quickTemplateDollyOut: "Camera dollies out to reveal context...",
+      quickTemplateOrbit: "Camera performs an orbital arc around the subject...",
+      quickTemplateRoll: "Camera rolls slightly to create disorientation...",
+      quickTemplateSlowMo: "Action unfolds in slow-motion...",
+      quickTemplateWhipPan: "Camera whip-pans to the next subject...",
+      quickTemplateCrashZoom: "Camera crash-zooms onto the face...",
+      quickTemplateTracking: "Camera tracks alongside the subject...",
+      quickTemplateCraneUp: "Camera cranes up for a high-angle view...",
+      quickTemplateCraneDown: "Camera cranes down to ground level...",
       quickInsertCameraLabel: "Camera movement presets",
       quickInsertCameraHint: "Drop in a per-second timeline with one click and customize the details immediately.",
       quickInsertOviLabel: "OVI speech/audio presets",
