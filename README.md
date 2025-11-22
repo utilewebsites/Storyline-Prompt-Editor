@@ -1,7 +1,6 @@
 
 # Storyline Prompt Editor
 
-[![Bekijk de demo op YouTube](https://img.youtube.com/vi/gxHS0iwoO0U/0.jpg)](https://youtu.be/gxHS0iwoO0U?si=gFUd9JmBjGY3Wzks)
 
 This project is a browser-based workspace for crafting video LLM prompts while steadily tracking the entire storyline of your production. It was built to make it easy to manage prompts, starter/ending images, translations, and project notes in one place and to carry that context across machines.
 
@@ -318,6 +317,10 @@ storylineprompteditor/
 - No build step is required; everything is native HTML/CSS/JS.
 - If you copy this folder to another machine, just run `./server.sh start` and continue working.
 - Feel free to extend `assets/js/translations.js` with additional languages or tweak styles in `assets/css/style.css`.
+
+First version 1.0
+
+[![Bekijk de demo op YouTube](https://img.youtube.com/vi/gxHS0iwoO0U/0.jpg)](https://youtu.be/gxHS0iwoO0U?si=gFUd9JmBjGY3Wzks)
 
 ---
 

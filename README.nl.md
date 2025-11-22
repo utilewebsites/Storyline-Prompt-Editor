@@ -1,8 +1,6 @@
 
 # Storyline Prompt Editor
 
-[![Bekijk de demo op YouTube](https://img.youtube.com/vi/gxHS0iwoO0U/0.jpg)](https://youtu.be/gxHS0iwoO0U?si=gFUd9JmBjGY3Wzks)
-
 Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-prompts, inclusief start- en eindbeelden én overzicht over de volledige verhaallijn. Je kunt projecten bewaren, scènes herschikken en exports maken, zodat je altijd grip houdt op je videoverhaal.
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
@@ -310,6 +308,9 @@ storylineprompteditor/
 - Geen build-stap nodig; pure HTML/CSS/JS.
 - Kopieer de map naar een andere machine, start `./server.sh` en ga direct verder.
 - Uitbreiden met extra talen? Voeg ze toe in `assets/js/translations.js`. Styling aanpassen kan via `assets/css/style.css`.
+
+Eerste versie 1.0:
+[![Bekijk de demo op YouTube](https://img.youtube.com/vi/gxHS0iwoO0U/0.jpg)](https://youtu.be/gxHS0iwoO0U?si=gFUd9JmBjGY3Wzks)
 
 ---
 
