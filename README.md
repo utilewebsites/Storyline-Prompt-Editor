@@ -4,7 +4,7 @@
 
 This project is a browser-based workspace for crafting video LLM prompts while steadily tracking the entire storyline of your production. It was built to make it easy to manage prompts, starter/ending images, translations, and project notes in one place and to carry that context across machines.
 
-![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
+![Storyline Prompt Editor Screenshot](docs/images/screenshot_en.png)
 
 
 ## Update — 19 November, version 3.0
