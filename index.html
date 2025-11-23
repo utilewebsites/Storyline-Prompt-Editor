@@ -690,7 +690,10 @@
           <div class="dialog-media-container" id="dialog-media-container">
             <!-- Current Scene Media -->
             <div class="scene-media-group current-scene">
-              <div class="media-label" style="display: none; margin-bottom: 5px; font-weight: bold; color: var(--text-color);" data-i18n="dialog.prompt.currentScene">Huidige Scene</div>
+              <div class="media-label" style="display: none; margin-bottom: 5px; font-weight: bold; color: var(--text-color);">
+                <span class="label-default" data-i18n="dialog.prompt.currentScene">Huidige Scene</span>
+                <span class="label-transition" data-i18n="dialog.prompt.startImage" style="display: none;">Start image</span>
+              </div>
               <div class="dialog-image-preview" data-has-image="false">
                 <img id="dialog-image" alt="Scene afbeelding groot" />
                 <p class="muted" id="dialog-image-placeholder" data-i18n="dialog.prompt.noImage">
@@ -703,11 +706,15 @@
                   Nog geen video gekoppeld.
                 </p>
               </div>
+              <div class="media-label-bottom" style="display: none; margin-top: 5px; text-align: center; font-weight: bold; color: var(--text-color);" data-i18n="dialog.prompt.currentScene">Huidige Scene</div>
             </div>
 
             <!-- Next Scene Media (Hidden by default) -->
             <div class="scene-media-group next-scene" id="dialog-next-scene-media" style="display: none;">
-              <div class="media-label" style="margin-bottom: 5px; font-weight: bold; color: var(--text-color);" data-i18n="dialog.prompt.nextSceneLabel">Volgende Scene</div>
+              <div class="media-label" style="display: none; margin-bottom: 5px; font-weight: bold; color: var(--text-color);">
+                <span class="label-default" data-i18n="dialog.prompt.nextSceneLabel">Volgende Scene</span>
+                <span class="label-transition" data-i18n="dialog.prompt.endImage" style="display: none;">End image</span>
+              </div>
               <div class="dialog-image-preview" id="dialog-next-image-wrapper" data-has-image="false">
                 <img id="dialog-next-image" alt="Volgende scene afbeelding" />
                 <p class="muted" id="dialog-next-image-placeholder" data-i18n="dialog.prompt.noNextImage">
@@ -720,6 +727,7 @@
                   Geen video.
                 </p>
               </div>
+              <div class="media-label-bottom" style="margin-top: 5px; text-align: center; font-weight: bold; color: var(--text-color);" data-i18n="dialog.prompt.nextSceneLabel">Volgende Scene</div>
             </div>
           </div>
           <div class="prompt-dialog-content">

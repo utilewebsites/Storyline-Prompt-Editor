@@ -630,7 +630,8 @@ function createPromptCard(prompt, index) {
     const minutes = Math.floor(prompt.audioMarkerTime / 60);
     const seconds = Math.floor(prompt.audioMarkerTime % 60);
     const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    indexElement.innerHTML = `🎵 ${timeStr}`;
+    // AANGEPAST: Nu ook scene nummer tonen naast de tijd
+    indexElement.innerHTML = `🎵 ${timeStr} <span style="margin-left: 8px; color: var(--text-muted); font-size: 0.9em;">Scene ${index + 1}</span>`;
     indexElement.title = `Audio marker ${prompt.audioMarkerIndex + 1} op ${timeStr}`;
   } else {
     indexElement.textContent = t("prompts.scene", { index: index + 1 });
@@ -989,19 +990,35 @@ function handlePromptContainerDrop(event) {
  */
 async function openCopyDialog(promptId) {
   if (!elements.copyDialog) return;
-  if (!state.indexData.projects || state.indexData.projects.length <= 1) {
-    showError(t("errors.refreshProjects"));
-    return;
-  }
+  
   // Populate select with projects except the current one
   elements.copyTargetSelect.innerHTML = "";
-  const options = state.indexData.projects.filter((p) => p.id !== state.selectedProjectId);
+  const options = (state.indexData.projects || []).filter((p) => p.id !== state.selectedProjectId);
+  
   for (const p of options) {
     const opt = document.createElement("option");
     opt.value = p.id;
     opt.textContent = p.projectName;
     elements.copyTargetSelect.appendChild(opt);
   }
+
+  // Beheer status van controls afhankelijk van of er andere projecten zijn
+  const hasOtherProjects = options.length > 0;
+  elements.copyTargetSelect.disabled = !hasOtherProjects;
+  if (elements.copyConfirm) {
+    elements.copyConfirm.disabled = !hasOtherProjects;
+    // Visuele feedback voor disabled state
+    elements.copyConfirm.style.opacity = hasOtherProjects ? "1" : "0.5";
+    elements.copyConfirm.style.cursor = hasOtherProjects ? "pointer" : "not-allowed";
+  }
+
+  // Als er geen andere projecten zijn, toon een informatieve optie
+  if (!hasOtherProjects) {
+    const opt = document.createElement("option");
+    opt.textContent = "(Geen andere projecten beschikbaar)";
+    elements.copyTargetSelect.appendChild(opt);
+  }
+
   localState.copyingPromptId = promptId;
   elements.copyDialog.showModal();
 }

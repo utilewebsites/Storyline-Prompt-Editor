@@ -433,6 +433,14 @@ dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view 
   color: var(--text-muted);
 }
 
+.scene-media-group .media-label-bottom {
+  display: none;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted);
+}
+
 /* Override the 100% width on children */
 dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view .dialog-image-preview,
 dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view .dialog-video-preview {
@@ -459,4 +467,23 @@ dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view 
 /* Show next scene when container has class */
 dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view #dialog-next-scene-media {
   display: flex !important;
+}
+
+/* Hide top labels in transition view - AANGEPAST: Nu wel tonen, maar met specifieke logica */
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view .media-label {
+  display: block !important;
+}
+
+/* Toggle between default and transition labels */
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view .media-label .label-default {
+  display: none !important;
+}
+
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view .media-label .label-transition {
+  display: inline !important;
+}
+
+/* Show bottom labels in transition view */
+dialog#prompt-dialog form.prompt-dialog .dialog-media-container.transition-view .media-label-bottom {
+  display: block !important;
 }

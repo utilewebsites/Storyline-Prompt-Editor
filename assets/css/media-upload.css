@@ -164,24 +164,9 @@
   gap: 0.75rem;
 }
 
-/* Media view modes */
-.prompts-container.media-view-images .prompt-card .image-uploader {
-  display: grid !important;
-  gap: 0.75rem;
-}
-
-.prompts-container.media-view-images .prompt-card .video-uploader {
-  display: none !important;
-}
-
-.prompts-container.media-view-videos .prompt-card .video-uploader {
-  display: grid !important;
-  gap: 0.75rem;
-}
-
-.prompts-container.media-view-videos .prompt-card .image-uploader {
-  display: none !important;
-}
+/* Media view modes - Removed to allow individual toggling */
+/* The global classes .media-view-images and .media-view-videos are now only used 
+   by JS to determine the default state for new cards, but do not enforce display via CSS. */
 
 /* Media toggle group */
 .media-toggle-group {
