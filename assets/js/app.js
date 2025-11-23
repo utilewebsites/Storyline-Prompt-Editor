@@ -993,7 +993,11 @@ async function openCopyDialog(promptId) {
   
   // Populate select with projects except the current one
   elements.copyTargetSelect.innerHTML = "";
-  const options = (state.indexData.projects || []).filter((p) => p.id !== state.selectedProjectId);
+  
+  // Gebruik state.projectData.id als huidige ID, of fallback naar state.selectedProjectId
+  const currentId = state.projectData ? state.projectData.id : state.selectedProjectId;
+  
+  const options = (state.indexData.projects || []).filter((p) => p.id !== currentId);
   
   for (const p of options) {
     const opt = document.createElement("option");

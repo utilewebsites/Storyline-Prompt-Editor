@@ -4,7 +4,7 @@
   "videoGenerator": "Veo 3",
   "notes": "Demo project for Veo 3 - An epic space adventure about a young astronaut who explores strange planets and discovers alien friendships.",
   "createdAt": "2025-10-29T20:15:00.000Z",
-  "updatedAt": "2025-10-29T20:57:20.086Z",
+  "updatedAt": "2025-11-23T15:08:42.613Z",
   "prompts": [
     {
       "id": "scene-02-launch-sequence",
@@ -12,7 +12,16 @@
       "translation": "Het ruimteschip schiet weg van het ruimtestation met prachtige blauwe vlammen. Sterren vormen lichtsporen terwijl het schip door de ruimte reist naar onbekende werelden.",
       "imagePath": "scene-02-launch-sequence.png",
       "imageOriginalName": "Spacecraft Launch Flames.png",
-      "imageType": "image/png"
+      "imageType": "image/png",
+      "rating": null,
+      "videoPath": null,
+      "videoOriginalName": null,
+      "videoType": null,
+      "attachments": [],
+      "preferredMediaType": "image",
+      "audioMarkerIndex": null,
+      "audioMarkerTime": null,
+      "isAudioLinked": false
     },
     {
       "id": "scene-01-space-station-departure",
@@ -20,7 +29,16 @@
       "translation": "Een jonge astronaut in een geavanceerd ruimtepak kijkt door het grote raam van een futuristische ruimtestation naar de sterren. Het ruimtestation draait langzaam rond een blauwe planeet terwijl het ruimteschip voor vertrek wordt voorbereid.",
       "imagePath": "scene-01-space-station-departure.png",
       "imageOriginalName": "Space Station Window View.png",
-      "imageType": "image/png"
+      "imageType": "image/png",
+      "rating": null,
+      "videoPath": null,
+      "videoOriginalName": null,
+      "videoType": null,
+      "attachments": [],
+      "preferredMediaType": "image",
+      "audioMarkerIndex": null,
+      "audioMarkerTime": null,
+      "isAudioLinked": false
     },
     {
       "id": "scene-03-crystal-planet-landing",
@@ -28,7 +46,13 @@
       "translation": "Het ruimteschip landt voorzichtig op een planeet bedekt met gigantische kristallen formaties die regenboogkleuren reflecteren. De astronaut stapt uit en kijkt verwonderd naar de glinsterende wereld.",
       "imagePath": "scene-03-crystal-planet-landing.png",
       "imageOriginalName": "Crystal Planet Landing.png",
-      "imageType": "image/png"
+      "imageType": "image/png",
+      "rating": null,
+      "videoPath": null,
+      "videoOriginalName": null,
+      "videoType": null,
+      "attachments": [],
+      "preferredMediaType": "image"
     },
     {
       "id": "scene-04-alien-creature-encounter",
@@ -36,7 +60,13 @@
       "translation": "Een vriendelijk buitenaards wezen met grote paarse ogen en een zilveren huid nadert de astronaut. Het wezen heeft tentakels die zachtjes gloeien en lijkt nieuwsgierig maar niet bedreigend.",
       "imagePath": "scene-04-alien-creature-encounter.png",
       "imageOriginalName": "First Alien Contact.png",
-      "imageType": "image/png"
+      "imageType": "image/png",
+      "rating": null,
+      "videoPath": null,
+      "videoOriginalName": null,
+      "videoType": null,
+      "attachments": [],
+      "preferredMediaType": "image"
     },
     {
       "id": "scene-05-underwater-city-exploration",
@@ -44,7 +74,13 @@
       "translation": "De astronaut en het buitenaardse wezen zwemmen samen door een onderwater kristalstad met koepelvormige gebouwen. Bioluminescente vissen zwemmen tussen de gebouwen door terwijl luchtbellen naar boven stijgen.",
       "imagePath": "scene-05-underwater-city-exploration.png",
       "imageOriginalName": "Underwater Crystal City.png",
-      "imageType": "image/png"
+      "imageType": "image/png",
+      "rating": null,
+      "videoPath": null,
+      "videoOriginalName": null,
+      "videoType": null,
+      "attachments": [],
+      "preferredMediaType": "image"
     },
     {
       "id": "scene-06-floating-islands-journey",
@@ -52,7 +88,13 @@
       "translation": "Op een andere planeet reizen de vrienden op een vliegend platform tussen zwevende eilanden. Elke eiland heeft een andere kleur atmosfeer en unieke vegetatie die zachtjes beweegt in de wind.",
       "imagePath": "scene-06-floating-islands-journey.png",
       "imageOriginalName": "Floating Islands Adventure.png",
-      "imageType": "image/png"
+      "imageType": "image/png",
+      "rating": null,
+      "videoPath": null,
+      "videoOriginalName": null,
+      "videoType": null,
+      "attachments": [],
+      "preferredMediaType": "image"
     },
     {
       "id": "scene-07-cosmic-dance-celebration",
@@ -60,7 +102,13 @@
       "translation": "In de ruimte tussen twee manen voeren de astronaut en verschillende buitenaardse vrienden een prachtige kosmische dans uit. Hun bewegingen creëren lichtsporen en sterpatronen in de donkere ruimte.",
       "imagePath": "scene-07-cosmic-dance-celebration.png",
       "imageOriginalName": "Cosmic Dance Between Moons.png",
-      "imageType": "image/png"
+      "imageType": "image/png",
+      "rating": null,
+      "videoPath": null,
+      "videoOriginalName": null,
+      "videoType": null,
+      "attachments": [],
+      "preferredMediaType": "image"
     },
     {
       "id": "scene-08-return-home-reflection",
@@ -68,7 +116,14 @@
       "translation": "Terug in het ruimteschip, kijkt de astronaut door het raam naar alle planeten die bezocht zijn. In de reflectie van het raam zijn alle buitenaardse vrienden zichtbaar, als herinneringen aan het onvergetelijke avontuur.",
       "imagePath": "scene-08-return-home-reflection.png",
       "imageOriginalName": "Journey Reflection Window.png",
-      "imageType": "image/png"
+      "imageType": "image/png",
+      "rating": null,
+      "videoPath": null,
+      "videoOriginalName": null,
+      "videoType": null,
+      "attachments": [],
+      "preferredMediaType": "image"
     }
-  ]
+  ],
+  "transitions": []
 }
