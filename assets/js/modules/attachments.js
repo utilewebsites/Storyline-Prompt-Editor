@@ -358,7 +358,11 @@ async function loadAttachmentPreview(filename, projectAttachmentsHandle, promptI
     cache.set(filename, blobUrl);
     return blobUrl;
   } catch (error) {
-    console.warn("Attachment preview laden mislukt:", error);
+    if (error.name === 'NotFoundError') {
+      console.log(`[Attachments] Bestand niet gevonden: ${filename}`);
+    } else {
+      console.warn("Attachment preview laden mislukt:", error);
+    }
     throw error;
   }
 }
@@ -528,4 +532,16 @@ export function clearAttachmentCache(promptId) {
     cache.forEach(url => URL.revokeObjectURL(url));
     attachmentCache.delete(promptId);
   }
+}
+
+/**
+ * Clear alle attachment caches en revoke URLs
+ * Roep dit aan bij het wisselen van project
+ */
+export function clearAllAttachmentCaches() {
+  attachmentCache.forEach((cache) => {
+    cache.forEach(url => URL.revokeObjectURL(url));
+  });
+  attachmentCache.clear();
+  console.log("[Memory] Attachment cache opgeruimd");
 }

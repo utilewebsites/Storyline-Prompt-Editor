@@ -35,7 +35,7 @@ export async function handleImageUpload(promptId, file, uploader, state, imageMa
     uploader.dataset.hasImage = "true";
     placeholder.textContent = file.name;
     
-    await loadImagePreview(filename, img, state.projectImagesHandle);
+    await loadImagePreview(filename, img, state.projectImagesHandle, promptId);
     
     onDirty();
   } catch (error) {
@@ -103,7 +103,7 @@ export async function handleVideoUpload(promptId, file, uploader, state, videoMa
     uploader.dataset.hasVideo = "true";
     placeholder.textContent = file.name;
     
-    await loadVideoPreview(filename, video, state.projectVideosHandle);
+    await loadVideoPreview(filename, video, state.projectVideosHandle, promptId);
     
     onDirty();
   } catch (error) {

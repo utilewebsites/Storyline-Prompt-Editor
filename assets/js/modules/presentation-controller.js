@@ -62,12 +62,16 @@ export function createPresentationController({
 
   /**
    * Bepaal welke scene bij een specifieke tijd hoort.
+   * Wordt aangeroepen vanuit presentation.js met (state, time).
    */
-  function getSceneIndexAtTime(time) {
+  function getSceneIndexAtTime(_state, time) {
+    // Support voor beide signatures: (state, time) of (time)
+    const actualTime = typeof time === 'number' ? time : (typeof _state === 'number' ? _state : 0);
+
     if (!localState.presentationMode.audioMarkers || !state.projectData) return -1;
     let activeMarkerIndex = -1;
     for (let i = localState.presentationMode.audioMarkers.length - 1; i >= 0; i--) {
-      if (time >= localState.presentationMode.audioMarkers[i]) {
+      if (actualTime >= localState.presentationMode.audioMarkers[i]) {
         activeMarkerIndex = i;
         break;
       }
@@ -108,9 +112,10 @@ export function createPresentationController({
     const videoContainer = document.querySelector(".slide-video-container");
     if (!imageContainer || !videoContainer) return;
     const currentSlideIndex = localState.presentationMode.currentSlide;
-    const currentPrompt = state.projectData.prompts.find((p) =>
-      p.isAudioLinked && p.audioMarkerIndex === currentSlideIndex
-    ) || state.projectData.prompts[currentSlideIndex];
+    
+    // FIX: currentSlideIndex is de prompt index.
+    const currentPrompt = state.projectData.prompts[currentSlideIndex];
+    
     const useVideo = currentPrompt && currentPrompt.preferredMediaType === "video";
     imageContainer.dataset.active = useVideo ? "false" : "true";
     videoContainer.dataset.active = useVideo ? "true" : "false";
@@ -129,9 +134,8 @@ export function createPresentationController({
       const mode = elements.presentationMode ? elements.presentationMode.value : "audio-image";
       const currentSlideIndex = localState.presentationMode.currentSlide;
       const prompt = state.projectData.prompts[currentSlideIndex];
-      const actualScene = mode === "audio-mixed"
-        ? (state.projectData.prompts.find((p) => p.isAudioLinked && p.audioMarkerIndex === currentSlideIndex) || prompt)
-        : prompt;
+      // FIX: currentSlideIndex is prompt index.
+      const actualScene = prompt;
 
       if (mode === "audio-video") {
         await updateAudioVideoSlide(prompt);

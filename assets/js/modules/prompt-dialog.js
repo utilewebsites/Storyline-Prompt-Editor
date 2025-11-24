@@ -1,3 +1,5 @@
+import { loadImagePreview, loadVideoPreview, isMediaCached } from "./media-handlers.js";
+
 /**
  * modules/prompt-dialog.js
  *
@@ -18,13 +20,15 @@ export function createPromptDialogController({
   renderStarWidget,
   applyWorkflowModeToDialog,
   updateHelpTexts,
+  initializeSceneNotes,
 }) {
   function resetDialoogAfbeelding(message = t("dialog.prompt.noImage")) {
     if (!elements.dialogImageWrapper) return;
-    if (localState.dialogImageUrl) {
-      URL.revokeObjectURL(localState.dialogImageUrl);
-      localState.dialogImageUrl = null;
-    }
+    // URL revocation is now handled by media-handlers.js cache
+    // if (localState.dialogImageUrl) {
+    //   URL.revokeObjectURL(localState.dialogImageUrl);
+    //   localState.dialogImageUrl = null;
+    // }
     elements.dialogImageWrapper.dataset.hasImage = "false";
     if (elements.dialogImage) {
       elements.dialogImage.src = "";
@@ -41,15 +45,21 @@ export function createPromptDialogController({
       return;
     }
     try {
-      const fileHandle = await state.projectImagesHandle.getFileHandle(prompt.imagePath);
-      const file = await fileHandle.getFile();
-      const blobUrl = URL.createObjectURL(file);
-      resetDialoogAfbeelding();
-      elements.dialogImageWrapper.dataset.hasImage = "true";
-      if (elements.dialogImage) {
-        elements.dialogImage.src = blobUrl;
+      // Gebruik centrale media handler met caching
+      const success = await loadImagePreview(
+        prompt.imagePath, 
+        elements.dialogImage, 
+        state.projectImagesHandle, 
+        prompt.id
+      );
+      
+      // Check of laden gelukt is
+      if (success) {
+        elements.dialogImageWrapper.dataset.hasImage = "true";
+      } else {
+        // Failed to load
+        resetDialoogAfbeelding(t("dialog.prompt.loadFailed"));
       }
-      localState.dialogImageUrl = blobUrl;
     } catch (error) {
       console.warn("Afbeelding voor dialoog laden mislukt", error);
       resetDialoogAfbeelding(t("dialog.prompt.loadFailed"));
@@ -58,6 +68,22 @@ export function createPromptDialogController({
 
   async function laadDialoogVideo(prompt) {
     if (!elements.dialogVideoWrapper) return;
+
+    // Check toggle state
+    const showVideo = elements.dialogShowVideo ? elements.dialogShowVideo.checked : false;
+    if (!showVideo) {
+      elements.dialogVideoWrapper.style.display = "none";
+      // Pause video if it was playing and clear src to stop loading
+      if (elements.dialogVideo) {
+        elements.dialogVideo.pause();
+        elements.dialogVideo.removeAttribute("src");
+        elements.dialogVideo.src = "";
+        elements.dialogVideo.load();
+      }
+      return;
+    }
+    elements.dialogVideoWrapper.style.display = "flex";
+
     if (!prompt.videoPath || !state.projectVideosHandle) {
       elements.dialogVideoWrapper.dataset.hasVideo = "false";
       if (elements.dialogVideo) {
@@ -65,27 +91,47 @@ export function createPromptDialogController({
         elements.dialogVideo.load();
       }
       if (elements.dialogVideoPlaceholder) {
-        elements.dialogVideoPlaceholder.textContent = "Nog geen video gekoppeld.";
+        elements.dialogVideoPlaceholder.textContent = t("dialog.prompt.noVideo");
       }
       return;
     }
     try {
-      const fileHandle = await state.projectVideosHandle.getFileHandle(prompt.videoPath);
-      const file = await fileHandle.getFile();
-      const blobUrl = URL.createObjectURL(file);
-      elements.dialogVideoWrapper.dataset.hasVideo = "true";
-      if (elements.dialogVideo) {
-        elements.dialogVideo.src = blobUrl;
+      // Gebruik centrale media handler met caching
+      const success = await loadVideoPreview(
+        prompt.videoPath,
+        elements.dialogVideo,
+        state.projectVideosHandle,
+        prompt.id
+      );
+
+      // Race condition check: als gebruiker tijdens laden heeft uitgezet
+      if (elements.dialogShowVideo && !elements.dialogShowVideo.checked) {
+        elements.dialogVideo.removeAttribute("src");
         elements.dialogVideo.load();
+        return;
+      }
+
+      // Check of laden gelukt is
+      if (success) {
+        elements.dialogVideoWrapper.dataset.hasVideo = "true";
+      } else {
+        // Failed
+        elements.dialogVideoWrapper.dataset.hasVideo = "false";
+        if (elements.dialogVideoPlaceholder) {
+          elements.dialogVideoPlaceholder.textContent = t("dialog.prompt.videoLoadFailed") || "Video laden mislukt";
+        }
       }
     } catch (error) {
       console.warn("Video voor dialoog laden mislukt", error);
       elements.dialogVideoWrapper.dataset.hasVideo = "false";
       if (elements.dialogVideoPlaceholder) {
-        elements.dialogVideoPlaceholder.textContent = "Video laden mislukt";
+        elements.dialogVideoPlaceholder.textContent = t("dialog.prompt.videoLoadFailed") || "Video laden mislukt";
       }
     }
   }
+
+  // Debounce timer voor media loading
+  let mediaLoadTimeout = null;
 
   async function openPromptDialoog(promptId) {
     if (!elements.promptDialog || !state.projectData) return;
@@ -93,7 +139,14 @@ export function createPromptDialogController({
     if (!prompt) return;
 
     localState.dialogPromptId = promptId;
-    resetDialoogAfbeelding(prompt.imagePath ? t("dialog.prompt.loadingImage") : t("dialog.prompt.noImage"));
+    
+    // Optimalisatie: alleen resetten als afbeelding NIET in cache zit
+    const isCached = isMediaCached(promptId, 'image');
+    if (!isCached || !prompt.imagePath) {
+      resetDialoogAfbeelding(prompt.imagePath ? t("dialog.prompt.loadingImage") : t("dialog.prompt.noImage"));
+    }
+    // Als wel cached, laten we de oude afbeelding staan tot de nieuwe (direct) geladen is
+    // Dit voorkomt flikkering
 
     const sceneIndex = state.projectData.prompts.indexOf(prompt) + 1;
     const totaalScenes = state.projectData.prompts.length;
@@ -149,15 +202,34 @@ export function createPromptDialogController({
       });
     }
 
-    updateHelpTexts();
+    // Initialize notes button in dialog
+    const notesBtn = elements.promptDialog.querySelector("#dialog-notes-button");
+    if (notesBtn && initializeSceneNotes) {
+      // Clone to remove old listeners
+      const newNotesBtn = notesBtn.cloneNode(true);
+      notesBtn.parentNode.replaceChild(newNotesBtn, notesBtn);
+      
+      // Initialize with new button
+      initializeSceneNotes(elements.promptDialog, prompt, () => {
+         flagProjectDirty({ refreshEditor: false, refreshList: false });
+      });
+    }
 
-    elements.promptDialog.returnValue = "";
     elements.promptDialog.showModal();
-
-    await laadDialoogAfbeelding(prompt);
-    await laadDialoogVideo(prompt);
-    await updateTransitionView();
     applyTranslations(elements.promptDialog);
+
+    // Debounce media loading: wacht 150ms voordat we echt gaan laden
+    // Dit voorkomt "tig blob urls" als de gebruiker snel door scenes klikt
+    if (mediaLoadTimeout) {
+      clearTimeout(mediaLoadTimeout);
+    }
+
+    mediaLoadTimeout = setTimeout(() => {
+      // Parallel laden zonder te wachten (fire-and-forget)
+      laadDialoogAfbeelding(prompt);
+      laadDialoogVideo(prompt);
+      updateTransitionView();
+    }, 150);
   }
 
   function navigeerPromptDialoogScene(richting) {
@@ -185,7 +257,8 @@ export function createPromptDialogController({
         const durationValue = parseFloat(elements.dialogDuration.value);
         huidigePrompt.duration = Number.isNaN(durationValue) ? "" : durationValue.toFixed(2);
       }
-      flagProjectDirty();
+      // Optimalisatie: niet de hele editor verversen tijdens navigatie in popup
+      flagProjectDirty({ refreshEditor: false, refreshList: false });
     }
 
     const nieuwePrompt = state.projectData.prompts[nieuweIndex];
@@ -307,17 +380,21 @@ export function createPromptDialogController({
     }
 
     try {
-      const fileHandle = await state.projectImagesHandle.getFileHandle(prompt.imagePath);
-      const file = await fileHandle.getFile();
-      const blobUrl = URL.createObjectURL(file);
+      // Gebruik centrale media handler met caching
+      const success = await loadImagePreview(
+        prompt.imagePath,
+        elements.dialogNextImage,
+        state.projectImagesHandle,
+        prompt.id
+      );
       
-      elements.dialogNextImageWrapper.dataset.hasImage = "true";
-      if (elements.dialogNextImage) {
-        elements.dialogNextImage.src = blobUrl;
+      if (success) {
+        elements.dialogNextImageWrapper.dataset.hasImage = "true";
+      } else {
+        if (elements.dialogNextImagePlaceholder) {
+          elements.dialogNextImagePlaceholder.textContent = t("dialog.prompt.loadFailed");
+        }
       }
-      // Note: We don't store this blobUrl in localState for cleanup yet, 
-      // but we should probably track it if we want to be strict about memory.
-      // For now, relying on browser GC or page refresh is acceptable for this preview.
     } catch (error) {
       console.warn("Afbeelding voor volgende scene laden mislukt", error);
       if (elements.dialogNextImagePlaceholder) {
@@ -328,6 +405,20 @@ export function createPromptDialogController({
 
   async function laadNextDialoogVideo(prompt) {
     if (!elements.dialogNextVideoWrapper) return;
+
+    // Check toggle state
+    const showVideo = elements.dialogShowVideo ? elements.dialogShowVideo.checked : false;
+    if (!showVideo) {
+      elements.dialogNextVideoWrapper.style.display = "none";
+      if (elements.dialogNextVideo) {
+        elements.dialogNextVideo.pause();
+        elements.dialogNextVideo.removeAttribute("src");
+        elements.dialogNextVideo.src = "";
+        elements.dialogNextVideo.load();
+      }
+      return;
+    }
+    elements.dialogNextVideoWrapper.style.display = "flex";
 
     // Reset state
     elements.dialogNextVideoWrapper.dataset.hasVideo = "false";
@@ -342,14 +433,27 @@ export function createPromptDialogController({
     }
 
     try {
-      const fileHandle = await state.projectVideosHandle.getFileHandle(prompt.videoPath);
-      const file = await fileHandle.getFile();
-      const blobUrl = URL.createObjectURL(file);
+      // Gebruik centrale media handler met caching
+      const success = await loadVideoPreview(
+        prompt.videoPath,
+        elements.dialogNextVideo,
+        state.projectVideosHandle,
+        prompt.id
+      );
       
-      elements.dialogNextVideoWrapper.dataset.hasVideo = "true";
-      if (elements.dialogNextVideo) {
-        elements.dialogNextVideo.src = blobUrl;
+      // Race condition check: als gebruiker tijdens laden heeft uitgezet
+      if (elements.dialogShowVideo && !elements.dialogShowVideo.checked) {
+        elements.dialogNextVideo.removeAttribute("src");
         elements.dialogNextVideo.load();
+        return;
+      }
+
+      if (success) {
+        elements.dialogNextVideoWrapper.dataset.hasVideo = "true";
+      } else {
+        if (elements.dialogNextVideoPlaceholder) {
+          elements.dialogNextVideoPlaceholder.textContent = t("dialog.prompt.loadFailed");
+        }
       }
     } catch (error) {
       console.warn("Video voor volgende scene laden mislukt", error);
@@ -389,6 +493,28 @@ export function createPromptDialogController({
     } else {
       elements.dialogMediaContainer.classList.remove("transition-view");
     }
+  }
+
+  // Initialize listeners once
+  if (elements.dialogShowNextScene) {
+    elements.dialogShowNextScene.addEventListener("change", updateTransitionView);
+  }
+
+  if (elements.dialogShowVideo) {
+    elements.dialogShowVideo.addEventListener("change", async () => {
+      if (localState.dialogPromptId && state.projectData) {
+        const prompt = state.projectData.prompts.find(p => p.id === localState.dialogPromptId);
+        if (prompt) {
+          await laadDialoogVideo(prompt);
+          // Als transition view aan staat, ook die video updaten
+          if (elements.dialogShowNextScene && elements.dialogShowNextScene.checked) {
+            const currentIndex = state.projectData.prompts.indexOf(prompt);
+            const nextPrompt = state.projectData.prompts[currentIndex + 1];
+            await laadNextDialoogVideo(nextPrompt);
+          }
+        }
+      }
+    });
   }
 
   return {

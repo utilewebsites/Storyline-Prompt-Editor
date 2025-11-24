@@ -48,7 +48,9 @@
 @import url('presentation.css');
 @import url('audio-timeline.css');
 @import url('fullscreen-editor.css');
+@import url('scene-notes.css');
 @import url('help-system.css');
+
 
 /* Responsive */
 @import url('responsive.css');

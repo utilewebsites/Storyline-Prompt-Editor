@@ -472,16 +472,39 @@
 .presentation-marker-buttons {
   display: flex;
   gap: 0.5rem;
-  flex-wrap: wrap;
-  justify-content: center;
+  flex-wrap: nowrap; /* Forceer alles op één regel */
+  justify-content: flex-start; /* Begin links */
   max-width: 100%;
-  overflow-x: auto;
+  overflow-x: auto; /* Horizontaal scrollen */
   padding: 0.5rem;
   background: rgba(0, 0, 0, 0.1);
   border-radius: 8px;
+  /* Scrollbar styling voor betere UX */
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling op iOS */
+}
+
+.presentation-marker-buttons::-webkit-scrollbar {
+  height: 6px;
+}
+
+.presentation-marker-buttons::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+}
+
+.presentation-marker-buttons::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+.presentation-marker-buttons::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
 }
 
 .presentation-marker-btn {
+  flex-shrink: 0; /* Voorkom dat knoppen krimpen */
   padding: 0.5rem 1rem;
   background: var(--bg-panel);
   border: 1px solid var(--border);

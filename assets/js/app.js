@@ -25,17 +25,18 @@ import { uuid, slugify, formatDateTime, readJsonFile, writeJsonFile, writeTextFi
 import { addPrompt, deletePrompt, movePrompt, assignImageToPrompt, assignVideoToPrompt, removeImageFromPrompt, removeVideoFromPrompt } from "./modules/scenes.js";
 import { initializeHelpSystem, setHelpLanguage, toggleHelpMode, handleWorkflowModeChange, applyWorkflowModeToDialog, getWorkflowMode, updateHelpTexts } from "./modules/help.js";
 import { deleteMarker as deleteEditorMarker } from "./modules/audio-video-editor.js";
-import { initializeAttachments, clearAttachmentCache } from "./modules/attachments.js";
+import { initializeAttachments, clearAttachmentCache, clearAllAttachmentCaches } from "./modules/attachments.js";
+import { initializeSceneNotes } from "./modules/scene-notes.js";
 import { renderTransitionButton, showTransitionDialog, cleanupTransitions, reindexTransitions } from "./modules/transitions.js";
 import { initializeAudioVideoEditor, openEditor as openAudioVideoEditor, resetAudioVideoEditor, getAudioTimelineData, restoreAudioTimelineFromData, clearAudioFileReference, loadAudioFromProjectDir } from "./modules/audio-video-editor.js";
 // import { initLogger, log, logSection } from "./modules/logger.js"; // DEBUG: Uncomment om logging aan te zetten
 
 // Nieuwe refactoring modules (nov 2024)
-import { loadImagePreview, loadVideoPreview, uploadImage, uploadVideo, removeImage, removeVideo, renderStarWidget, validateMediaFile } from "./modules/media-handlers.js";
+import { loadImagePreview, loadVideoPreview, uploadImage, uploadVideo, removeImage, removeVideo, renderStarWidget, validateMediaFile, cleanupMediaMemory } from "./modules/media-handlers.js";
 import { handleCardDragStart, handleContainerDragOver, handleContainerDrop, handleCardDragEnd, movePromptToIndex as movePromptToIndexDnD, moveScene as moveSceneDnD } from "./modules/drag-drop.js";
 import { renderProjectList as renderProjectListUI } from "./modules/project-manager.js";
 import { copySceneToProject, duplicateSceneInProject } from "./modules/scene-copy.js";
-import { createProjectListItem, updateProjectListItem, renderProjectMeta, renderSceneIndex } from "./modules/ui-rendering.js";
+import { createProjectListItem, updateProjectListItem, renderProjectMeta, renderSceneIndex, renderPromptsInBatches } from "./modules/ui-rendering.js";
 import { addNewScene, duplicateScene, deleteScene, moveScene, updateSceneText, updateSceneMedia, updateSceneTransition, findSceneById, findSceneIndexById, validateScene } from "./modules/scene-actions.js";
 import { createNewProject, openProjectById, saveProjectData, deleteProject as deleteProjectOp, duplicateProject as duplicateProjectOp } from "./modules/project-operations.js";
 import { handleImageUpload as handleImageUploadOp, handleImageRemove as handleImageRemoveOp, handleVideoUpload as handleVideoUploadOp, handleVideoRemove as handleVideoRemoveOp } from "./modules/upload-handlers.js";
@@ -187,6 +188,7 @@ const elements = {
   
   // Next Scene Preview Elements
   dialogShowNextScene: document.querySelector("#dialog-show-next-scene"),
+  dialogShowVideo: document.querySelector("#dialog-show-video"),
   dialogMediaContainer: document.querySelector("#dialog-media-container"),
   dialogNextSceneMedia: document.querySelector("#dialog-next-scene-media"),
   dialogNextImage: document.querySelector("#dialog-next-image"),
@@ -384,6 +386,7 @@ const promptDialogController = createPromptDialogController({
   renderStarWidget,
   applyWorkflowModeToDialog,
   updateHelpTexts,
+  initializeSceneNotes,
 });
 
 const presentationController = createPresentationController({
@@ -504,12 +507,13 @@ function renderProjectEditor() {
   // Update LLM status indicator bij laden van project
   llmController.updateLLMStatusIndicator();
 
-  elements.promptsContainer.innerHTML = "";
+  // elements.promptsContainer.innerHTML = ""; // Wordt nu gedaan door renderPromptsInBatches
   
-  prompts.forEach((prompt, index) => {
+  const createCardWithExtras = (prompt, index) => {
+    const fragment = document.createDocumentFragment();
     const card = createPromptCard(prompt, index);
-    elements.promptsContainer.appendChild(card);
-    
+    fragment.appendChild(card);
+
     // Voeg transitie button en AI button toe tussen scenes (behalve na laatste scene)
     if (index < prompts.length - 1) {
       // Maak container voor beide buttons (verticaal)
@@ -529,9 +533,12 @@ function renderProjectEditor() {
       const aiPromptBtn = aiPromptController.renderAIPromptButton(index);
       buttonContainer.appendChild(aiPromptBtn);
       
-      elements.promptsContainer.appendChild(buttonContainer);
+      fragment.appendChild(buttonContainer);
     }
-  });
+    return fragment;
+  };
+
+  renderPromptsInBatches(prompts, elements.promptsContainer, createCardWithExtras);
   
   // Herstel de media view mode als die bestaat
   if (state.currentMediaViewMode === "images") {
@@ -657,7 +664,7 @@ function createPromptCard(prompt, index) {
   if (prompt.imagePath) {
     uploader.dataset.hasImage = "true";
     placeholder.textContent = prompt.imageOriginalName ?? t("prompt.imageAddedFallback");
-    loadImagePreview(prompt.imagePath, previewImg, state.projectImagesHandle).catch((error) => {
+    loadImagePreview(prompt.imagePath, previewImg, state.projectImagesHandle, prompt.id).catch((error) => {
       console.warn("Afbeelding voorvertoning mislukt", error);
       uploader.dataset.hasImage = "false";
       placeholder.textContent = t("prompt.placeholderImage");
@@ -860,6 +867,15 @@ function createPromptCard(prompt, index) {
         showError(message, error);
       }
     });
+  }
+
+  // Initialize Scene Notes
+  try {
+    initializeSceneNotes(card, prompt, () => {
+      flagProjectDirty({ refreshEditor: false, refreshList: false });
+    });
+  } catch (error) {
+    console.error("Fout bij initialiseren notities:", error);
   }
 
   // Rating widget
@@ -1154,6 +1170,8 @@ function flagProjectDirty({ refreshEditor = true, refreshList = true } = {}) {
  * Opent een project en laadt alle data.
  */
 async function openProject(projectId) {
+  cleanupMediaMemory();
+  clearAllAttachmentCaches();
   if (!state.projectenHandle) throw new Error("Projectenmap niet beschikbaar");
   const projectMeta = state.indexData.projects.find((project) => project.id === projectId);
   if (!projectMeta) throw new Error("Project niet gevonden");
@@ -1932,6 +1950,9 @@ function handleMarkersReindexed(markerTimes) {
     // Ook refreshen als er geen changes zijn (voor visuele update)
     renderProjectEditor();
   }
+  
+  // Markeer project als gewijzigd zodat auto-save het oppikt
+  flagProjectDirty({ refreshEditor: false, refreshList: false });
 }
 
 /**
@@ -2032,8 +2053,7 @@ function deleteMarkerFromProject(markerIndex) {
   document.dispatchEvent(regenerateEvent);
   
   // Mark project dirty en re-render
-  state.isDirty = true;
-  renderProjectEditor();
+  flagProjectDirty({ refreshEditor: true, refreshList: false });
 }
 
 /**
@@ -2361,8 +2381,9 @@ function handleLinkSceneToMarker(sceneIndex, markerIndex, time) {
 
 /**
  * Slaat de huidige projectdata op.
+ * @param {boolean} isAutoSave - Indien true, wordt de UI niet volledig herladen
  */
-async function saveProject() {
+async function saveProject(isAutoSave = false) {
   if (!state.projectHandle || !state.projectData) return;
   try {
     state.projectData.updatedAt = new Date().toISOString();
@@ -2421,8 +2442,14 @@ async function saveProject() {
     state.isDirty = false;
     updateProjectIndexEntry();
     await writeJsonFile(state.indexHandle, state.indexData);
-    renderProjectList();
-    renderProjectEditor();
+    
+    if (!isAutoSave) {
+      renderProjectList();
+      renderProjectEditor();
+    } else {
+      // Bij auto-save alleen de lijst updaten (tijdstip) en niet de hele editor herladen
+      refreshActiveProjectListItem();
+    }
   } catch (error) {
     showError(t("errors.saveProject"), error);
   }
@@ -2986,13 +3013,13 @@ function init() {
   
   // Initialiseer auto-save systeem
   const autoSave = initializeAutoSave(
-    () => saveProject(), // Save callback
+    () => saveProject(true), // Save callback met isAutoSave=true
     () => state.isDirty && state.projectData && state.projectHandle // isDirty check
   );
   
   // Setup auto-save toggle button
   setupAutoSaveButton(
-    () => saveProject(),
+    () => saveProject(true), // Ook hier true voor consistentie
     () => state.isDirty && state.projectData && state.projectHandle
   );
 }

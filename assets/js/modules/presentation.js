@@ -1,3 +1,5 @@
+import { loadImagePreview } from "./media-handlers.js";
+
 /**
  * modules/presentation.js
  * 
@@ -40,28 +42,30 @@ export function updatePresentationSlide(state, localState, elements, t) {
 
   // Handle image display
   if (prompt.imagePath && state.projectImagesHandle) {
-    try {
-      (async () => {
-        try {
-          const fileHandle = await state.projectImagesHandle.getFileHandle(prompt.imagePath);
-          const file = await fileHandle.getFile();
-          const blobUrl = URL.createObjectURL(file);
-          if (elements.presentationImage) {
-            elements.presentationImage.src = blobUrl;
-            elements.presentationImage.style.display = "block";
-          }
+    (async () => {
+      try {
+        const success = await loadImagePreview(
+          prompt.imagePath, 
+          elements.presentationImage, 
+          state.projectImagesHandle, 
+          prompt.id
+        );
+        
+        if (success) {
+          elements.presentationImage.style.display = "block";
           if (elements.presentationNoImage) {
             elements.presentationNoImage.style.display = "none";
           }
-        } catch (error) {
-          console.warn("Afbeelding laden in presentatie mislukt", error);
+        } else {
           if (elements.presentationImage) elements.presentationImage.style.display = "none";
           if (elements.presentationNoImage) elements.presentationNoImage.style.display = "block";
         }
-      })();
-    } catch (error) {
-      console.warn("Afbeelding laden mislukt", error);
-    }
+      } catch (error) {
+        console.warn("Afbeelding laden in presentatie mislukt", error);
+        if (elements.presentationImage) elements.presentationImage.style.display = "none";
+        if (elements.presentationNoImage) elements.presentationNoImage.style.display = "block";
+      }
+    })();
   } else {
     if (elements.presentationImage) elements.presentationImage.style.display = "none";
     if (elements.presentationNoImage) elements.presentationNoImage.style.display = "block";
@@ -946,7 +950,7 @@ function updateActiveMarker(container, markers, currentTime) {
 }
 
 /**
- * Update active marker button
+ * Update active marker button en scroll ernaartoe
  */
 function updateActiveMarkerButton(container, markers, currentTime) {
   if (!container) return;
@@ -965,7 +969,11 @@ function updateActiveMarkerButton(container, markers, currentTime) {
   buttons.forEach((btn) => {
     const markerIndex = parseInt(btn.dataset.markerIndex);
     if (markerIndex === activeIndex) {
-      btn.classList.add('active');
+      if (!btn.classList.contains('active')) {
+        btn.classList.add('active');
+        // Scroll de actieve knop in beeld
+        btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
     } else {
       btn.classList.remove('active');
     }

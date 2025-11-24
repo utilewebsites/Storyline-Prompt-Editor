@@ -272,3 +272,52 @@ export function renderMediaTabs(hasImage, hasVideo) {
     </div>
   `;
 }
+
+/**
+ * Rendert de prompts in batches (chunks) om de UI responsief te houden.
+ * Dit voorkomt dat de browser bevriest bij grote projecten (bijv. 65+ scenes).
+ * 
+ * @param {Array} prompts - De lijst met prompt objecten
+ * @param {HTMLElement} container - De container waar de kaarten in moeten
+ * @param {Function} createCardFn - De functie die 1 kaart HTML element maakt (bijv. createPromptCard)
+ */
+export function renderPromptsInBatches(prompts, container, createCardFn) {
+  // 1. Maak container eerst helemaal leeg
+  container.innerHTML = '';
+
+  if (!prompts || prompts.length === 0) return;
+
+  // 2. Configuratie voor batching
+  const BATCH_SIZE = 10; // Aantal kaarten per keer renderen
+  let currentIndex = 0;
+
+  // 3. De recursieve render functie
+  function renderNextBatch() {
+    const fragment = document.createDocumentFragment();
+    const batchEnd = Math.min(currentIndex + BATCH_SIZE, prompts.length);
+
+    // Render alleen dit blokje
+    for (let i = currentIndex; i < batchEnd; i++) {
+      const prompt = prompts[i];
+      // Geef index mee (i) voor de nummering (createPromptCard verwacht 0-based index)
+      const card = createCardFn(prompt, i); 
+      if (card) {
+        fragment.appendChild(card);
+      }
+    }
+
+    // Voeg toe aan de DOM (slechts 1 "reflow" per batch)
+    container.appendChild(fragment);
+    
+    currentIndex += BATCH_SIZE;
+
+    // Als er nog prompts over zijn, plan de volgende batch
+    if (currentIndex < prompts.length) {
+      // requestAnimationFrame zorgt dat de UI niet bevriest tussen batches
+      requestAnimationFrame(renderNextBatch);
+    }
+  }
+
+  // Start de eerste batch
+  renderNextBatch();
+}

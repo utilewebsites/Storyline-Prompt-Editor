@@ -61,14 +61,22 @@ export function createLayoutWorkflowController({
       return;
     }
 
-    if (elements?.workflowMode) {
-      elements.workflowMode.addEventListener("change", (event) => {
+    // Gebruik verse lookup voor zekerheid, fallback naar elements
+    const workflowModeSelect = doc.getElementById("workflow-mode") || elements?.workflowMode;
+    if (workflowModeSelect) {
+      // Verwijder eventuele bestaande listeners door clone (optioneel, maar veilig)
+      // const newSelect = workflowModeSelect.cloneNode(true);
+      // workflowModeSelect.parentNode.replaceChild(newSelect, workflowModeSelect);
+      // Nee, dat breekt referenties. Gewoon addEventListener is prima.
+      
+      workflowModeSelect.addEventListener("change", (event) => {
         onWorkflowModeChange(event.target.value);
       });
     }
 
-    if (elements?.dialogWorkflowMode) {
-      elements.dialogWorkflowMode.addEventListener("change", (event) => {
+    const dialogWorkflowModeSelect = doc.getElementById("dialog-workflow-mode") || elements?.dialogWorkflowMode;
+    if (dialogWorkflowModeSelect) {
+      dialogWorkflowModeSelect.addEventListener("change", (event) => {
         onWorkflowModeChange(event.target.value);
       });
     }

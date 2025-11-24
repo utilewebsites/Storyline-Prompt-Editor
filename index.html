@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Storyline Prompt Editor</title>
     <link rel="stylesheet" href="./assets/css/style.css" />
+
   </head>
   <body>
     <header class="app-header">
@@ -232,6 +233,7 @@
             </button>
           </div>
           <div class="prompt-card-actions">
+            <button class="notes-button" title="Notities">📝</button>
             <button
               class="drag-handle"
               type="button"
@@ -663,6 +665,16 @@
             </h3>
             <button type="button" id="dialog-next-scene" class="dialog-nav-btn" data-i18n-attr-title="dialog.prompt.nextScene" title="Volgende scene">➡️</button>
             
+            <button type="button" id="dialog-notes-button" class="notes-button" title="Notities" style="margin-left: 15px;">📝</button>
+
+            <div class="dialog-view-toggle" style="margin-left: 15px; display: flex; align-items: center; gap: 8px;">
+              <label class="switch" data-i18n-attr-title="dialog.prompt.toggleVideo" title="Toon video's">
+                <input type="checkbox" id="dialog-show-video">
+                <span class="slider round"></span>
+              </label>
+              <span style="font-size: 0.9em; color: var(--text-muted);" data-i18n="dialog.prompt.videoView">Video</span>
+            </div>
+
             <div class="dialog-view-toggle" style="margin-left: 15px; display: flex; align-items: center; gap: 8px;">
               <label class="switch" data-i18n-attr-title="dialog.prompt.toggleTransition" title="Toon volgende scene voor transitie check">
                 <input type="checkbox" id="dialog-show-next-scene">
@@ -1298,8 +1310,7 @@
                     </button>
                   </div>
                 </div>
-                <div id="ai-quick-camera" class="ai-quick-group" hidden>
-                  <div class="ai-quick-group-info">
+                <div
                     <strong data-i18n="aiPrompt.quickInsertCameraLabel">Camera beweging snelkiezers</strong>
                     <p data-i18n="aiPrompt.quickInsertCameraHint">Gebruik deze sjablonen om in één klik een per-seconde timeline te vullen en pas daarna de details aan.</p>
                   </div>
@@ -1456,6 +1467,24 @@
           </section>
         </div>
       </form>
+    </dialog>
+
+    <!-- Scene Notes Dialog -->
+    <dialog id="scene-notes-dialog">
+      <div class="notes-dialog-header">
+        <h3 class="notes-dialog-title">Notities</h3>
+        <button class="close-notes-dialog" title="Sluiten">×</button>
+      </div>
+      <div class="notes-dialog-content">
+        <div class="new-note-form">
+          <input type="text" id="new-note-title" placeholder="Titel (optioneel)">
+          <textarea id="new-note-content" placeholder="Schrijf hier je notitie..."></textarea>
+          <button class="add-note-btn">Toevoegen</button>
+        </div>
+        <div class="notes-list">
+          <!-- Notes will be rendered here -->
+        </div>
+      </div>
     </dialog>
 
     <script type="module" src="./assets/js/app.js"></script>

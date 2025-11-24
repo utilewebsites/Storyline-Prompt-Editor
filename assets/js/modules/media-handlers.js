@@ -10,23 +10,114 @@ import { t } from "./i18n.js";
 import { MIME_TYPES, LIMITS } from "./constants.js";
 import { uuid } from "./utils.js";
 
+// Cache object om Blob URLs te bewaren per prompt ID en type
+// Structuur: { "promptId_type": "blob:url..." }
+const mediaCache = new Map();
+// Cache voor lopende requests om dubbele loading te voorkomen
+const loadingPromises = new Map();
+
+/**
+ * Helper om cache te invalideren voor een specifieke prompt (bijv. na nieuwe upload)
+ */
+export function invalidateMediaCache(promptId, type) {
+  const key = `${promptId}_${type}`;
+  if (mediaCache.has(key)) {
+    URL.revokeObjectURL(mediaCache.get(key));
+    mediaCache.delete(key);
+  }
+  // Ook lopende promises verwijderen? Nee, die laten we afmaken maar we kunnen ze niet annuleren.
+}
+
+/**
+ * Interne helper om media URL op te halen met deduplicatie
+ */
+async function getMediaUrl(handle, path, promptId, type) {
+  const cacheKey = `${promptId}_${type}`;
+  
+  // 1. Check result cache
+  if (mediaCache.has(cacheKey)) {
+    return mediaCache.get(cacheKey);
+  }
+
+  // 2. Check in-flight cache
+  if (loadingPromises.has(cacheKey)) {
+    return loadingPromises.get(cacheKey);
+  }
+
+  // 3. Start new load
+  const promise = (async () => {
+    try {
+      const fileHandle = await handle.getFileHandle(path);
+      const file = await fileHandle.getFile();
+      const blobUrl = URL.createObjectURL(file);
+      mediaCache.set(cacheKey, blobUrl);
+      return blobUrl;
+    } catch (error) {
+      if (error.name === 'NotFoundError') {
+        console.log(`[Media] Bestand niet gevonden: ${path}`);
+      } else {
+        console.warn(`[Media] Laden mislukt: ${path}`, error);
+      }
+      return null;
+    } finally {
+      loadingPromises.delete(cacheKey);
+    }
+  })();
+
+  loadingPromises.set(cacheKey, promise);
+  return promise;
+}
+
+/**
+ * Check of media in cache zit
+ * 
+ * @param {string} promptId - ID van de prompt
+ * @param {string} type - 'image' of 'video'
+ * @returns {boolean}
+ */
+export function isMediaCached(promptId, type) {
+  if (!promptId) return false;
+  return mediaCache.has(`${promptId}_${type}`);
+}
+
 /**
  * Laad image preview uit project directory
  * 
  * @param {string} imagePath - Pad naar afbeelding
  * @param {HTMLImageElement} imgElement - Image element
  * @param {FileSystemDirectoryHandle} imagesHandle - Images directory handle
+ * @param {string} promptId - ID van de prompt (voor caching)
  */
-export async function loadImagePreview(imagePath, imgElement, imagesHandle) {
-  if (!imagesHandle) return;
-  try {
-    const fileHandle = await imagesHandle.getFileHandle(imagePath);
-    const file = await fileHandle.getFile();
-    const blobUrl = URL.createObjectURL(file);
-    imgElement.src = blobUrl;
-  } catch (error) {
-    console.warn("Voorvertoning laden mislukt", error);
+export async function loadImagePreview(imagePath, imgElement, imagesHandle, promptId = null) {
+  if (!imagesHandle) return false;
+
+  let blobUrl = null;
+
+  // 1. Gebruik slimme loader als promptId er is
+  if (promptId) {
+    blobUrl = await getMediaUrl(imagesHandle, imagePath, promptId, 'image');
+  } else {
+    // Fallback voor legacy calls zonder promptId (geen caching)
+    try {
+      const fileHandle = await imagesHandle.getFileHandle(imagePath);
+      const file = await fileHandle.getFile();
+      blobUrl = URL.createObjectURL(file);
+    } catch (error) {
+      console.warn("Voorvertoning laden mislukt (no-cache)", error);
+      return false;
+    }
   }
+
+  if (blobUrl) {
+    // Optimalisatie: niet opnieuw instellen als het al de juiste afbeelding is
+    if (imgElement.src === blobUrl) {
+      return true;
+    }
+    imgElement.src = blobUrl;
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -35,18 +126,45 @@ export async function loadImagePreview(imagePath, imgElement, imagesHandle) {
  * @param {string} videoPath - Pad naar video
  * @param {HTMLVideoElement} videoElement - Video element
  * @param {FileSystemDirectoryHandle} videosHandle - Videos directory handle
+ * @param {string} promptId - ID van de prompt (voor caching)
  */
-export async function loadVideoPreview(videoPath, videoElement, videosHandle) {
-  if (!videosHandle) return;
-  try {
-    const fileHandle = await videosHandle.getFileHandle(videoPath);
-    const file = await fileHandle.getFile();
-    const blobUrl = URL.createObjectURL(file);
-    videoElement.src = blobUrl;
-    videoElement.load(); // Belangrijk: herlaad video element
-  } catch (error) {
-    console.warn("Video voorvertoning laden mislukt", error);
+export async function loadVideoPreview(videoPath, videoElement, videosHandle, promptId = null) {
+  if (!videosHandle) return false;
+
+  // Optimalisatie: preload op metadata zetten om buffering te beperken
+  if (videoElement.getAttribute('preload') !== 'metadata') {
+    videoElement.setAttribute('preload', 'metadata');
   }
+
+  let blobUrl = null;
+
+  // 1. Gebruik slimme loader als promptId er is
+  if (promptId) {
+    blobUrl = await getMediaUrl(videosHandle, videoPath, promptId, 'video');
+  } else {
+    // Fallback voor legacy calls zonder promptId
+    try {
+      const fileHandle = await videosHandle.getFileHandle(videoPath);
+      const file = await fileHandle.getFile();
+      blobUrl = URL.createObjectURL(file);
+    } catch (error) {
+      console.warn("Video voorvertoning laden mislukt (no-cache)", error);
+      return false;
+    }
+  }
+
+  if (blobUrl) {
+    // Optimalisatie: niet opnieuw laden als src al correct is
+    if (videoElement.src === blobUrl) {
+      return true;
+    }
+    videoElement.src = blobUrl;
+    // videoElement.load() wordt impliciet aangeroepen bij src wijziging, maar soms is expliciet beter
+    // Echter, als we src zetten, gaat hij laden.
+    return true;
+  }
+
+  return false;
 }
 
 /**
@@ -83,6 +201,9 @@ export async function uploadImage(prompt, file, imagesHandle, imageMap) {
 
     // Update cache
     imageMap.set(prompt.id, { filename });
+    
+    // Invalideer media cache voor deze prompt
+    invalidateMediaCache(prompt.id, 'image');
 
     return filename;
   } catch (error) {
@@ -125,6 +246,9 @@ export async function uploadVideo(prompt, file, videosHandle, videoMap) {
 
     // Update cache
     videoMap.set(prompt.id, { filename });
+    
+    // Invalideer media cache voor deze prompt
+    invalidateMediaCache(prompt.id, 'video');
 
     return filename;
   } catch (error) {
@@ -278,4 +402,34 @@ export function validateMediaFile(file, mediaType) {
   }
   
   return { valid: true };
+}
+
+/**
+ * Ruimt alle object URLs op om geheugen vrij te maken.
+ * Roep dit aan bij het sluiten van een project of wisselen van project.
+ */
+export function cleanupMediaMemory() {
+  // 1. Revoke alle URLs in de cache
+  mediaCache.forEach((url) => {
+    URL.revokeObjectURL(url);
+  });
+  
+  // 2. Maak cache leeg
+  mediaCache.clear();
+
+  // 3. Ruim eventuele overgebleven DOM elementen op (fallback)
+  const images = document.querySelectorAll('img[src^="blob:"]');
+  images.forEach(img => {
+    URL.revokeObjectURL(img.src);
+    img.src = ''; // Clear src to ensure browser releases memory
+  });
+  
+  const videos = document.querySelectorAll('video[src^="blob:"]');
+  videos.forEach(video => {
+    URL.revokeObjectURL(video.src);
+    video.src = ''; // Clear src
+    video.load(); // Reset video element
+  });
+  
+  console.log(`[Memory] Media cache en ${images.length + videos.length} DOM objecten opgeruimd.`);
 }
