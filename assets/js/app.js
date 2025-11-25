@@ -281,6 +281,8 @@ const elements = {
   aiPromptImage2: document.querySelector("#ai-prompt-image-2"),
   aiPromptExtraInstructions: document.querySelector("#ai-prompt-extra-instructions"),
   aiQuickInsertContainer: document.querySelector("#ai-quick-inserts"),
+  aiQuickWanSingleGroup: document.querySelector("#ai-quick-wan-single"),
+  aiQuickWanSequenceGroup: document.querySelector("#ai-quick-wan-sequence"),
   aiQuickCameraGroup: document.querySelector("#ai-quick-camera"),
   aiQuickOviGroup: document.querySelector("#ai-quick-ovi"),
   aiPromptDuration: document.querySelector("#ai-prompt-duration"),
