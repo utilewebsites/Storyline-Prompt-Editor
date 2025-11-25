@@ -191,8 +191,8 @@
               <h3 data-i18n="prompts.title">Prompts</h3>
               <div class="prompts-header-actions">
                 <div class="media-toggle-group">
-                  <button id="show-all-images" class="media-toggle active" title="Toon alle afbeeldingen">🖼️ Afbeeldingen</button>
-                  <button id="show-all-videos" class="media-toggle" title="Toon alle video's">🎬 Video's</button>
+                  <button id="show-all-images" class="media-toggle active" title="Toon alle afbeeldingen" data-i18n="prompts.showAllImages">🖼️ Afbeeldingen</button>
+                  <button id="show-all-videos" class="media-toggle" title="Toon alle video's" data-i18n="prompts.showAllVideos">🎬 Video's</button>
                 </div>
                 <button id="toggle-audio-timeline" class="secondary" data-i18n="prompts.audioTimeline" data-help="help.audioTimeline" style="position: relative;">
                   🎵 Audio Timeline
@@ -251,8 +251,8 @@
           </div>
         </header>
         <div class="media-toggle">
-          <button type="button" class="toggle-image active" data-media-type="image">🖼️ Afbeelding</button>
-          <button type="button" class="toggle-video" data-media-type="video">🎬 Video</button>
+          <button type="button" class="toggle-image active" data-media-type="image" data-i18n="prompt.toggleImage">🖼️ Afbeelding</button>
+          <button type="button" class="toggle-video" data-media-type="video" data-i18n="prompt.toggleVideo">🎬 Video</button>
           <button type="button" class="attachment-button" title="Bijlagen (max 8)">📎</button>
         </div>
         <div class="image-uploader media-section" data-has-image="false" data-active="true">
@@ -272,15 +272,15 @@
         </div>
         <div class="video-uploader media-section" data-has-video="false" data-active="false">
           <div class="video-preview">
-            <span class="placeholder">Sleep hier een video (MP4 / WebM)</span>
+            <span class="placeholder" data-i18n="prompt.placeholderVideo">Sleep hier een video (MP4 / WebM)</span>
             <video controls></video>
           </div>
           <div class="video-actions">
-            <label class="upload-button">
+            <label class="upload-button" data-i18n="prompt.uploadVideo">
               📁 Kies video
               <input type="file" accept="video/mp4,video/webm" class="video-input" />
             </label>
-            <button class="remove-video" type="button">
+            <button class="remove-video" type="button" data-i18n="prompt.removeVideo">
               Verwijder
             </button>
           </div>
@@ -856,11 +856,11 @@
             <label class="presentation-mode-label">
               <span>Modus:</span>
               <select id="presentation-mode">
-                <option value="image">🖼️ Afbeelding</option>
-                <option value="video">🎬 Video (auto-play)</option>
-                <option value="audio-image">🔊🖼️ Audio + Afbeelding</option>
-                <option value="audio-video">🔊🎬 Audio + Video</option>
-                <option value="audio-mixed">🔊✨ Audio + Editor keuze</option>
+                <option value="image" data-i18n="presentation.mode.image">🖼️ Afbeelding</option>
+                <option value="video" data-i18n="presentation.mode.video">🎬 Video (auto-play)</option>
+                <option value="audio-image" data-i18n="presentation.mode.audioImage">🔊🖼️ Audio + Afbeelding</option>
+                <option value="audio-video" data-i18n="presentation.mode.audioVideo">🔊🎬 Audio + Video</option>
+                <option value="audio-mixed" data-i18n="presentation.mode.audioMixed">🔊✨ Audio + Editor keuze</option>
               </select>
             </label>
             <button type="button" id="presentation-close" value="cancel" data-i18n="actions.cancel">Sluiten</button>
@@ -1472,14 +1472,14 @@
     <!-- Scene Notes Dialog -->
     <dialog id="scene-notes-dialog">
       <div class="notes-dialog-header">
-        <h3 class="notes-dialog-title">Notities</h3>
+        <h3 class="notes-dialog-title" data-i18n="sceneNotes.title">Notities</h3>
         <button class="close-notes-dialog" title="Sluiten">×</button>
       </div>
       <div class="notes-dialog-content">
         <div class="new-note-form">
-          <input type="text" id="new-note-title" placeholder="Titel (optioneel)">
-          <textarea id="new-note-content" placeholder="Schrijf hier je notitie..."></textarea>
-          <button class="add-note-btn">Toevoegen</button>
+          <input type="text" id="new-note-title" placeholder="Titel (optioneel)" data-i18n-attr-placeholder="sceneNotes.titlePlaceholder">
+          <textarea id="new-note-content" placeholder="Schrijf hier je notitie..." data-i18n-attr-placeholder="sceneNotes.contentPlaceholder"></textarea>
+          <button class="add-note-btn" data-i18n="sceneNotes.add">Toevoegen</button>
         </div>
         <div class="notes-list">
           <!-- Notes will be rendered here -->

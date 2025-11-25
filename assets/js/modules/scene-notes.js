@@ -53,7 +53,7 @@ function updateNotesIcon(button, notes) {
   
   if (hasOpenNotes) {
     button.classList.add("has-open-notes");
-    button.title = `Er zijn ${openNotes.length} openstaande notities`;
+    button.title = t("sceneNotes.openNotesTitle").replace("{count}", openNotes.length);
     
     // Voeg badge toe
     const badge = document.createElement("span");
@@ -62,7 +62,7 @@ function updateNotesIcon(button, notes) {
     button.appendChild(badge);
   } else {
     button.classList.remove("has-open-notes");
-    button.title = "Notities";
+    button.title = t("sceneNotes.title");
   }
 }
 
@@ -109,14 +109,14 @@ function openNotesDialog(prompt, onSave) {
     const content = contentInput.value.trim();
     
     if (!content) {
-      alert("Vul aub een notitie in"); // Simpele validatie feedback
+      alert(t("sceneNotes.validationError")); // Simpele validatie feedback
       return; 
     }
 
     const newNote = {
       id: uuid(),
       timestamp: new Date().toISOString(),
-      title: title || "Notitie",
+      title: title || t("sceneNotes.defaultTitle"),
       content: content,
       status: "open"
     };
@@ -154,7 +154,7 @@ function renderNotesList(container, notes, onUpdate) {
   container.innerHTML = "";
 
   if (!notes || notes.length === 0) {
-    container.innerHTML = `<div class="empty-state">Geen notities gevonden.</div>`;
+    container.innerHTML = `<div class="empty-state">${t("sceneNotes.empty")}</div>`;
     return;
   }
 
@@ -177,9 +177,9 @@ function renderNotesList(container, notes, onUpdate) {
         <label class="status-toggle">
           <input type="checkbox" class="note-status-checkbox" ${isProcessed ? "checked" : ""}>
           <span class="toggle-slider"></span>
-          <span class="status-label">${isProcessed ? "Verwerkt" : "Open"}</span>
+          <span class="status-label">${isProcessed ? t("sceneNotes.statusProcessed") : t("sceneNotes.statusOpen")}</span>
         </label>
-        <button class="delete-note-btn" title="Verwijder notitie">🗑️</button>
+        <button class="delete-note-btn" title="${t("sceneNotes.deleteTitle")}">🗑️</button>
       </div>
     `;
 
@@ -190,13 +190,13 @@ function renderNotesList(container, notes, onUpdate) {
 
     checkbox.addEventListener("change", (e) => {
       note.status = e.target.checked ? "processed" : "open";
-      label.textContent = note.status === "processed" ? "Verwerkt" : "Open";
+      label.textContent = note.status === "processed" ? t("sceneNotes.statusProcessed") : t("sceneNotes.statusOpen");
       item.className = `note-item status-${note.status}`;
       onUpdate(notes);
     });
 
     deleteBtn.addEventListener("click", () => {
-      if (confirm("Weet je zeker dat je deze notitie wilt verwijderen?")) {
+      if (confirm(t("sceneNotes.deleteConfirm"))) {
         const index = notes.indexOf(note);
         if (index > -1) {
           notes.splice(index, 1);

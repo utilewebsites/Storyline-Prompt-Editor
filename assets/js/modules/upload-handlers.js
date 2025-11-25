@@ -135,7 +135,7 @@ export async function handleVideoRemove(promptId, uploader, state, videoMap, onD
     const video = uploader.querySelector("video");
     
     uploader.dataset.hasVideo = "false";
-    placeholder.textContent = "Sleep hier een video (MP4 / WebM)";
+    placeholder.textContent = t("prompt.placeholderVideo");
     video.removeAttribute("src");
     
     onDirty();

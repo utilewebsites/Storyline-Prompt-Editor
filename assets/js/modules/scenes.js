@@ -14,6 +14,7 @@
  */
 
 import { uuid, writeJsonFile } from "./utils.js";
+import { invalidateMediaCache } from "./media-handlers.js";
 
 /**
  * Voeg een nieuwe lege scene toe aan het huidige project
@@ -74,6 +75,7 @@ export async function deletePrompt(promptId, state, elements) {
   if (prompt.imagePath && state.projectImagesHandle) {
     try {
       await state.projectImagesHandle.removeEntry(prompt.imagePath);
+      invalidateMediaCache(promptId, 'image');
     } catch (error) {
       console.warn("Afbeelding verwijderen mislukt", error);
     }
@@ -83,6 +85,7 @@ export async function deletePrompt(promptId, state, elements) {
   if (prompt.videoPath && state.projectVideosHandle) {
     try {
       await state.projectVideosHandle.removeEntry(prompt.videoPath);
+      invalidateMediaCache(promptId, 'video');
     } catch (error) {
       console.warn("Video verwijderen mislukt", error);
     }
@@ -186,6 +189,9 @@ export async function assignImageToPrompt(promptId, file, state, uploader, image
     prompt.imageOriginalName = file.name;
     prompt.imageType = file.type;
     imageMap.set(promptId, { filename });
+    
+    // Invalideer cache zodat nieuwe afbeelding direct zichtbaar is
+    invalidateMediaCache(promptId, 'image');
 
     if (uploader) {
       uploader.dataset.hasImage = "true";
@@ -239,6 +245,9 @@ export async function assignVideoToPrompt(promptId, file, state, videoMap) {
     prompt.videoType = file.type;
     videoMap.set(promptId, { filename });
 
+    // Invalideer cache zodat nieuwe video direct zichtbaar is
+    invalidateMediaCache(promptId, 'video');
+
     state.isDirty = true;
   } catch (error) {
     console.error("Video opslaan mislukt", error);
@@ -265,6 +274,7 @@ export async function removeImageFromPrompt(promptId, state, uploader, imageMap)
   if (prompt.imagePath && state.projectImagesHandle) {
     try {
       await state.projectImagesHandle.removeEntry(prompt.imagePath);
+      invalidateMediaCache(promptId, 'image');
     } catch (error) {
       console.warn("Afbeelding verwijderen mislukt", error);
     }
@@ -299,6 +309,7 @@ export async function removeVideoFromPrompt(promptId, state, videoMap) {
   if (prompt.videoPath && state.projectVideosHandle) {
     try {
       await state.projectVideosHandle.removeEntry(prompt.videoPath);
+      invalidateMediaCache(promptId, 'video');
     } catch (error) {
       console.warn("Video verwijderen mislukt", error);
     }

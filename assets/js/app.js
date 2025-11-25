@@ -788,10 +788,10 @@ function createPromptCard(prompt, index) {
     loadVideoPreview(prompt.videoPath, videoPreview, state.projectVideosHandle).catch((error) => {
       console.warn("Video voorvertoning mislukt", error);
       videoUploader.dataset.hasVideo = "false";
-      videoPlaceholder.textContent = "Sleep hier een video (MP4 / WebM)";
+      videoPlaceholder.textContent = t("prompt.placeholderVideo");
     });
   } else {
-    videoPlaceholder.textContent = "Sleep hier een video (MP4 / WebM)";
+    videoPlaceholder.textContent = t("prompt.placeholderVideo");
   }
 
   videoInput.addEventListener("change", (event) => {

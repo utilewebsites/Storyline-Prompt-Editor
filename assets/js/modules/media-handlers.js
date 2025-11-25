@@ -270,6 +270,7 @@ export async function removeImage(prompt, imagesHandle, imageMap) {
   try {
     // Verwijder bestand
     await imagesHandle.removeEntry(prompt.imagePath);
+    invalidateMediaCache(prompt.id, 'image');
   } catch (error) {
     console.warn("Afbeelding verwijderen mislukt:", error);
   }
@@ -296,6 +297,7 @@ export async function removeVideo(prompt, videosHandle, videoMap) {
   try {
     // Verwijder bestand
     await videosHandle.removeEntry(prompt.videoPath);
+    invalidateMediaCache(prompt.id, 'video');
   } catch (error) {
     console.warn("Video verwijderen mislukt:", error);
   }
