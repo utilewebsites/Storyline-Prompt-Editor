@@ -488,6 +488,12 @@ const translations = {
       aiPromptHelp: "In AI Prompt Mode focus je op het schrijven van prompts voor moderne AI video generators",
       traditionalHelp: "In Traditionele Video Storyline Mode beschrijf je precies wat er gebeurt, hoe je het filmt, en de exacte timing zoals bij klassieke videoproductie",
     },
+    attachments: {
+      title: "📎 Bijlagen (max 8)",
+      dropzone: "Sleep bestanden hierheen of klik op \"Kies bestanden\"",
+      hint: "Ondersteund: afbeeldingen, video's, audio, .txt bestanden",
+      choose: "📁 Kies bestanden",
+    },
   },
   en: {
     header: {
@@ -978,6 +984,12 @@ const translations = {
       sceneTranslation: "Dutch translation or notes about this scene (optional but useful for team communication)",
       aiPromptHelp: "In AI Prompt Mode you focus on writing prompts for modern AI video generators",
       traditionalHelp: "In Traditional Video Storyline Mode you describe exactly what happens, how you film it, and the exact timing like in classic video production",
+    },
+    attachments: {
+      title: "📎 Attachments (max 8)",
+      dropzone: "Drag files here or click \"Choose files\"",
+      hint: "Supported: images, videos, audio, .txt files",
+      choose: "📁 Choose files",
     },
   },
 };
