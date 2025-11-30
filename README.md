@@ -6,6 +6,15 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot_en.png)
 
+## Update — 30 November, version 3.31
+
+- Add notes to scenes with the status "open" or "processed".
+- AI optimizations, including WAN 2.2 image‑to‑image, OVI and camera movement (WAN 2.2); Lightning profile and faster quick‑selects.
+- Various under‑the‑hood optimizations.
+
+Note: we also tested the LLM prompt writer with gpt-oss-20b and saw fairly good results. It is still experimental but is becoming a useful addition to the workflow for quickly building longer scenes. This is often done by generating multiple short AI renders (e.g., 20 videos of 10 seconds) that, combined, appear to function as one seamless video.
+
+Tip: to improve faces when the rest of the video looks fine but faces are blurry or unnatural (because the AI had too few pixels to reconstruct the face well), try the FaceFusion tool: https://github.com/facefusion/facefusion. It can help restore faces to a more natural, sharp appearance.
 
 ## Update — 19 November, version 3.0
 
@@ -37,7 +46,7 @@ After extensive testing of the audio timeline functionality in our daily Video 4
 - Improved event-driven architecture for better synchronization between UI components
 - Backwards compatible — existing projects continue to work
 
-Deze updates maken de audio timeline workflow productie-ready voor dagelijks gebruik in video 4.0 projecten.
+These updates make the audio timeline workflow production-ready for daily use in video 4.0 projects.
 
 
 ## Update — 17 November, version 2.1

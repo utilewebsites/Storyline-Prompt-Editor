@@ -5,7 +5,19 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## Update 19 november 3.0
+## update — 30 november versie 3.31
+
+- Notities maken bij scènes met status "open" of "verwerkt".
+- Optimalisaties voor AI, onder andere voor WAN 2.2 image‑to‑image, OVI en camera movement (WAN 2.2); Lightning‑profiel en snelle selecties.
+- Diverse optimalisaties onder de motorkap.
+
+Opmerking: we hebben de LLM-promptschrijver ook getest met gpt-oss-20b; dat gaf best goede resultaten. Het is nog experimenteel, maar wordt steeds meer een nuttige toevoeging in de workflow om snel langere scènes op te bouwen. Dit gebeurt vaak door meerdere korte AI-renders (bijv. 20 video's van 10 seconden) zodanig te genereren dat ze in totaal als één vloeiende video lijken te functioneren.
+
+Tip: om gezichten te verbeteren wanneer de rest van de video goed is maar gezichten onscherp of onnatuurlijk zijn (doordat de AI te weinig pixels had om het gezicht goed op te bouwen), kun je de tool FaceFusion gebruiken: https://github.com/facefusion/facefusion. Hiermee kun je gezichten optimaliseren zodat ze weer natuurlijk en scherp in beeld komen.
+
+ 
+
+## 19 november 3.0
 
 De 3.0-release voelt als een frisse wind door de audio timeline editor: markers reageren directer, scrubbing blijft stabiel en de fullscreen editor oogt rustiger nu de overbodige knoppen zijn verdwenen. Hierdoor kun je makkelijker in één flow scènes koppelen aan je audio en blijf je beter zien waar je je in de soundtrack bevindt.
 
