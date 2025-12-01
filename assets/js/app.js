@@ -49,6 +49,7 @@ import { createPromptDialogController } from "./modules/prompt-dialog.js";
 import { createPresentationController } from "./modules/presentation-controller.js";
 import { createExportDialogsController } from "./modules/export-dialogs.js";
 import { createLayoutWorkflowController } from "./modules/layout-workflow.js";
+import { createPresetController } from "./modules/presets.js";
 
 /**
  * Storyline Prompt Editor
@@ -157,11 +158,30 @@ const elements = {
   exportChoicePrompts: document.querySelector("#export-choice-prompts"),
   exportChoiceNotes: document.querySelector("#export-choice-notes"),
   exportImages: document.querySelector("#export-images"),
+  exportMediaDropdown: document.querySelector("#export-media-dropdown"),
+  exportMediaChoiceDialog: document.querySelector("#export-media-choice-dialog"),
+  exportChoiceImages: document.querySelector("#export-choice-images"),
+  exportChoiceVideos: document.querySelector("#export-choice-videos"),
   exportDialog: document.querySelector("#export-dialog"),
   exportPreviewDialog: document.querySelector("#export-preview-dialog"),
   exportPreviewText: document.querySelector("#export-preview-text"),
   exportPreviewCopy: document.querySelector("#export-preview-copy"),
   exportPreviewInfo: document.querySelector("#export-preview-info"),
+  
+  // Preset Elements
+  openPresetDialog: document.querySelector("#open-preset-dialog"),
+  presetDialog: document.querySelector("#preset-dialog"),
+  presetUploadZone: document.querySelector("#preset-upload-zone"),
+  presetFileInput: document.querySelector("#preset-file-input"),
+  presetViewer: document.querySelector("#preset-viewer"),
+  savePresetBtn: document.querySelector("#save-preset-btn"),
+  presetList: document.querySelector("#preset-list"),
+  btnNewPreset: document.querySelector("#btn-new-preset"),
+  presetViewerContainer: document.querySelector("#preset-viewer-container"),
+  presetFilename: document.querySelector("#preset-filename"),
+  btnReplacePreset: document.querySelector("#btn-replace-preset"),
+  btnDeletePreset: document.querySelector("#btn-delete-preset"),
+
   errorDialog: document.querySelector("#error-dialog"),
   errorMessage: document.querySelector("#error-message"),
   successDialog: document.querySelector("#success-dialog"),
@@ -415,6 +435,15 @@ const layoutWorkflowController = createLayoutWorkflowController({
   localState,
   onWorkflowModeChange: handleWorkflowModeChange,
   onToggleHelpMode: toggleHelpMode,
+});
+
+const presetController = createPresetController({
+  state,
+  elements,
+  t,
+  showError,
+  showSuccess,
+  getCurrentProjectDir
 });
 
 // i18n functies zijn nu geïmporteerd uit modules/i18n.js
@@ -2575,6 +2604,10 @@ function init() {
   elements.refreshProjects.addEventListener("click", () =>
     projectListController.handleRefreshClick()
   );
+
+  // Initialiseer preset controller
+  presetController.init();
+
   if (elements.duplicateProject) {
     elements.duplicateProject.addEventListener("click", () =>
       projectListController.openCopyProjectDialog()
@@ -2865,6 +2898,26 @@ function init() {
       event.preventDefault();
       exportDialogsController.startPromptExport("notes");
       elements.exportChoiceDialog?.close();
+    });
+  }
+  if (elements.exportMediaDropdown && elements.exportMediaChoiceDialog) {
+    elements.exportMediaDropdown.addEventListener("click", (event) => {
+      event.preventDefault();
+      exportDialogsController.openMediaChoiceDialog();
+    });
+  }
+  if (elements.exportChoiceImages) {
+    elements.exportChoiceImages.addEventListener("click", (event) => {
+      event.preventDefault();
+      exportDialogsController.handleExportImages();
+      elements.exportMediaChoiceDialog?.close();
+    });
+  }
+  if (elements.exportChoiceVideos) {
+    elements.exportChoiceVideos.addEventListener("click", (event) => {
+      event.preventDefault();
+      exportDialogsController.handleExportVideos();
+      elements.exportMediaChoiceDialog?.close();
     });
   }
   if (elements.exportPreviewCopy) {

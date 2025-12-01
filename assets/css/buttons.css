@@ -107,3 +107,6 @@ button.icon-btn {
   padding-left: 0.6rem;
   padding-right: 0.6rem;
 }
+button#export-images, button#export-media-dropdown {
+    height: 100%
+}

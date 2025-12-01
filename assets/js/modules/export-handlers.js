@@ -132,6 +132,90 @@ export async function exportSceneImages({
 }
 
 /**
+ * Exporteer alle scene video's naar een aparte map
+ * 
+ * @param {Object} params - Parameters
+ * @param {Array} params.prompts - Array van prompts
+ * @param {string} params.projectName - Project naam
+ * @param {FileSystemDirectoryHandle} params.projectDirHandle - Project directory
+ * @param {FileSystemDirectoryHandle} params.videosHandle - Videos directory
+ * @returns {Promise<{exportPath: string, count: number}>} - Export resultaat
+ */
+export async function exportSceneVideos({
+  prompts = [],
+  projectName,
+  slug,
+  projectDirHandle,
+  videosHandle,
+}) {
+  if (!projectDirHandle) {
+    throw new Error("PROJECT_DIR_HANDLE_MISSING");
+  }
+  if (!videosHandle) {
+    throw new Error("VIDEOS_HANDLE_MISSING");
+  }
+
+  const basisNaam = slug || (projectName ? projectName.replace(/[^a-z0-9]+/gi, "-").toLowerCase() : "project");
+  const exportDirName = `scene_videos_${basisNaam}`;
+  const exportDir = await projectDirHandle.getDirectoryHandle(exportDirName, { create: true });
+
+  const nieuweBestanden = new Set();
+  let teller = 1;
+  for (const prompt of prompts) {
+    if (prompt?.videoPath) {
+      try {
+        await videosHandle.getFileHandle(prompt.videoPath);
+        nieuweBestanden.add(teller);
+      } catch (error) {
+        console.warn(`Video ${prompt.videoPath} niet beschikbaar`, error);
+      }
+    }
+    teller += 1;
+  }
+
+  for await (const entry of exportDir.values()) {
+    if (entry.kind === "file") {
+      const nummer = parseInt(entry.name.split('.')[0], 10);
+      if (!Number.isNaN(nummer) && !nieuweBestanden.has(nummer)) {
+        try {
+          await exportDir.removeEntry(entry.name);
+        } catch (error) {
+          console.warn(`Verwijderen van ${entry.name} mislukt`, error);
+        }
+      }
+    }
+  }
+
+  teller = 1;
+  let exportedCount = 0;
+  for (const prompt of prompts) {
+    if (!prompt?.videoPath) {
+      teller += 1;
+      continue;
+    }
+    try {
+      const sourceHandle = await videosHandle.getFileHandle(prompt.videoPath);
+      const sourceFile = await sourceHandle.getFile();
+      const extension = prompt.videoPath.split('.').pop();
+      const targetName = `${teller}.${extension}`;
+      const targetHandle = await exportDir.getFileHandle(targetName, { create: true });
+      const writable = await targetHandle.createWritable();
+      await writable.write(await sourceFile.arrayBuffer());
+      await writable.close();
+      exportedCount += 1;
+    } catch (error) {
+      console.warn(`Video ${prompt.videoPath} exporteren mislukt`, error);
+    }
+    teller += 1;
+  }
+
+  return {
+    exportDirName,
+    exportedCount,
+  };
+}
+
+/**
  * Genereer een tekst preview van de prompts
  * 
  * @param {Array} prompts - Array van prompts

@@ -6,7 +6,7 @@
  */
 
 import { copyToClipboard } from "./dialogs.js";
-import { exportPromptsToText, exportSceneImages, generatePromptsPreview } from "./export-handlers.js";
+import { exportPromptsToText, exportSceneImages, exportSceneVideos, generatePromptsPreview } from "./export-handlers.js";
 
 /**
  * Maak een controller voor exportdialogen.
@@ -34,6 +34,12 @@ export function createExportDialogsController({
     if (!elements.exportChoiceDialog) return;
     applyTranslations(elements.exportChoiceDialog);
     elements.exportChoiceDialog.showModal();
+  }
+
+  function openMediaChoiceDialog() {
+    if (!elements.exportMediaChoiceDialog) return;
+    applyTranslations(elements.exportMediaChoiceDialog);
+    elements.exportMediaChoiceDialog.showModal();
   }
 
   function updatePreviewInfo(customKey, vars = {}) {
@@ -153,6 +159,39 @@ export function createExportDialogsController({
     }
   }
 
+  async function handleExportVideos() {
+    if (!state.projectData) {
+      showError(t("errors.noProjectSelected"));
+      return;
+    }
+    try {
+      const parentDir = await getCurrentProjectDir();
+      const slug = state.indexData.projects.find((project) => project.id === state.projectData.id)?.slug;
+      const { exportDirName, exportedCount } = await exportSceneVideos({
+        prompts: state.projectData.prompts,
+        projectName: state.projectData.projectName,
+        projectDirHandle: parentDir,
+        videosHandle: state.projectVideosHandle,
+        slug,
+      });
+      if (elements.imagesExportedDialog) {
+        const detail = t("alerts.videosExportedDetail", { dir: exportDirName, count: exportedCount });
+        if (elements.imagesExportedMessage) {
+          elements.imagesExportedMessage.textContent = detail;
+        }
+        if (elements.imagesExportedPath) {
+          elements.imagesExportedPath.textContent = exportDirName;
+        }
+        applyTranslations(elements.imagesExportedDialog);
+        elements.imagesExportedDialog.showModal();
+      } else {
+        window.alert(t("alerts.videosExported", { dir: exportDirName }));
+      }
+    } catch (error) {
+      showError(t("errors.exportVideos"), error);
+    }
+  }
+
   async function handleExportedCopy() {
     if (!elements.imagesExportedPath) return;
     const text = elements.imagesExportedPath.textContent || "";
@@ -180,10 +219,12 @@ export function createExportDialogsController({
 
   return {
     openChoiceDialog,
+    openMediaChoiceDialog,
     startPromptExport,
     handlePreviewCopy,
     handlePreviewClose,
     handleExportImages,
+    handleExportVideos,
     handleExportedCopy,
     handleExportedClose,
     updatePreviewInfo,

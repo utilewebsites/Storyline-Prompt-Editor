@@ -12,7 +12,7 @@
       <div class="title-group">
         <h1 id="header-title">
           <span data-i18n="header.title">Storyline Prompt Editor</span>
-          <span style="font-size: 0.6em; color: var(--text-muted); margin-left: 0.5rem;">(V3.31)</span>
+          <span style="font-size: 0.6em; color: var(--text-muted); margin-left: 0.5rem;">(V3.32)</span>
         </h1>
         <p id="header-subtitle" class="subtitle" data-i18n="header.subtitle">
           Beheer storylineprojecten, prompts en scene-afbeeldingen in één overzicht.
@@ -161,7 +161,10 @@
                 <button id="export-prompts" data-i18n="project.exportPrompts" data-help="help.exportPrompts">🗒️ Exporteer prompts</button>
                 <button id="export-prompts-dropdown" title="Meer opties" aria-label="Export opties">▾</button>
               </div>
-              <button id="export-images" data-i18n="project.exportImages" data-help="help.exportImages">🖼️ Exporteer afbeeldingen</button>
+              <div class="split-button">
+                <button id="export-images" data-i18n="project.exportImages" data-help="help.exportImages">🖼️ Exporteer afbeeldingen</button>
+                <button id="export-media-dropdown" title="Meer opties" aria-label="Export opties">▾</button>
+              </div>
               <button id="delete-project" class="danger" data-i18n="project.delete" data-help="help.deleteProject">🗑️ Verwijder project</button>
               </div>
             </div>
@@ -182,6 +185,12 @@
                 <div class="input-with-help" data-help="help.editNotes">
                   <textarea id="edit-notes" rows="2"></textarea>
                 </div>
+              </label>
+            </div>
+            <div>
+              <label>
+                <span data-i18n="metadata.preset">Preset</span>
+                <button id="open-preset-dialog" class="secondary" style="width: 100%;" data-i18n="metadata.openPreset">📂 Upload / Bekijk Preset</button>
               </label>
             </div>
           </section>
@@ -390,6 +399,66 @@
           <button id="export-choice-notes" value="notes" type="button" data-i18n="exportChoice.notes">Exporteer notities / vertalingen</button>
           <button value="cancel" data-i18n="actions.cancel">Annuleer</button>
         </menu>
+      </form>
+    </dialog>
+
+    <dialog id="export-media-choice-dialog">
+      <form method="dialog" class="export-choice-dialog">
+        <h3 data-i18n="exportMediaChoice.title">Media Exporteren</h3>
+        <p data-i18n="exportMediaChoice.message">Kies welke media u wilt exporteren:</p>
+        <menu>
+          <button id="export-choice-images" value="images" type="button" class="primary" data-i18n="exportMediaChoice.images">Exporteer afbeeldingen</button>
+          <button id="export-choice-videos" value="videos" type="button" data-i18n="exportMediaChoice.videos">Exporteer video's</button>
+          <button value="cancel" data-i18n="actions.cancel">Annuleer</button>
+        </menu>
+      </form>
+    </dialog>
+
+    <dialog id="preset-dialog" class="preset-dialog">
+      <form method="dialog">
+        <header>
+          <h3 data-i18n="presetDialog.title">Preset Details</h3>
+          <button value="close" class="icon-btn" aria-label="Close">✕</button>
+        </header>
+        
+        <div class="preset-container">
+          <aside class="preset-sidebar">
+            <div class="preset-list-header">
+              <h4 data-i18n="presetDialog.savedPresets">Opgeslagen</h4>
+              <button type="button" id="btn-new-preset" class="small secondary" title="Upload New">➕</button>
+            </div>
+            <ul id="preset-list" class="preset-list">
+              <!-- Items go here -->
+            </ul>
+          </aside>
+          
+          <div class="preset-main">
+            <div id="preset-upload-zone" class="preset-upload-zone">
+              <p data-i18n="presetDialog.uploadText">Sleep een JSON bestand hierheen of klik om te uploaden</p>
+              <input type="file" id="preset-file-input" accept=".json" hidden>
+              <button type="button" class="secondary" data-i18n="presetDialog.selectFile">Kies bestand</button>
+            </div>
+            
+            <div id="preset-viewer-container" hidden>
+              <div class="preset-meta-controls">
+                <label class="preset-filename-label">
+                  <span data-i18n="presetDialog.filename">Bestandsnaam:</span>
+                  <input type="text" id="preset-filename" class="preset-filename-input">
+                </label>
+                <div class="preset-actions">
+                  <button type="button" id="btn-replace-preset" class="secondary small" data-i18n="presetDialog.replace">Vervang</button>
+                  <button type="button" id="btn-delete-preset" class="danger small" data-i18n="presetDialog.delete">🗑️</button>
+                </div>
+              </div>
+              <div id="preset-viewer" class="preset-viewer"></div>
+            </div>
+          </div>
+        </div>
+
+        <footer>
+          <button value="cancel" data-i18n="actions.cancel">Annuleer</button>
+          <button type="button" id="save-preset-btn" class="primary" disabled data-i18n="presetDialog.save">💾 Opslaan</button>
+        </footer>
       </form>
     </dialog>
 
