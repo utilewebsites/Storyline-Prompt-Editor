@@ -280,12 +280,16 @@ export function renderMediaTabs(hasImage, hasVideo) {
  * @param {Array} prompts - De lijst met prompt objecten
  * @param {HTMLElement} container - De container waar de kaarten in moeten
  * @param {Function} createCardFn - De functie die 1 kaart HTML element maakt (bijv. createPromptCard)
+ * @param {Function} [onComplete] - Optionele callback die wordt uitgevoerd als alle batches klaar zijn
  */
-export function renderPromptsInBatches(prompts, container, createCardFn) {
+export function renderPromptsInBatches(prompts, container, createCardFn, onComplete) {
   // 1. Maak container eerst helemaal leeg
   container.innerHTML = '';
 
-  if (!prompts || prompts.length === 0) return;
+  if (!prompts || prompts.length === 0) {
+    if (onComplete) onComplete();
+    return;
+  }
 
   // 2. Configuratie voor batching
   const BATCH_SIZE = 10; // Aantal kaarten per keer renderen
@@ -315,6 +319,12 @@ export function renderPromptsInBatches(prompts, container, createCardFn) {
     if (currentIndex < prompts.length) {
       // requestAnimationFrame zorgt dat de UI niet bevriest tussen batches
       requestAnimationFrame(renderNextBatch);
+    } else {
+      // Klaar! Voer callback uit indien aanwezig
+      if (onComplete) {
+        // Geef browser even tijd om layout te updaten voordat we callback doen
+        requestAnimationFrame(() => onComplete());
+      }
     }
   }
 

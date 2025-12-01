@@ -509,6 +509,9 @@ function renderProjectEditor() {
   // Update LLM status indicator bij laden van project
   llmController.updateLLMStatusIndicator();
 
+  // Capture scroll position before re-rendering (horizontal scroll)
+  const currentScrollLeft = elements.promptsContainer.scrollLeft;
+
   // elements.promptsContainer.innerHTML = ""; // Wordt nu gedaan door renderPromptsInBatches
   
   const createCardWithExtras = (prompt, index) => {
@@ -540,7 +543,15 @@ function renderProjectEditor() {
     return fragment;
   };
 
-  renderPromptsInBatches(prompts, elements.promptsContainer, createCardWithExtras);
+  renderPromptsInBatches(prompts, elements.promptsContainer, createCardWithExtras, () => {
+    // Restore scroll position after rendering is complete
+    if (currentScrollLeft > 0) {
+      elements.promptsContainer.scrollLeft = currentScrollLeft;
+    }
+    
+    // Update help texts once after all cards are rendered
+    updateHelpTexts();
+  });
   
   // Herstel de media view mode als die bestaat
   if (state.currentMediaViewMode === "images") {
@@ -571,10 +582,6 @@ function renderProjectEditor() {
     elements.showAllImages.innerHTML = "🖼️ Afbeeldingen";
     elements.showAllVideos.innerHTML = "🎬 Video's";
   }
-
-  
-  // Update help texts once after all cards are rendered
-  updateHelpTexts();
 
   elements.projectEmptyState.classList.add("hidden");
   elements.projectEditor.classList.remove("hidden");
