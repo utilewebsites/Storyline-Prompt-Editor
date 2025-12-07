@@ -527,6 +527,15 @@ const translations = {
       hint: "Ondersteund: afbeeldingen, video's, audio, .txt bestanden",
       choose: "📁 Kies bestanden",
     },
+    plugins: {
+      title: "Beschikbare Plugins",
+      description: "Schakel extra functionaliteit in voor dit project.",
+      wan2gp: {
+        title: "Wan2GP Video Generator",
+        description: "Genereer video's direct vanuit je scenes. Maakt een queue-bestand aan dat je kunt uploaden naar de Wan2GP server.",
+        apiUrl: "API URL"
+      }
+    },
   },
   en: {
     header: {
@@ -1056,6 +1065,15 @@ const translations = {
       dropzone: "Drag files here or click \"Choose files\"",
       hint: "Supported: images, videos, audio, .txt files",
       choose: "📁 Choose files",
+    },
+    plugins: {
+      title: "Available Plugins",
+      description: "Enable extra functionality for this project.",
+      wan2gp: {
+        title: "Wan2GP Video Generator",
+        description: "Generate videos directly from your scenes. Creates a queue file that you can upload to the Wan2GP server.",
+        apiUrl: "API URL"
+      }
     },
   },
 };

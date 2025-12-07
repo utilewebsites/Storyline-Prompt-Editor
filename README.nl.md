@@ -5,7 +5,32 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## update — 30 november versie 3.31
+## update — 07 december versie 4.00
+
+Omdat ik merkte dat wanneer een image-to-image prompt perfect liep, ik deze instellingen graag wilde bewaren voor toekomstig gebruik, ben ik een nieuwe uitdaging aangegaan. Ik wilde deze presets niet alleen opslaan, maar direct vanuit de Storyline Editor in een verwerkingswachtrij kunnen plaatsen.
+
+Het doel was een systeem waarbij alles op de achtergrond wordt verwerkt. Zelfs als ik de editor afsluit en later weer open, wil ik precies kunnen zien wat de status is van mijn generaties. Dit maakt mijn **Video 4.0 workflow** een stuk efficiënter: ik kan nu scènes uit verschillende projecten aanpassen, beheren en opnieuw door de LLM-videogenerator halen, zonder het overzicht te verliezen.
+
+**⚠️ Cruciaal voor de werking:**
+Dit systeem vereist een **lokale Bridge Service** (`wan2gp_bridge.py`) die op de achtergrond draait. Deze bridge vormt de brug tussen de browser en de AI-server.
+*   **Alleen Lokaal:** De editor en bridge draaien volledig op je eigen machine; er is geen hosting nodig.
+*   **Alleen Chrome:** Vanwege de specifieke File System Access API werkt deze setup uitsluitend in **Google Chrome** (of Edge).
+*   **Wan2GP Service:** De Wan2GP AI-service moet geïnstalleerd en actief zijn, aangezien de bridge hiermee communiceert voor het genereren van de video's.
+
+Alles wordt centraal aangestuurd vanuit de Storyline Prompt Editor:
+
+**Plugin activeren per project:**
+![Plugin activeren](docs/images/plugin-onoff.png)
+
+**Direct toevoegen aan de wachtrij:**
+![Toevoegen aan queue](docs/images/addtoqueue.png)
+
+**Wan2GP Control Center (Background Monitoring):**
+![Wan2GP Control Center](docs/images/queue-background.png)
+
+Technisch heb ik gekozen voor een specifieke **plugin-architectuur**. Hierdoor blijft de basis van de editor schoon ("intact"), maar is het in de toekomst eenvoudig uit te breiden met nieuwe plugins voor bijvoorbeeld ComfyUI, andere LLM's of nieuwe toepassingen. Versie 4.0 is een grote stap vooruit, maar nog volop in ontwikkeling; de komende week zal ik gebruiken om de laatste bugs eruit te halen.
+
+##  30 november versie 3.31
 
 - Notities maken bij scènes met status "open" of "verwerkt".
 - Optimalisaties voor AI, onder andere voor WAN 2.2 image‑to‑image, OVI en camera movement (WAN 2.2); Lightning‑profiel en snelle selecties.

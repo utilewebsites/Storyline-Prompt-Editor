@@ -218,6 +218,16 @@ export function createPromptDialogController({
     elements.promptDialog.showModal();
     applyTranslations(elements.promptDialog);
 
+    // Dispatch event for plugins
+    const event = new CustomEvent('scene-dialog-opened', {
+      detail: {
+        dialog: elements.promptDialog,
+        scene: prompt,
+        projectData: state.projectData
+      }
+    });
+    document.dispatchEvent(event);
+
     // Debounce media loading: wacht 150ms voordat we echt gaan laden
     // Dit voorkomt "tig blob urls" als de gebruiker snel door scenes klikt
     if (mediaLoadTimeout) {

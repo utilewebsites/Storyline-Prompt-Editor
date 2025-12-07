@@ -6,7 +6,33 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot_en.png)
 
-## Update — 30 November, version 3.31
+## Update — 07 December, version 4.00
+
+I noticed that when an image-to-image prompt ran perfectly I wanted to save those exact settings for future use, and be able to queue them for processing directly from the Storyline Editor. This led to a new feature: presets that can be stored and submitted to a background processing queue.
+
+The goal was a system that processes everything in the background. Even if I close the editor and reopen it later, I want to see the exact status of my generations. This significantly speeds up my Video 4.0 workflow: I can edit scenes across different projects, manage them, and re-run them through the LLM video generator without losing track.
+
+⚠️ Important for operation:
+This system requires a local Bridge Service (`wan2gp_bridge.py`) running in the background. The bridge connects the browser to the AI server.
+- Local only: The editor and bridge run entirely on your machine; no external hosting is required.
+- Chrome only: Due to the File System Access API used, this setup works only in Google Chrome (or Edge).
+- Wan2GP service: The Wan2GP AI service must be installed and running, since the bridge communicates with it to generate videos.
+
+Everything is controlled from the Storyline Prompt Editor:
+
+Plugin activation per project:
+![Plugin activeren](docs/images/plugin-onoff.png)
+
+Add directly to the queue:
+![Toevoegen aan queue](docs/images/addtoqueue.png)
+
+Wan2GP Control Center (background monitoring):
+![Wan2GP Control Center](docs/images/queue-background.png)
+
+Technically, I opted for a plugin architecture. This keeps the editor core clean while making it easy to add new plugins in the future (for example for ComfyUI, other LLMs, or new integrations). Version 4.0 is a major step forward but is still under active development; the coming week will be used to squash final bugs.
+
+
+## 30 November, version 3.31
 
 - Add notes to scenes with the status "open" or "processed".
 - AI optimizations, including WAN 2.2 image‑to‑image, OVI and camera movement (WAN 2.2); Lightning profile and faster quick‑selects.

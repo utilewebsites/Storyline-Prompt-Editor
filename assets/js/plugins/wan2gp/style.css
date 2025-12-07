@@ -1,0 +1,276 @@
+/* Wan2GP Plugin Styles */
+
+/* Scene Dialog Sectie */
+.wan2gp-section {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    background: var(--bg-secondary, #f9f9f9);
+}
+
+.wan2gp-header h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: var(--primary-color, #007bff);
+}
+
+.wan2gp-content .form-group {
+    margin-bottom: 1rem;
+}
+
+.wan2gp-content label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.wan2gp-preset-select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+/* Preview Sectie */
+.wan2gp-preview {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--bg-primary, #fff);
+    border-left: 3px solid var(--primary-color, #007bff);
+}
+
+.wan2gp-preview h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.95rem;
+    color: var(--text-secondary, #666);
+}
+
+.wan2gp-preview ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.wan2gp-preview li {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.wan2gp-actions {
+    margin-top: 1rem;
+    text-align: right;
+}
+
+/* Queue Dashboard */
+.wan2gp-queue-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.wan2gp-queue-dashboard {
+    background: var(--bg-primary, #fff);
+    border-radius: 8px;
+    width: 90%;
+    max-width: 800px;
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color, #ddd);
+    width: 100%; /* Ensure full width */
+}
+
+.dashboard-header h2 {
+    flex: 1; /* Take available space */
+}
+
+.dashboard-header .header-controls {
+    /* margin-left: auto; Not needed if h2 flex:1 */
+}
+
+.dashboard-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.dashboard-header .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    line-height: 1;
+    color: var(--text-secondary, #666);
+}
+
+.dashboard-header .close-btn:hover {
+    color: var(--danger-color, #dc3545);
+}
+
+.dashboard-content {
+    flex: 1;
+    overflow: auto;
+    padding: 1.5rem;
+}
+
+/* Queue List */
+.queue-list {
+    margin-bottom: 1.5rem;
+    min-height: 200px;
+}
+
+.empty-queue {
+    text-align: center;
+    color: var(--text-secondary, #999);
+    padding: 3rem;
+    font-style: italic;
+}
+
+.queue-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.queue-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    margin-bottom: 0.5rem;
+    background: var(--bg-secondary, #f9f9f9);
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+}
+
+.queue-item:hover {
+    background: var(--bg-hover, #f0f0f0);
+}
+
+.task-id {
+    font-weight: bold;
+    color: var(--primary-color, #007bff);
+    min-width: 40px;
+}
+
+.task-model {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--info-color, #17a2b8);
+    color: #fff;
+    border-radius: 3px;
+    white-space: nowrap;
+}
+
+.task-prompt {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--text-primary, #333);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-status {
+    font-size: 1.2rem;
+}
+
+/* Queue Actions */
+.queue-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color, #ddd);
+}
+
+/* Buttons */
+.btn {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-primary {
+    background: var(--primary-color, #007bff);
+    color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover, #0056b3);
+}
+
+.btn-secondary {
+    background: var(--secondary-color, #6c757d);
+    color: #fff;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--secondary-hover, #545b62);
+}
+
+.btn-danger {
+    background: var(--danger-color, #dc3545);
+    color: #fff;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--danger-hover, #c82333);
+}
+
+/* Queue Button in Main Menu */
+#wan2gp-queue-btn {
+    margin-left: 0.5rem;
+}
+
+/* Bridge Controls */
+.small-btn {
+    padding: 4px 8px;
+    font-size: 0.8em;
+    min-width: 30px;
+}
+
+.success-btn {
+    background-color: #28a745;
+    color: white;
+}
+
+.warning-btn {
+    background-color: #ffc107;
+    color: black;
+}
+
+.danger-btn {
+    background-color: #dc3545;
+    color: white;
+}
+
+.bridge-controls button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

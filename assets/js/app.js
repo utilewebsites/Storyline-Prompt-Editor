@@ -50,6 +50,7 @@ import { createPresentationController } from "./modules/presentation-controller.
 import { createExportDialogsController } from "./modules/export-dialogs.js";
 import { createLayoutWorkflowController } from "./modules/layout-workflow.js";
 import { createPresetController } from "./modules/presets.js";
+import { initWan2GPPlugin } from "./plugins/wan2gp/index.js";
 
 /**
  * Storyline Prompt Editor
@@ -475,6 +476,11 @@ function setLanguage(lang, { reRender = true } = {}) {
     if (aiPromptController?.refreshExtraInstructionsPlaceholder) {
       aiPromptController.refreshExtraInstructionsPlaceholder();
     }
+
+    // Dispatch event voor plugins
+    document.dispatchEvent(new CustomEvent('language-changed', { 
+      detail: { language: newLang } 
+    }));
   });
 }
 
@@ -1250,6 +1256,14 @@ async function openProject(projectId) {
 
   // Start elke projectload in de verborgen workflowmodus zodat velden pas zichtbaar worden na expliciete keuze
   handleWorkflowModeChange(DEFAULT_WORKFLOW_MODE, { persist: false });
+
+  // Dispatch project-loaded event voor plugins
+  document.dispatchEvent(new CustomEvent('project-loaded', { 
+    detail: { 
+      projectId: projectId,
+      projectData: projectData 
+    } 
+  }));
 
   imageMap.clear();
   videoMap.clear(); // ⭐ NIEUW: clear video cache
@@ -2607,6 +2621,82 @@ function init() {
 
   // Initialiseer preset controller
   presetController.init();
+
+  // Initialiseer Plugins
+  initWan2GPPlugin({ state, elements });
+
+  // Plugin Settings Handlers (hook into existing LLM settings dialog)
+  if (elements.llmSettingsBtn) {
+    elements.llmSettingsBtn.addEventListener("click", () => {
+      // Load Wan2GP settings
+      const checkbox = document.getElementById('plugin-wan2gp-enabled');
+      const urlInput = document.getElementById('plugin-wan2gp-url');
+      const settingsDiv = document.getElementById('plugin-wan2gp-settings');
+      
+      if (checkbox) {
+        const isEnabled = state.projectData?.plugins?.wan2gp?.enabled || false;
+        checkbox.checked = isEnabled;
+        
+        if (settingsDiv) {
+          settingsDiv.style.display = isEnabled ? 'block' : 'none';
+        }
+        
+        if (urlInput) {
+          urlInput.value = state.projectData?.plugins?.wan2gp?.apiUrl || 'http://127.0.0.1:7861';
+        }
+      }
+    });
+  }
+
+  // Toggle settings visibility
+  const wan2gpCheckbox = document.getElementById('plugin-wan2gp-enabled');
+  if (wan2gpCheckbox) {
+    wan2gpCheckbox.addEventListener('change', (e) => {
+      const settingsDiv = document.getElementById('plugin-wan2gp-settings');
+      if (settingsDiv) {
+        settingsDiv.style.display = e.target.checked ? 'block' : 'none';
+      }
+    });
+  }
+
+  // Save settings handler for both buttons
+  const handleSaveSettings = () => {
+    // Save Wan2GP settings
+    const checkbox = document.getElementById('plugin-wan2gp-enabled');
+    const urlInput = document.getElementById('plugin-wan2gp-url');
+    
+    if (checkbox && state.projectData) {
+      if (!state.projectData.plugins) state.projectData.plugins = {};
+      if (!state.projectData.plugins.wan2gp) state.projectData.plugins.wan2gp = {};
+      
+      const wasEnabled = state.projectData.plugins.wan2gp.enabled;
+      const isEnabled = checkbox.checked;
+      const apiUrl = urlInput ? urlInput.value : 'http://127.0.0.1:7861';
+      
+      if (wasEnabled !== isEnabled || state.projectData.plugins.wan2gp.apiUrl !== apiUrl) {
+        state.projectData.plugins.wan2gp.enabled = isEnabled;
+        state.projectData.plugins.wan2gp.apiUrl = apiUrl;
+        flagProjectDirty();
+      }
+    }
+
+    // Save LLM settings (closes dialog)
+    llmController.saveLLMSettings();
+  };
+
+  if (elements.llmSaveSettings) {
+    elements.llmSaveSettings.addEventListener("click", handleSaveSettings);
+  }
+
+  // New button in plugins tab
+  const pluginsSaveBtn = document.getElementById('plugins-save-settings');
+  if (pluginsSaveBtn) {
+    pluginsSaveBtn.addEventListener("click", handleSaveSettings);
+  }
+
+
+
+
 
   if (elements.duplicateProject) {
     elements.duplicateProject.addEventListener("click", () =>
