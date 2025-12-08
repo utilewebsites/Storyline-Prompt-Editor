@@ -11,6 +11,7 @@ const translations = {
       bothMode: "Beide modi",
     },
     actions: {
+      save: "Opslaan",
       chooseRoot: "📁 Kies projectmap",
       cancel: "Annuleer",
       close: "Sluiten",
@@ -549,6 +550,7 @@ const translations = {
       bothMode: "Both modes",
     },
     actions: {
+      save: "Save",
       chooseRoot: "📁 Choose project folder",
       cancel: "Cancel",
       close: "Close",

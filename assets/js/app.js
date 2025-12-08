@@ -358,6 +358,12 @@ const llmController = createLLMSettingsController({
   state,
   elements,
   flagProjectDirty,
+  onSettingsSaved: async () => {
+    await saveProject();
+    if (state.projectData?.id) {
+      await openProject(state.projectData.id);
+    }
+  },
 });
 
 // Module controller voor AI Prompt Generator dialoog

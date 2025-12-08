@@ -20,7 +20,7 @@ import { testOllamaConnection, getAvailableModels, isLLMServiceActive } from "./
  * @param {Function} options.flagProjectDirty - Callback om project als gewijzigd te markeren
  * @returns {Object} helpers
  */
-export function createLLMSettingsController({ state, elements, flagProjectDirty }) {
+export function createLLMSettingsController({ state, elements, flagProjectDirty, onSettingsSaved }) {
   function ensureProjectLLMSettings() {
     if (!state.projectData) return null;
     if (!state.projectData.llmSettings) {
@@ -53,7 +53,7 @@ export function createLLMSettingsController({ state, elements, flagProjectDirty 
     updateLLMStatusIndicator();
   }
 
-  function saveLLMSettings() {
+  async function saveLLMSettings() {
     if (!state.projectData) {
       showError(t("errors.noProjectOpen"));
       return;
@@ -69,6 +69,10 @@ export function createLLMSettingsController({ state, elements, flagProjectDirty 
     state.projectData.llmSettings = config;
     flagProjectDirty();
     updateLLMStatusIndicator();
+
+    if (onSettingsSaved) {
+      await onSettingsSaved();
+    }
 
     elements.llmSettingsDialog?.close();
     showSuccess(t("llm.settingsSaved"));
