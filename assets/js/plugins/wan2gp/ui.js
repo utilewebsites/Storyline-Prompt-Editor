@@ -391,7 +391,7 @@ export class Wan2GPUI {
                 text-align: center;
                 display: flex;
                 flex-direction: column;
-                height: 300px; /* Fixed height for logs */
+                height: 350px; /* Fixed height for logs */
             }
             .server-log {
                 margin-top: 10px;
@@ -420,6 +420,21 @@ export class Wan2GPUI {
             }
             .status-indicator.online { background: #00C851; box-shadow: 0 0 8px #00C851; }
             
+            .loading-spinner-small {
+                display: inline-block;
+                width: 12px;
+                height: 12px;
+                border: 2px solid rgba(255,255,255,0.3);
+                border-radius: 50%;
+                border-top-color: #fff;
+                animation: spin 1s ease-in-out infinite;
+                margin-right: 5px;
+                vertical-align: middle;
+            }
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+
             /* Responsive adjustments */
             @media (max-width: 1000px) {
                 .dashboard-grid {
@@ -1052,7 +1067,7 @@ export class Wan2GPUI {
                             </div>
                             <div class="status-row" id="active-task-status-row" style="display:none; margin-top: 5px; padding-top: 5px; border-top: 1px dashed rgba(255,255,255,0.1); flex-direction: column; align-items: flex-start;">
                                 <span style="min-width: 60px; margin-bottom: 5px; font-weight: bold;">Status:</span>
-                                <span id="active-task-status" style="color: #4caf50; font-family: monospace; width: 100%;">-</span>
+                                <div id="active-task-status" style="color: #4caf50; font-family: monospace; width: 100%; max-height: 200px; overflow-y: auto; white-space: pre-wrap; background: rgba(0,0,0,0.2); padding: 5px; border-radius: 4px;">-</div>
                             </div>
                             
                             <!-- Bridge Service Controls -->
@@ -1516,7 +1531,7 @@ export class Wan2GPUI {
                 ${progressHtml}
                 <div class="queue-item-meta">
                     <span>${new Date(task.created_at).toLocaleTimeString()}</span>
-                    ${task.status === 'processing' ? `<span class="progress-text">${progress}%</span>` : ''}
+                    ${task.status === 'processing' ? `<span class="progress-text"><span class="loading-spinner-small"></span> ${this.t('statusProcessing')}</span>` : ''}
                 </div>
             `;
             
@@ -1531,11 +1546,11 @@ export class Wan2GPUI {
             activeIdSpan.style.color = 'var(--primary, #3a6df0)';
             
             if (activeStatusSpan && activeTask.logs && activeTask.logs.length > 0) {
-                // Toon laatste log regel
-                const lastLog = activeTask.logs[activeTask.logs.length - 1];
-                // Filter timestamps als die er dubbel in staan
-                const cleanLog = lastLog.replace(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3} - INFO - /, '');
-                activeStatusSpan.textContent = cleanLog.substring(0, 80) + (cleanLog.length > 80 ? '...' : '');
+                // Toon laatste 5 log regels voor meer context
+                const lastLogs = activeTask.logs.slice(-5);
+                const cleanLogs = lastLogs.map(log => log.replace(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3} - INFO - /, '')).join('\n');
+                
+                activeStatusSpan.textContent = cleanLogs;
                 activeStatusRow.style.display = 'flex';
             } else if (activeStatusRow) {
                 activeStatusRow.style.display = 'none';

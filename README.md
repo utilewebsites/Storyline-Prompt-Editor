@@ -15,7 +15,7 @@ The goal was a system that processes everything in the background. Even if I clo
 ⚠️ Important for operation:
 This system requires a local Bridge Service (`wan2gp_bridge.py`) running in the background. The bridge connects the browser to the AI server.
 - Local only: The editor and bridge run entirely on your machine; no external hosting is required.
-- Chrome only: Due to the File System Access API used, this setup works only in Google Chrome (or Edge).
+- Chrome only: Due to the File System Access API used, this setup works only in Google Chrome, Chromium (or Edge).
 - Wan2GP service: The Wan2GP AI service must be installed and running, since the bridge communicates with it to generate videos.
 
 Everything is controlled from the Storyline Prompt Editor:

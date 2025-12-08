@@ -4,7 +4,7 @@ import runpy
 
 # Configuratie
 # Pas dit pad aan naar jouw lokale Wan2GP installatie
-WAN2GP_DIR = "/path/to/your/Wan2GP"
+WAN2GP_DIR = "/home/admin2025/Documenten/ai-server/Wan2GP"
 WGP_SCRIPT = os.path.join(WAN2GP_DIR, "wgp.py")
 
 # 1. Setup Path
@@ -47,6 +47,29 @@ try:
 
     mmgp.offload.load_model_data = patched_load_model_data
     print("[Wrapper] Patched mmgp.offload.load_model_data for preprocess_sd compatibility")
+
+    # Patch 4: Fake GPU memory for VAE tiling calculation
+    import torch.cuda
+    original_get_device_properties = torch.cuda.get_device_properties
+
+    def patched_get_device_properties(device):
+        props = original_get_device_properties(device)
+        # We maken een nieuwe klasse of object dat zich gedraagt als de properties
+        # maar met minder geheugen, zodat get_VAE_tile_size conservatiever is.
+        # We mikken op < 12000 MB (12GB) om use_vae_config = 3 te forceren.
+        # 11GB = 11 * 1024 * 1024 * 1024 = 11811160064 bytes
+        class FakeProps:
+            def __init__(self, original):
+                self.name = original.name
+                self.major = original.major
+                self.minor = original.minor
+                self.total_memory = 11811160064 # 11 GB
+                self.multi_processor_count = original.multi_processor_count
+        
+        return FakeProps(props)
+
+    torch.cuda.get_device_properties = patched_get_device_properties
+    print("[Wrapper] Patched torch.cuda.get_device_properties to report 11GB VRAM for safer VAE tiling")
 
 except ImportError:
     print("[Wrapper] Could not import mmgp to patch it.")

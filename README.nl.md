@@ -14,7 +14,7 @@ Het doel was een systeem waarbij alles op de achtergrond wordt verwerkt. Zelfs a
 **⚠️ Cruciaal voor de werking:**
 Dit systeem vereist een **lokale Bridge Service** (`wan2gp_bridge.py`) die op de achtergrond draait. Deze bridge vormt de brug tussen de browser en de AI-server.
 *   **Alleen Lokaal:** De editor en bridge draaien volledig op je eigen machine; er is geen hosting nodig.
-*   **Alleen Chrome:** Vanwege de specifieke File System Access API werkt deze setup uitsluitend in **Google Chrome** (of Edge).
+*   **Alleen Chrome:** Vanwege de specifieke File System Access API werkt deze setup uitsluitend in **Google Chrome** , Chromium (of Edge).
 *   **Wan2GP Service:** De Wan2GP AI-service moet geïnstalleerd en actief zijn, aangezien de bridge hiermee communiceert voor het genereren van de video's.
 
 Alles wordt centraal aangestuurd vanuit de Storyline Prompt Editor:
