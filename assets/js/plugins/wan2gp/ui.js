@@ -1389,9 +1389,16 @@ export class Wan2GPUI {
         
         // Reset listeners (clone node trick)
         const newBtnUpload = btnUpload.cloneNode(true);
+        // Reset state explicitly (in case we cloned a button in 'loading' or 'success' state)
+        newBtnUpload.textContent = `🚀 ${this.t('uploadToWan')}`;
+        newBtnUpload.disabled = false;
+        newBtnUpload.className = "btn primary-btn"; // Reset classes if needed
         btnUpload.parentNode.replaceChild(newBtnUpload, btnUpload);
         
         const newBtnDelete = btnDelete.cloneNode(true);
+        // Reset state explicitly
+        newBtnDelete.textContent = `🗑️ ${this.t('btnDelete')}`;
+        newBtnDelete.disabled = false;
         btnDelete.parentNode.replaceChild(newBtnDelete, btnDelete);
         
         // Upload Action

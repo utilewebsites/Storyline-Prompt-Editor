@@ -145,7 +145,21 @@ export class Wan2GPClient {
             // Voeg bestanden toe aan zip
             if (task.files) {
                 for (const [filename, blob] of Object.entries(task.files)) {
-                    zip.file(filename, blob);
+                    try {
+                        // Forceer het lezen van de blob naar ArrayBuffer
+                        // Dit voorkomt "The requested file could not be read" errors bij File System API handles
+                        // door ze sequentieel en direct te lezen ipv lazy via JSZip
+                        const arrayBuffer = await blob.arrayBuffer();
+                        zip.file(filename, arrayBuffer);
+                    } catch (err) {
+                        console.error(`[Wan2GP] Fout bij lezen bestand ${filename} voor taak ${task.id}:`, err);
+                        // Probeer alsnog de blob toe te voegen (fallback), misschien werkt het lazy wel?
+                        // Of we skippen het bestand en loggen de fout.
+                        // Gezien de error "permission problems", is de kans groot dat de blob 'stale' is.
+                        // We kunnen proberen de blob opnieuw te laden als we wisten waar hij vandaan kwam.
+                        // Voor nu: voeg de corrupte blob toe zodat JSZip misschien een betere error geeft of het negeert
+                        zip.file(filename, blob); 
+                    }
                 }
             }
 
@@ -310,6 +324,18 @@ export class Wan2GPClient {
             
         if (tasksToSave.length === 0) throw new Error("Geen taken om op te slaan");
 
+        // Als er meerdere taken zijn, sla ze één voor één op (zodat het losse zip files worden)
+        if (tasksToSave.length > 1) {
+            const results = [];
+            for (const task of tasksToSave) {
+                // Recursieve aanroep voor enkele taak
+                const result = await this.saveQueueToProject([task.id]);
+                results.push(result);
+            }
+            // Return een samenvatting of de lijst
+            return `${results.length} bestanden in wan2gp_queue/`;
+        }
+
         // Genereer beschrijvende bestandsnaam
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
         let namePart = "queue";
@@ -342,7 +368,8 @@ export class Wan2GPClient {
         if (tasksToSave.length === 1) {
             const t = tasksToSave[0];
             const idx = getSceneIndex(t);
-            const sceneStr = (idx && idx !== '?') ? `Scene-${idx}` : `Task-${t.id}`;
+            // Voeg Task ID toe om uniekheid te garanderen bij meerdere taken voor dezelfde scene
+            const sceneStr = (idx && idx !== '?') ? `Scene-${idx}_Task-${t.id}` : `Task-${t.id}`;
             const type = t.params.image_prompt_type || 'S';
             namePart = `${sceneStr}_${type}`;
         } else {
