@@ -12,7 +12,7 @@ from flask_cors import CORS
 
 # --- Configuratie ---
 # Pas dit pad aan naar jouw lokale Wan2GP installatie
-WAN2GP_DIR = "/home/admin2025/Documenten/ai-server/Wan2GP"
+WAN2GP_DIR = "path/to/your/Wan2GP"
 UPLOAD_DIR = os.path.join(WAN2GP_DIR, "temp_uploads")
 QUEUE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "queue_state.json")
 PORT = 7868

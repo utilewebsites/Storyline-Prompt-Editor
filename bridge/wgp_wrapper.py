@@ -4,7 +4,7 @@ import runpy
 
 # Configuratie
 # Pas dit pad aan naar jouw lokale Wan2GP installatie
-WAN2GP_DIR = "/home/admin2025/Documenten/ai-server/Wan2GP"
+WAN2GP_DIR = "/path/to/your/Wan2GP"
 WGP_SCRIPT = os.path.join(WAN2GP_DIR, "wgp.py")
 
 # 1. Setup Path
