@@ -327,6 +327,7 @@ export class Wan2GPUI {
             .dashboard-grid {
                 display: grid;
                 grid-template-columns: 1fr 1fr 450px;
+                grid-template-rows: minmax(0, 1fr);
                 gap: 1rem;
                 padding: 1rem;
                 flex: 1;
@@ -348,6 +349,7 @@ export class Wan2GPUI {
                 display: flex;
                 flex-direction: column;
                 border: 1px solid var(--border, #2d2d36);
+                overflow-y: auto;
             }
             .dashboard-col h3 {
                 margin: 0 0 1rem 0;
