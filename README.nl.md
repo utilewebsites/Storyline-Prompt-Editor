@@ -5,6 +5,22 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
+## 11 december versie 4.05
+
+**Wan2GP-pluginverbeteringen:**
+
+Na intensief testen van de Wan2GP-pluginworkflow hebben we een aantal belangrijke optimalisaties doorgevoerd:
+
+**Workflow-optimalisaties:**
+- **Direct naar wachtrij:** scènes kunnen nu direct met een bestaande preset van Wan2GP naar de wachtrij worden gestuurd. Heb je een preset in Wan2GP getest en goedgekeurd? Gebruik die instellingen vervolgens in de Storyline Editor om scènes met dezelfde configuratie te verwerken. Daarnaast kun je presets en video‑LLM's door elkaar gebruiken, waardoor de ene scène via WAN 2.2 wordt verwerkt en de andere via OVI of Hunyuan Video 1.5, enz.
+- **GPU-configuratie:** in `wgp_wrapper.py` zijn vaste instellingen toegevoegd voor het "memory_profile" en voor het maximale VRAM, zodat de plugin beter aansluit op je hardware.
+
+**Getest & productieklaar (beta):**
+- Vier verschillende preset-configuraties getest met zowel alleen een startafbeelding als een combinatie van start- en eindafbeelding.
+- Bugfixes voor betrouwbare wachtrijsynchronisatie tussen de editor en de bridge-service.
+
+Deze verbeteringen maken de integratie tussen Storyline Editor en Wan2GP soepeler en productieklaar voor dagelijks gebruik.
+
 ## update — 07 december versie 4.00
 
 Omdat ik merkte dat wanneer een image-to-image prompt perfect liep, ik deze instellingen graag wilde bewaren voor toekomstig gebruik, ben ik een nieuwe uitdaging aangegaan. Ik wilde deze presets niet alleen opslaan, maar direct vanuit de Storyline Editor in een verwerkingswachtrij kunnen plaatsen.

@@ -64,9 +64,6 @@ export class Wan2GPClient {
             'name', 
             '_apiUrl', 
             'mode', 
-            'settings_version', 
-            'model_filename',
-            'base_model_type',
             'wan_config'
         ];
         blacklist.forEach(key => {
@@ -171,8 +168,6 @@ export class Wan2GPClient {
                 'type', 
                 'name', 
                 '_apiUrl', 
-                'settings_version', 
-                'base_model_type',
                 'wan_config',
                 'plugin_data'
             ];
@@ -182,7 +177,10 @@ export class Wan2GPClient {
             });
 
             // Voeg ontbrekende defaults toe om TypeError te voorkomen
+            // Waarden gebaseerd op native WanGP queue format voor maximale compatibiliteit
             const defaults = {
+                settings_version: 2.41,  // Belangrijk: voorkomt dat oude backwards compatibility code sliding_window params verwijdert
+                image_mode: 0,
                 resolution: "832x480",
                 video_length: 81,
                 num_inference_steps: 20,
@@ -190,15 +188,17 @@ export class Wan2GPClient {
                 batch_size: 1,
                 force_fps: "",
                 guidance_scale: 5.0,
-                guidance2_scale: 5.0,
-                guidance3_scale: 5,
-                switch_threshold: 0,
-                switch_threshold2: 0,
-                guidance_phases: 1,
-                model_switch_phase: 1,
+                guidance2_scale: 1,  // Native WanGP waarde (was 5.0)
+                guidance3_scale: 1,  // Native WanGP waarde (was 5)
+                switch_threshold: 985,  // Native WanGP waarde (was 0)
+                switch_threshold2: 800,  // Native WanGP waarde (was 0)
+                guidance_phases: 3,  // Native WanGP waarde (was 1)
+                model_switch_phase: 2,  // Native WanGP waarde (was 1)
                 alt_guidance_scale: 6,
                 audio_guidance_scale: 4,
+                flow_shift: 5,  // NIEUW: Native WanGP parameter
                 embedded_guidance_scale: 6,
+                repeat_generation: 1,  // NIEUW: Native WanGP parameter
                 model_mode: null,
                 video_source: null,
                 keep_frames_video_source: "",
@@ -225,50 +225,51 @@ export class Wan2GPClient {
                 pace: 0.5,
                 exaggeration: 0.5,
                 temperature: 0.8,
+                output_filename: "",  // NIEUW: Native WanGP parameter
                 model_type: task.model || "i2v_2_2",
-                model_filename: task.params.model_filename || "https://huggingface.co/DeepBeepMeep/Wan2.2/resolve/main/wan2.2_image2video_14B_high_quanto_mbf16_int8.safetensors",
                 mode: "",
-                sample_solver: "unipc",
+                sample_solver: "euler",  // Native WanGP waarde (was "unipc")
                 multi_prompts_gen_type: 0,
                 multi_images_gen_type: 0,
                 skip_steps_cache_type: "",
-                skip_steps_multiplier: 1,
-                skip_steps_start_step_perc: 0,
-                loras_multipliers: [],
+                skip_steps_multiplier: 1.5,  // Native WanGP waarde (was 1)
+                skip_steps_start_step_perc: 20,  // Native WanGP waarde (was 0)
+                loras_multipliers: "0;1;0 0;0;1|",  // Native WanGP format (was [])
                 image_prompt_type: "I",
                 keep_frames_video_guide: "",
                 motion_amplitude: 1.0,
                 mask_expand: 0,
-                audio_prompt_type: "N",
+                audio_prompt_type: "V",  // Native WanGP waarde (was "N")
                 sliding_window_size: 81,
-                sliding_window_overlap: 16,
-                sliding_window_color_correction_strength: 1.0,
-                sliding_window_overlap_noise: 0.5,
+                sliding_window_overlap: 1,  // Native WanGP waarde (was 16)
+                sliding_window_color_correction_strength: 0,  // Native WanGP waarde (was 1.0)
+                sliding_window_overlap_noise: 0,  // Native WanGP waarde (was 0.5)
                 sliding_window_discard_last_frames: 0,
-                temporal_upsampling: 0,
+                temporal_upsampling: "",
                 spatial_upsampling: "",
                 film_grain_intensity: 0,
-                film_grain_saturation: 1.0,
-                MMAudio_setting: "",
+                film_grain_saturation: 0.5,  // Native WanGP waarde (was 1.0)
+                MMAudio_setting: 0,
+                MMAudio_prompt: "",
                 MMAudio_neg_prompt: "",
-                RIFLEx_setting: "",
-                NAG_scale: 0,
-                NAG_tau: 0,
-                NAG_alpha: 0,
+                RIFLEx_setting: 0,
+                NAG_scale: 1,  // Native WanGP waarde (was 0)
+                NAG_tau: 3.5,  // Native WanGP waarde (was 0)
+                NAG_alpha: 0.5,  // Native WanGP waarde (was 0)
                 slg_switch: 0,
-                slg_layers: "",
-                slg_start_perc: 0,
-                slg_end_perc: 0,
+                slg_layers: [9],  // Native WanGP format (was "")
+                slg_start_perc: 10,  // Native WanGP waarde (was 0)
+                slg_end_perc: 90,  // Native WanGP waarde (was 0)
                 apg_switch: 0,
                 cfg_star_switch: 0,
-                cfg_zero_step: 0,
-                override_profile: 0,
+                cfg_zero_step: -1,  // Native WanGP waarde (was 0)
+                override_profile: -1,  // Native WanGP waarde (was 0)
                 activated_loras: []
             };
 
             // Merge defaults als ze niet bestaan
             for (const [key, value] of Object.entries(defaults)) {
-                if (!(key in cleanParams)) {
+                if (!(key in cleanParams) || cleanParams[key] === null || cleanParams[key] === undefined) {
                     cleanParams[key] = value;
                 }
             }

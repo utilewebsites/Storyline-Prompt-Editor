@@ -6,6 +6,23 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot_en.png)
 
+## 11 December, version 4.05
+
+**Wan2GP plugin improvements:**
+
+After extensive testing of the Wan2GP plugin workflow, we implemented a number of important optimizations:
+
+**Workflow optimizations:**
+- **Direct to queue:** Scenes can now be sent directly to the queue using an existing Wan2GP preset. If you tested and approved a preset in Wan2GP, use those settings in the Storyline Editor to process scenes with the same configuration. You can also mix presets and video LLMs, so one scene may be processed via WAN 2.2 and another via OVI or Hunyuan Video 1.5, etc.
+- **GPU configuration:** Fixed settings were added in `wgp_wrapper.py` for the memory_profile and maximum VRAM so the plugin better matches your hardware.
+
+**Tested & production-ready (beta):**
+- Four different preset configurations tested with both start-only images and start-and-end image combinations.
+- Bug fixes for reliable queue synchronization between the editor and the bridge service.
+
+These improvements make the integration between the Storyline Editor and Wan2GP smoother and production-ready for daily use.
+
+
 ## Update — 07 December, version 4.00
 
 I noticed that when an image-to-image prompt ran perfectly I wanted to save those exact settings for future use, and be able to queue them for processing directly from the Storyline Editor. This led to a new feature: presets that can be stored and submitted to a background processing queue.

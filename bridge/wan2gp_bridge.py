@@ -12,7 +12,7 @@ from flask_cors import CORS
 
 # --- Configuratie ---
 # Pas dit pad aan naar jouw lokale Wan2GP installatie
-WAN2GP_DIR = "path/to/your/Wan2GP"
+WAN2GP_DIR = "/path/to/your/Wan2GP"
 UPLOAD_DIR = os.path.join(WAN2GP_DIR, "temp_uploads")
 QUEUE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "queue_state.json")
 PORT = 7868
@@ -104,6 +104,28 @@ class QueueManager:
             self.queue = [t for t in self.queue if t['status'] in ['pending', 'processing']]
         self.save_queue()
 
+    def _extract_override_profile(self, zip_filepath):
+        """
+        Extraheer override_profile waarde uit de eerste taak in queue.json
+        Retourneert None als niet gevonden, anders het profiel nummer
+        """
+        import zipfile
+        import json
+        
+        try:
+            with zipfile.ZipFile(zip_filepath, 'r') as zf:
+                if 'queue.json' in zf.namelist():
+                    queue_data = json.loads(zf.read('queue.json'))
+                    if isinstance(queue_data, list) and len(queue_data) > 0:
+                        first_task = queue_data[0]
+                        if 'params' in first_task:
+                            profile = first_task['params'].get('override_profile', -1)
+                            return profile if profile >= 0 else None
+        except Exception as e:
+            logger.warning(f"Kon override_profile niet lezen: {e}")
+        
+        return None
+
     def worker_loop(self):
         """Achtergrond proces dat de queue afwerkt"""
         logger.info("Worker thread started")
@@ -143,7 +165,25 @@ class QueueManager:
 
             wrapper_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wgp_wrapper.py")
             
-            cmd = [python_exec, wrapper_script, "--process", filepath, "--gpu", "cuda:0", "--fp16"]
+            # Lees override_profile uit de queue.json om memory profiel te bepalen
+            override_profile = self._extract_override_profile(filepath)
+            
+            # Als override_profile -1 is (niet ingesteld), force naar 1 voor HighRAM_HighVRAM
+            # Profiel 1 = optimaal voor 64GB RAM + 24GB VRAM (volledige model loading in VRAM)
+            if override_profile is None or override_profile < 0:
+                override_profile = 1
+                logger.info("Override profile niet ingesteld, geforceerd naar profiel 1 (HighRAM_HighVRAM)")
+            
+            # Bouw het commando met altijd --profile argument
+            cmd = [
+                python_exec, 
+                wrapper_script, 
+                "--process", filepath, 
+                "--gpu", "cuda:0", 
+                "--fp16",
+                "--profile", str(override_profile)
+            ]
+            logger.info(f"Using memory profile: {override_profile}")
             
             env = os.environ.copy()
             env["PYTHONUNBUFFERED"] = "1"
