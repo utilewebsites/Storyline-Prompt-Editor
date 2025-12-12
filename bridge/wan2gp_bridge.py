@@ -175,15 +175,17 @@ class QueueManager:
                 logger.info("Override profile niet ingesteld, geforceerd naar profiel 1 (HighRAM_HighVRAM)")
             
             # Bouw het commando met altijd --profile argument
+            # En voeg --vae-config 2 toe om VAE tile sizes te verkleinen (voorkomt OOM bij Hunyuan 1.5)
             cmd = [
                 python_exec, 
                 wrapper_script, 
                 "--process", filepath, 
                 "--gpu", "cuda:0", 
                 "--fp16",
-                "--profile", str(override_profile)
+                "--profile", str(override_profile),
+                "--vae-config", "2"  # Force kleinere VAE tiles (192x192 ipv 256x256) voor 24GB VRAM
             ]
-            logger.info(f"Using memory profile: {override_profile}")
+            logger.info(f"Using memory profile: {override_profile} with VAE config: 2 (12GB tier)")
             
             env = os.environ.copy()
             env["PYTHONUNBUFFERED"] = "1"
