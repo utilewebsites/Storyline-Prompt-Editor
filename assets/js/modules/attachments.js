@@ -1,9 +1,9 @@
 /**
  * Attachments Module
- * Beheert tot 8 bijlagen (images, videos, txt) per scene
+ * Beheert tot 20 bijlagen (images, videos, audio, 3D models, data files) per scene
  */
 
-const MAX_ATTACHMENTS = 8;
+const MAX_ATTACHMENTS = 20;
 const attachmentCache = new Map(); // promptId -> Map(filename -> blob URL)
 
 /**
@@ -128,18 +128,22 @@ async function addAttachments(prompt, files, projectAttachmentsHandle, callbacks
   }
   
   const validFiles = files.filter(file => {
-    const isImage = file.type.startsWith("image/");
-    const isVideo = file.type.startsWith("video/");
-    const isAudio = file.type.startsWith("audio/") || file.name.endsWith(".wav") || file.name.endsWith(".mp3");
-    const isText = file.type === "text/plain" || file.name.endsWith(".txt");
-    return isImage || isVideo || isAudio || isText;
+    const fileName = file.name.toLowerCase();
+    const isImage = file.type.startsWith("image/") || fileName.match(/\.(png|jpg|jpeg|gif)$/);
+    const isVideo = file.type.startsWith("video/") || fileName.match(/\.(mp4|avi|mov)$/);
+    const isAudio = file.type.startsWith("audio/") || fileName.match(/\.(wav|mp3)$/);
+    const isText = file.type === "text/plain" || fileName.endsWith(".txt");
+    const isData = fileName.match(/\.(npy|csv|json|xml|pkl)$/);
+    const is3DModel = fileName.match(/\.(fbx|obj|gltf|usd)$/);
+    const isMotionCapture = fileName.match(/\.(bvh|c3d)$/);
+    return isImage || isVideo || isAudio || isText || isData || is3DModel || isMotionCapture;
   });
   
   const remainingSlots = MAX_ATTACHMENTS - currentAttachments.length;
   const filesToAdd = validFiles.slice(0, remainingSlots);
   
   if (filesToAdd.length === 0) {
-    onError("Geen geldige bestanden", new Error("Alleen images, videos, audio en .txt bestanden zijn toegestaan"));
+    onError("Geen geldige bestanden", new Error("Alleen images, videos, audio, 3D models (.fbx, .obj, .gltf, .usd), data files (.npy, .csv, .json, .xml, .pkl), motion capture (.bvh, .c3d) en .txt bestanden zijn toegestaan"));
     return;
   }
   
@@ -267,17 +271,27 @@ function renderAttachments(grid, prompt, projectAttachmentsHandle, callbacks) {
     preview.className = "attachment-preview";
     
     // Icon/preview gebaseerd op type
-    if (attachment.type.startsWith("image/")) {
+    const fileName = attachment.originalName.toLowerCase();
+    if (attachment.type.startsWith("image/") || fileName.match(/\.(png|jpg|jpeg|gif)$/)) {
       const img = document.createElement("img");
       loadAttachmentPreview(attachment.filename, projectAttachmentsHandle, prompt.id)
         .then(url => img.src = url)
         .catch(() => img.src = "");
       preview.appendChild(img);
-    } else if (attachment.type.startsWith("video/")) {
+    } else if (attachment.type.startsWith("video/") || fileName.match(/\.(mp4|avi|mov)$/)) {
       preview.innerHTML = "🎬";
       preview.classList.add("icon-preview");
-    } else if (attachment.type.startsWith("audio/") || attachment.originalName.match(/\.(wav|mp3)$/i)) {
+    } else if (attachment.type.startsWith("audio/") || fileName.match(/\.(wav|mp3)$/)) {
       preview.innerHTML = "🎵";
+      preview.classList.add("icon-preview");
+    } else if (fileName.match(/\.(fbx|obj|gltf|usd)$/)) {
+      preview.innerHTML = "🧊";
+      preview.classList.add("icon-preview");
+    } else if (fileName.match(/\.(bvh|c3d)$/)) {
+      preview.innerHTML = "🏃";
+      preview.classList.add("icon-preview");
+    } else if (fileName.match(/\.(csv|json|xml|npy|pkl)$/)) {
+      preview.innerHTML = "📊";
       preview.classList.add("icon-preview");
     } else {
       preview.innerHTML = "📄";
@@ -288,6 +302,15 @@ function renderAttachments(grid, prompt, projectAttachmentsHandle, callbacks) {
     name.className = "attachment-name";
     name.textContent = attachment.originalName;
     name.title = attachment.originalName;
+    
+    const downloadBtn = document.createElement("button");
+    downloadBtn.className = "download-attachment";
+    downloadBtn.innerHTML = "⬇️";
+    downloadBtn.title = "Download bijlage";
+    downloadBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await downloadAttachment(attachment, projectAttachmentsHandle);
+    });
     
     const deleteBtn = document.createElement("button");
     deleteBtn.className = "delete-attachment";
@@ -300,6 +323,7 @@ function renderAttachments(grid, prompt, projectAttachmentsHandle, callbacks) {
     
     item.appendChild(preview);
     item.appendChild(name);
+    item.appendChild(downloadBtn);
     item.appendChild(deleteBtn);
     
     // Click voor preview
@@ -315,6 +339,31 @@ function renderAttachments(grid, prompt, projectAttachmentsHandle, callbacks) {
     
     grid.appendChild(item);
   });
+}
+
+/**
+ * Download attachment naar lokale machine
+ */
+async function downloadAttachment(attachment, projectAttachmentsHandle) {
+  try {
+    const fileHandle = await projectAttachmentsHandle.getFileHandle(attachment.filename);
+    const file = await fileHandle.getFile();
+    
+    // Maak een download link
+    const blobUrl = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = attachment.originalName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    // Cleanup blob URL na korte delay
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+  } catch (error) {
+    console.error("Download mislukt:", error);
+    alert(`Kan bestand niet downloaden: ${error.message}`);
+  }
 }
 
 /**

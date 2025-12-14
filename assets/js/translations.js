@@ -523,9 +523,9 @@ const translations = {
       traditionalHelp: "In Traditionele Video Storyline Mode beschrijf je precies wat er gebeurt, hoe je het filmt, en de exacte timing zoals bij klassieke videoproductie",
     },
     attachments: {
-      title: "📎 Bijlagen (max 8)",
+      title: "📎 Bijlagen (max 20)",
       dropzone: "Sleep bestanden hierheen of klik op \"Kies bestanden\"",
-      hint: "Ondersteund: afbeeldingen, video's, audio, .txt bestanden",
+      hint: "Ondersteund: afbeeldingen, video's, audio, 3D models (.fbx, .obj, .gltf, .usd), data files (.npy, .csv, .json, .xml, .pkl), motion capture (.bvh, .c3d), .txt bestanden",
       choose: "📁 Kies bestanden",
     },
     plugins: {
@@ -1063,9 +1063,9 @@ const translations = {
       traditionalHelp: "In Traditional Video Storyline Mode you describe exactly what happens, how you film it, and the exact timing like in classic video production",
     },
     attachments: {
-      title: "📎 Attachments (max 8)",
+      title: "📎 Attachments (max 20)",
       dropzone: "Drag files here or click \"Choose files\"",
-      hint: "Supported: images, videos, audio, .txt files",
+      hint: "Supported: images, videos, audio, 3D models (.fbx, .obj, .gltf, .usd), data files (.npy, .csv, .json, .xml, .pkl), motion capture (.bvh, .c3d), .txt files",
       choose: "📁 Choose files",
     },
     plugins: {
