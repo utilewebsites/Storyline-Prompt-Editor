@@ -24,9 +24,18 @@ Since video generation is a heavy and time-consuming process, it is not desirabl
 *   Wan2GP installed.
 
 #### Configuration (Important!)
-Before starting the service, you must configure the path to your Wan2GP installation:
-1.  Open `wan2gp_bridge.py` and update `WAN2GP_DIR`.
-2.  Open `wgp_wrapper.py` and update `WAN2GP_DIR`.
+Before starting the service, you must configure the following paths:
+
+1.  **Wan2GP Installation Path:**
+    *   Open `wan2gp_bridge.py` and update `WAN2GP_DIR` (around line 16)
+    *   Open `wgp_wrapper.py` and update `WAN2GP_DIR` (around line 7)
+    *   Example: `WAN2GP_DIR = "/home/username/Wan2GP"`
+
+2.  **Python Virtual Environment:**
+    *   Open `wan2gp_bridge.py` and locate the `python_candidates` list (around line 171)
+    *   Replace `/pad/naar/jouw/venv` with your actual venv path
+    *   Example: `"/home/username/venvs/wan2gp/bin/python"`
+    *   Also update the `PATH` environment variable (around line 200) with the same venv path
 
 #### Service Installation (Systemd)
 The bridge is now managed via Systemd.

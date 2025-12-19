@@ -126,6 +126,94 @@ class QueueManager:
         
         return None
 
+    def _patch_queue_zip_for_wan22_bug(self, zip_filepath):
+        """
+        Workaround voor Wan2.2 bug in wgp.py regel 813:
+        'if model_def.get("black_frame", False) and len(image_start or [])==0:'
+        faalt als image_start een PIL Image is i.p.v. een lijst.
+        
+        We patchen de queue.json om ervoor te zorgen dat images altijd als lijst worden behandeld.
+        Dit is een tijdelijke fix totdat de upstream bug in Wan2GP is opgelost.
+        """
+        import zipfile
+        import json
+        import tempfile
+        import shutil
+        
+        try:
+            # Maak een temp directory voor bewerking
+            temp_dir = tempfile.mkdtemp()
+            extract_dir = os.path.join(temp_dir, "queue_contents")
+            
+            # Extract de zip
+            with zipfile.ZipFile(zip_filepath, 'r') as zf:
+                zf.extractall(extract_dir)
+            
+            # Lees queue.json
+            queue_json_path = os.path.join(extract_dir, "queue.json")
+            if not os.path.exists(queue_json_path):
+                # Geen queue.json, geen patch nodig
+                shutil.rmtree(temp_dir)
+                return
+            
+            with open(queue_json_path, 'r') as f:
+                queue_data = json.load(f)
+            
+            # Patch elke taak om PIL Image bug te workaround
+            # De bug: wgp.py verwacht images soms als lijst, soms als enkelvoudig
+            # Als image_start/image_end een string (filename) is i.p.v. lijst van strings,
+            # dan laadt wgp.py het als enkel PIL Image i.p.v. lijst met 1 Image
+            # Dit veroorzaakt "TypeError: object of type 'PngImageFile' has no len()"
+            patched = False
+            if isinstance(queue_data, list):
+                for task in queue_data:
+                    if 'params' in task:
+                        # Check of de taak image_prompt_type bevat met S of E (start/end images)
+                        image_prompt_type = task['params'].get('image_prompt_type', '')
+                        
+                        # Forceer dat image_start en image_end altijd als lijst worden opgeslagen
+                        if 'S' in image_prompt_type and 'image_start' in task['params']:
+                            img_start = task['params']['image_start']
+                            # Als het een string is (filename), maak er een lijst van
+                            if isinstance(img_start, str):
+                                task['params']['image_start'] = [img_start]
+                                patched = True
+                                logger.info(f"[Bug workaround] Wrapped image_start '{img_start}' in list for task {task.get('id', 'unknown')}")
+                        
+                        if 'E' in image_prompt_type and 'image_end' in task['params']:
+                            img_end = task['params']['image_end']
+                            if isinstance(img_end, str):
+                                task['params']['image_end'] = [img_end]
+                                patched = True
+                                logger.info(f"[Bug workaround] Wrapped image_end '{img_end}' in list for task {task.get('id', 'unknown')}")
+            
+            if patched:
+                # Schrijf gepatched queue.json terug
+                with open(queue_json_path, 'w') as f:
+                    json.dump(queue_data, f, indent=2)
+                
+                # Maak nieuwe zip met gepatched content
+                temp_zip = zip_filepath + ".patched"
+                with zipfile.ZipFile(temp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    for root, dirs, files in os.walk(extract_dir):
+                        for file in files:
+                            file_path = os.path.join(root, file)
+                            arcname = os.path.relpath(file_path, extract_dir)
+                            zf.write(file_path, arcname)
+                
+                # Vervang originele zip
+                shutil.move(temp_zip, zip_filepath)
+                logger.info(f"[Bug workaround] Patched queue zip to avoid Wan2.2 len(image_start) bug")
+            
+            # Cleanup
+            shutil.rmtree(temp_dir)
+            
+        except Exception as e:
+            logger.warning(f"[Bug workaround] Failed to patch queue zip: {e}")
+            # Bij fout gewoon doorgaan met originele zip
+            if 'temp_dir' in locals() and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+
     def worker_loop(self):
         """Achtergrond proces dat de queue afwerkt"""
         logger.info("Worker thread started")
@@ -158,37 +246,50 @@ class QueueManager:
         try:
             filepath = os.path.join(UPLOAD_DIR, task['filename'])
             
+            # Patch queue zip voor Wan2.2 PIL Image bug (regel 813)
+            self._patch_queue_zip_for_wan22_bug(filepath)
+            
             # Python executable bepalen
-            python_exec = "/home/admin2025/Documenten/ai-server/.venv/bin/python3"
-            if not os.path.exists(python_exec):
-                python_exec = "python3"
+            # Belangrijk: gebruik dezelfde venv als de draaiende Wan2GP service (zie `wan2gp.service`).
+            # Daarmee matchen mmgp/torch versies en voorkom je verschillen in geheugenbeheer.
+            python_candidates = [
+                "/pad/naar/jouw/venv/bin/python",
+                "/pad/naar/jouw/venv/bin/python3",
+                "/usr/bin/python3",
+                "python3",
+            ]
+            python_exec = next((p for p in python_candidates if os.path.exists(p)), "python3")
 
-            wrapper_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "wgp_wrapper.py")
+            wgp_script = os.path.join(WAN2GP_DIR, "wgp.py")
             
             # Lees override_profile uit de queue.json om memory profiel te bepalen
             override_profile = self._extract_override_profile(filepath)
             
-            # Als override_profile -1 is (niet ingesteld), force naar 1 voor HighRAM_HighVRAM
-            # Profiel 1 = optimaal voor 64GB RAM + 24GB VRAM (volledige model loading in VRAM)
-            if override_profile is None or override_profile < 0:
-                override_profile = 1
-                logger.info("Override profile niet ingesteld, geforceerd naar profiel 1 (HighRAM_HighVRAM)")
-            
-            # Bouw het commando met altijd --profile argument
-            # En voeg --vae-config 2 toe om VAE tile sizes te verkleinen (voorkomt OOM bij Hunyuan 1.5)
-            cmd = [
-                python_exec, 
-                wrapper_script, 
-                "--process", filepath, 
-                "--gpu", "cuda:0", 
-                "--fp16",
-                "--profile", str(override_profile),
-                "--vae-config", "2"  # Force kleinere VAE tiles (192x192 ipv 256x256) voor 24GB VRAM
-            ]
-            logger.info(f"Using memory profile: {override_profile} with VAE config: 2 (12GB tier)")
+            # Bouw het commando zoals de Wan2GP headless documentatie:
+            #   python3 wgp.py --process my_queue.zip
+            # We houden het bewust minimaal om geen afwijkend memory-gedrag te introduceren.
+            cmd = [python_exec, wgp_script, "--process", filepath]
+
+            # Alleen profile forceren als dit expliciet in de queue staat.
+            # Anders laat Wan2GP zelf de default uit `wgp_config.json` bepalen.
+            if override_profile is not None and override_profile >= 0:
+                cmd += ["--profile", str(override_profile)]
+                logger.info(f"Using override memory profile from queue: {override_profile}")
+            else:
+                logger.info("No override_profile in queue; using Wan2GP defaults from wgp_config.json")
             
             env = os.environ.copy()
             env["PYTHONUNBUFFERED"] = "1"
+
+            # Mirror de belangrijkste runtime env van `wan2gp.service` voor consistente CUDA allocatie.
+            env["PATH"] = f"/pad/naar/jouw/venv/bin:{env.get('PATH', '')}"
+            env.setdefault("CUDA_HOME", "/usr/lib/cuda")
+            env.setdefault("CUDA_ROOT", "/usr/lib/cuda")
+            env.setdefault("TORCH_CUDNN_V8_API_ENABLED", "1")
+            env.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True,max_split_size_mb:512")
+
+            task['logs'].append(f"[Bridge] Launching: {cmd}")
+            self.save_queue()
 
             process = subprocess.Popen(
                 cmd,

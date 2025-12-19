@@ -9,11 +9,12 @@ WGP_SCRIPT = os.path.join(WAN2GP_DIR, "wgp.py")
 
 # Memory Profile Configuratie
 # Profiel 0: LowRAM_LowVRAM (16GB RAM + 12GB VRAM)
-# Profiel 1: HighRAM_HighVRAM (64GB RAM + 24GB VRAM) - AANBEVOLEN voor dit systeem
-# Profiel 2: LowRAM_HighVRAM (16GB RAM + 24GB VRAM)
-# Profiel 3: HighRAM_LowVRAM (64GB RAM + 12GB VRAM)
-# Profiel 4: Auto (laat WanGP beslissen)
-FORCE_MEMORY_PROFILE = 1  # Forceer altijd profiel 1 (volledige VRAM loading, ~23GB usage)
+# Profiel 1: HighRAM_HighVRAM (64GB RAM + 24GB VRAM) - Gebruikt ook swap RAM (279GB beschikbaar)
+# Profiel 2: HighRAM_LowVRAM (64GB RAM + 12GB VRAM)
+# Profiel 3: LowRAM_HighVRAM (32GB RAM + 24GB VRAM)
+# Profiel 4: LowRAM_LowVRAM (32GB RAM + 12GB VRAM)
+# Profiel 5: VerylowRAM_LowVRAM (24GB RAM + 10GB VRAM)
+FORCE_MEMORY_PROFILE = 1  # Profiel 1: systeem heeft 32GB RAM + 279GB swap = voldoende voor HighRAM profiel
 
 # GPU VRAM Configuratie (voor VAE tiling berekening)
 # Stel in op je echte GPU VRAM (bytes). 24GB = 25769803776 bytes
