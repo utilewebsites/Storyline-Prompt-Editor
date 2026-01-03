@@ -237,12 +237,19 @@ const translations = {
       message: "Kies wat u wilt exporteren:",
       prompts: "Exporteer prompts",
       notes: "Exporteer notities / vertalingen",
+      promptsInProgress: "Exporteer prompts (alleen in progress)",
     },
     exportMediaChoice: {
       title: "Media Exporteren",
       message: "Kies welke media u wilt exporteren:",
       images: "Exporteer afbeeldingen",
       videos: "Exporteer video's",
+      imagesInProgress: "Exporteer afbeeldingen (alleen in progress)",
+    },
+    sceneStatus: {
+      inProgress: "In progress",
+      completed: "Voltooid",
+      toggleTitle: "Status wijzigen (in progress / voltooid)",
     },
     alerts: {
       imagesExportedTitle: "Afbeeldingen geëxporteerd",
@@ -776,12 +783,19 @@ const translations = {
       message: "Choose what to export:",
       prompts: "Export prompts",
       notes: "Export notes / translations",
+      promptsInProgress: "Export prompts (only in progress)",
     },
     exportMediaChoice: {
       title: "Export Media",
       message: "Choose which media to export:",
       images: "Export images",
       videos: "Export videos",
+      imagesInProgress: "Export images (only in progress)",
+    },
+    sceneStatus: {
+      inProgress: "In progress",
+      completed: "Completed",
+      toggleTitle: "Change status (in progress / completed)",
     },
     alerts: {
       imagesExportedTitle: "Images exported",

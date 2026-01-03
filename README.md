@@ -6,6 +6,29 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot_en.png)
 
+
+## 03 January 2025 — version 4.08
+
+**Scene Status Tracking & Improved Export Filters**
+
+When working on larger productions with dozens of scenes, it became hard to keep track of which scenes were finished and which still needed attention. This update introduces a practical status system that lets you see the state of each scene at a glance.
+
+**Scene Status System:**
+- **Status toggle per scene:** next to the attachments button (📎) there is now a status indicator you can toggle with one click between "in progress" and "completed"
+- **Visual feedback:** in-progress scenes show a ⏱️ icon with an orange accent; completed scenes get a green ✓ checkmark
+- **Persistently saved:** the status is stored per scene in your project.json so you always know where you left off
+
+**Smart Export Filters:**
+- **Focus on active scenes:** when exporting prompts you can now choose "Export prompts (in progress only)" — ideal for sending only the scenes that still need generation
+- **Media export filter:** there is also an option to export images only from in-progress scenes
+- **More efficient workflow:** completed scenes are automatically filtered out so your video generator receives only new or modified content
+
+**Attachments Expansion:**
+- **More room:** the attachment limit has been increased from 8 to 20 files per scene — perfect for reference material, storyboards, and inspiration images
+- **Wider file types:** in addition to existing formats, more audio and document types have been added for greater flexibility
+
+These updates are especially useful when working in iterations: create a rough version of all scenes first, refine specific parts next, and finally export only the updated prompts to your video generator without manually checking which scenes still need work.
+
 ## 11 December, version 4.05
 
 **Wan2GP plugin improvements:**

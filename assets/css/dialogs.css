@@ -3,7 +3,7 @@ dialog {
   border: none;
   border-radius: 12px;
   padding: 0;
-  max-width: 420px;
+  max-width: 42=80px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.25);
 }
 
@@ -38,7 +38,7 @@ dialog::backdrop {
 /* Export choice dialog */
 .export-choice-dialog {
   padding: 1rem 1.2rem;
-  max-width: 420px;
+  max-width: 480px;
 }
 
 .export-choice-dialog h3 {

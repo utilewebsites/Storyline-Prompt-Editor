@@ -16,8 +16,15 @@ function normaliseerPromptTekst(waarde) {
   return waarde.replace(/\s+/g, " ").trim();
 }
 
-function verzamelExportRegels(prompts = [], mode = "prompts") {
-  return prompts
+function verzamelExportRegels(prompts = [], mode = "prompts", filterStatus = null) {
+  let gefilterd = prompts;
+  
+  // Filter op status indien gevraagd
+  if (filterStatus === "in-progress") {
+    gefilterd = prompts.filter(p => p.status === "in-progress" || !p.status);
+  }
+  
+  return gefilterd
     .map((prompt) => {
       const bron = mode === "notes" ? prompt.translation : prompt.text;
       return normaliseerPromptTekst(bron ?? "");
@@ -32,10 +39,11 @@ function verzamelExportRegels(prompts = [], mode = "prompts") {
  * @param {Array} params.prompts - Array van prompts om te exporteren
  * @param {FileSystemDirectoryHandle} params.projectDirHandle - Project directory
  * @param {string} params.mode - "prompts" of "notes"
+ * @param {string} params.filterStatus - "in-progress" om alleen in-progress scenes te exporteren
  * @returns {Promise<string>} - Geëxporteerde tekst
  */
-export async function exportPromptsToText({ prompts, projectDirHandle, mode = "prompts", fileName } = {}) {
-  const regels = verzamelExportRegels(prompts, mode);
+export async function exportPromptsToText({ prompts, projectDirHandle, mode = "prompts", fileName, filterStatus = null } = {}) {
+  const regels = verzamelExportRegels(prompts, mode, filterStatus);
   if (!regels.length) {
     throw new Error("NO_PROMPTS_AVAILABLE");
   }
@@ -55,6 +63,7 @@ export async function exportPromptsToText({ prompts, projectDirHandle, mode = "p
  * @param {string} params.projectName - Project naam
  * @param {FileSystemDirectoryHandle} params.projectDirHandle - Project directory
  * @param {FileSystemDirectoryHandle} params.imagesHandle - Images directory
+ * @param {string} params.filterStatus - "in-progress" om alleen in-progress scenes te exporteren
  * @returns {Promise<{exportPath: string, count: number}>} - Export resultaat
  */
 export async function exportSceneImages({
@@ -63,6 +72,7 @@ export async function exportSceneImages({
   slug,
   projectDirHandle,
   imagesHandle,
+  filterStatus = null,
 }) {
   if (!projectDirHandle) {
     throw new Error("PROJECT_DIR_HANDLE_MISSING");
@@ -71,13 +81,21 @@ export async function exportSceneImages({
     throw new Error("IMAGES_HANDLE_MISSING");
   }
 
+  // Filter op status indien gevraagd
+  let teExporterenPrompts = prompts;
+  if (filterStatus === "in-progress") {
+    teExporterenPrompts = prompts.filter(p => p.status === "in-progress" || !p.status);
+  }
+
   const basisNaam = slug || (projectName ? projectName.replace(/[^a-z0-9]+/gi, "-").toLowerCase() : "project");
-  const exportDirName = `scene_images_${basisNaam}`;
+  const exportDirName = filterStatus === "in-progress" 
+    ? `scene_images_${basisNaam}_in_progress` 
+    : `scene_images_${basisNaam}`;
   const exportDir = await projectDirHandle.getDirectoryHandle(exportDirName, { create: true });
 
   const nieuweBestanden = new Set();
   let teller = 1;
-  for (const prompt of prompts) {
+  for (const prompt of teExporterenPrompts) {
     if (prompt?.imagePath) {
       try {
         await imagesHandle.getFileHandle(prompt.imagePath);
@@ -104,7 +122,7 @@ export async function exportSceneImages({
 
   teller = 1;
   let exportedCount = 0;
-  for (const prompt of prompts) {
+  for (const prompt of teExporterenPrompts) {
     if (!prompt?.imagePath) {
       teller += 1;
       continue;
@@ -220,10 +238,11 @@ export async function exportSceneVideos({
  * 
  * @param {Array} prompts - Array van prompts
  * @param {string} mode - "prompts" of "notes"
+ * @param {string} filterStatus - "in-progress" om alleen in-progress scenes te tonen
  * @returns {string} - Preview tekst
  */
-export function generatePromptsPreview(prompts, mode = "prompts") {
-  const regels = verzamelExportRegels(prompts, mode);
+export function generatePromptsPreview(prompts, mode = "prompts", filterStatus = null) {
+  const regels = verzamelExportRegels(prompts, mode, filterStatus);
   return {
     text: regels.join("\n\n"),
     count: regels.length,

@@ -5,6 +5,28 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
+## 03 januari 2025 versie 4.08
+
+**Scene Status Tracking & Verbeterde Export Filters:**
+
+Bij het werken aan grotere producties met tientallen scenes merkten we dat het lastig was om overzicht te houden over welke scenes al klaar waren en welke nog aandacht nodig hadden. Deze update introduceert een praktisch status systeem waarmee je direct ziet wat de status is van elke scene in je project.
+
+**Scene Status Systeem:**
+- **Status toggle per scene:** naast de bijlagen knop (📎) vind je nu een status indicator die je met één klik kunt omschakelen tussen "in progress" en "voltooid"
+- **Visuele feedback:** scenes in progress tonen een ⏱️ icoon met oranje accent, voltooide scenes krijgen een groen ✓ vinkje
+- **Persistent opgeslagen:** de status wordt per scene bewaard in je project.json, zodat je altijd weet waar je gebleven bent
+
+**Slimme Export Filters:**
+- **Focus op actieve scenes:** bij het exporteren van prompts kun je nu kiezen voor "Exporteer prompts (alleen in progress)" - perfect voor het doorsturen van alleen de scenes die nog gegenereerd moeten worden
+- **Media export filter:** ook bij het exporteren van afbeeldingen is er een optie om alleen media van in-progress scenes te exporteren
+- **Efficiëntere workflow:** voltooide scenes worden automatisch uitgefilterd, zodat je video-generator enkel de nieuwe of aangepaste content krijgt
+
+**Attachments Uitbreiding:**
+- **Meer ruimte:** de limiet voor bijlagen is verhoogd van 8 naar 20 bestanden per scene - ideaal voor referentiemateriaal, storyboards en inspiratie-afbeeldingen
+- **Uitgebreidere bestandstypen:** naast de bestaande formaten zijn er meer audio- en documentformaten toegevoegd voor nog flexibelere workflows
+
+Deze updates zijn vooral handig wanneer je in iteraties werkt: eerst een grove versie van alle scenes, daarna verfijnen van specifieke delen, en tenslotte alleen de aangepaste prompts exporteren naar je video-generator zonder dat je handmatig hoeft uit te zoeken welke scenes nog moeten.
+
 ## 11 december versie 4.05
 
 **Wan2GP-pluginverbeteringen:**

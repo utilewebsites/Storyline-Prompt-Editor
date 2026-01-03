@@ -158,11 +158,13 @@ const elements = {
   exportChoiceDialog: document.querySelector("#export-choice-dialog"),
   exportChoicePrompts: document.querySelector("#export-choice-prompts"),
   exportChoiceNotes: document.querySelector("#export-choice-notes"),
+  exportChoicePromptsProgress: document.querySelector("#export-choice-prompts-progress"),
   exportImages: document.querySelector("#export-images"),
   exportMediaDropdown: document.querySelector("#export-media-dropdown"),
   exportMediaChoiceDialog: document.querySelector("#export-media-choice-dialog"),
   exportChoiceImages: document.querySelector("#export-choice-images"),
   exportChoiceVideos: document.querySelector("#export-choice-videos"),
+  exportChoiceImagesProgress: document.querySelector("#export-choice-images-progress"),
   exportDialog: document.querySelector("#export-dialog"),
   exportPreviewDialog: document.querySelector("#export-preview-dialog"),
   exportPreviewText: document.querySelector("#export-preview-text"),
@@ -916,6 +918,25 @@ function createPromptCard(prompt, index) {
       onError: (message, error) => {
         showError(message, error);
       }
+    });
+  }
+
+  // Status toggle button
+  const statusToggleBtn = card.querySelector(".status-toggle-button");
+  if (statusToggleBtn) {
+    // Initialiseer status (default is "in-progress")
+    const initialStatus = prompt.status || "in-progress";
+    statusToggleBtn.dataset.status = initialStatus;
+    statusToggleBtn.textContent = initialStatus === "completed" ? "✓" : "⏱️";
+    statusToggleBtn.title = t("sceneStatus.toggleTitle");
+    
+    // Toggle event
+    statusToggleBtn.addEventListener("click", () => {
+      const currentStatus = statusToggleBtn.dataset.status;
+      const newStatus = currentStatus === "in-progress" ? "completed" : "in-progress";
+      updatePromptField(prompt.id, "status", newStatus);
+      statusToggleBtn.dataset.status = newStatus;
+      statusToggleBtn.textContent = newStatus === "completed" ? "✓" : "⏱️";
     });
   }
 
@@ -2996,6 +3017,13 @@ function init() {
       elements.exportChoiceDialog?.close();
     });
   }
+  if (elements.exportChoicePromptsProgress) {
+    elements.exportChoicePromptsProgress.addEventListener("click", (event) => {
+      event.preventDefault();
+      exportDialogsController.startPromptExport("prompts", "in-progress");
+      elements.exportChoiceDialog?.close();
+    });
+  }
   if (elements.exportMediaDropdown && elements.exportMediaChoiceDialog) {
     elements.exportMediaDropdown.addEventListener("click", (event) => {
       event.preventDefault();
@@ -3013,6 +3041,13 @@ function init() {
     elements.exportChoiceVideos.addEventListener("click", (event) => {
       event.preventDefault();
       exportDialogsController.handleExportVideos();
+      elements.exportMediaChoiceDialog?.close();
+    });
+  }
+  if (elements.exportChoiceImagesProgress) {
+    elements.exportChoiceImagesProgress.addEventListener("click", (event) => {
+      event.preventDefault();
+      exportDialogsController.handleExportImages("in-progress");
       elements.exportMediaChoiceDialog?.close();
     });
   }

@@ -54,12 +54,12 @@ export function createExportDialogsController({
     updatePreviewInfo();
   }
 
-  async function startPromptExport(mode = "prompts") {
+  async function startPromptExport(mode = "prompts", filterStatus = null) {
     if (!state.projectData) {
       showError(t("errors.noProjectSelected"));
       return;
     }
-    const { text, count } = generatePromptsPreview(state.projectData.prompts, mode);
+    const { text, count } = generatePromptsPreview(state.projectData.prompts, mode, filterStatus);
     if (!count) {
       showError(t("errors.noPrompts"));
       return;
@@ -67,6 +67,7 @@ export function createExportDialogsController({
     localState.pendingExportText = text;
     localState.pendingExportCount = count;
     state.pendingExportMode = mode;
+    state.pendingExportFilterStatus = filterStatus;
     if (elements.exportPreviewText) {
       elements.exportPreviewText.value = text;
     }
@@ -85,12 +86,14 @@ export function createExportDialogsController({
     try {
       const projectDir = await getCurrentProjectDir();
       const mode = state.pendingExportMode || "prompts";
+      const filterStatus = state.pendingExportFilterStatus || null;
       const fileName = mode === "prompts" ? "prompts_export.txt" : "notes_export.txt";
       await exportPromptsToText({
         prompts: state.projectData.prompts,
         projectDirHandle: projectDir,
         mode,
         fileName,
+        filterStatus,
       });
       if (elements.exportDialog && !elements.exportDialog.open) {
         applyTranslations(elements.exportDialog);
@@ -126,7 +129,7 @@ export function createExportDialogsController({
     }
   }
 
-  async function handleExportImages() {
+  async function handleExportImages(filterStatus = null) {
     if (!state.projectData) {
       showError(t("errors.noProjectSelected"));
       return;
@@ -140,6 +143,7 @@ export function createExportDialogsController({
         projectDirHandle: parentDir,
         imagesHandle: state.projectImagesHandle,
         slug,
+        filterStatus,
       });
       if (elements.imagesExportedDialog) {
         const detail = t("alerts.imagesExportedDetail", { dir: exportDirName, count: exportedCount });
