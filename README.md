@@ -7,7 +7,7 @@ This project is a browser-based workspace for crafting video LLM prompts while s
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot_en.png)
 
 
-## 03 January 2025 — version 4.08
+## 03 January 2026 — version 4.08
 
 **Scene Status Tracking & Improved Export Filters**
 

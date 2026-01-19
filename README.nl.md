@@ -5,7 +5,7 @@ Dit project is een browser-gebaseerde werkplek voor het schrijven van video LLM-
 
 ![Storyline Prompt Editor Screenshot](docs/images/screenshot.png)
 
-## 03 januari 2025 versie 4.08
+## 03 januari 2026 versie 4.08
 
 **Scene Status Tracking & Verbeterde Export Filters:**
 
